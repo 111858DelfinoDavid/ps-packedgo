@@ -1,17 +1,17 @@
 package com.example.users_service.entity;
+import com.example.users_service.model.Gender;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.Map;
 
 @Getter
 @Setter
 @Entity
 @Table(name = "user_profiles")
-public class UserProfile {
+public class UserProfileEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -27,8 +27,9 @@ public class UserProfile {
     private String lastName;
 
     @Column(nullable = false, length = 10)
-    private String gender;
-    // Mejor usar Enum
+    @Enumerated(EnumType.STRING)
+    private Gender gender;
+
 
     @Column(unique = true, nullable = false)
     private Long document;
@@ -42,8 +43,6 @@ public class UserProfile {
     @Column(name = "profile_image_url", length = 500)
     private String profileImageUrl;
 
-    @Column(columnDefinition = "preferences")
-    private String preferences; // simplificado: guardamos como JSON string
 
     @Column(name = "created_at", nullable = false, updatable = false,
             columnDefinition = "TIMESTAMP DEFAULT CURRENT_TIMESTAMP")

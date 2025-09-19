@@ -19,7 +19,6 @@ public class UserProfileDTO {
     private LocalDate bornDate;
     private Long telephone;
     private String profileImageUrl;
-    private Map<String, Object> preferences;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private Boolean isActive;

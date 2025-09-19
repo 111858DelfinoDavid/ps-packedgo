@@ -1,6 +1,6 @@
 package com.example.users_service.controller;
 
-import com.example.users_service.dto.UserProfileDTO;
+import com.example.users_service.model.UserProfile;
 import com.example.users_service.service.UserProfileService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -15,29 +15,69 @@ public class UserProfileController {
 
     private final UserProfileService service;
 
+
     @PostMapping
-    public ResponseEntity<UserProfileDTO> create(@RequestBody UserProfileDTO dto) {
-        return ResponseEntity.ok(service.create(dto));
+    public ResponseEntity<UserProfile> create(@RequestBody UserProfile model) {
+        UserProfile created = service.create(model);
+        if (created != null) {
+            return ResponseEntity.ok(created);
+        } else {
+            return ResponseEntity.status(409).build();
+        }
     }
 
+
     @GetMapping("/{id}")
-    public ResponseEntity<UserProfileDTO> getById(@PathVariable Long id) {
+    public ResponseEntity<UserProfile> getById(@PathVariable Long id) {
         return ResponseEntity.ok(service.getById(id));
     }
 
+
     @GetMapping
-    public ResponseEntity<List<UserProfileDTO>> getAll() {
+    public ResponseEntity<List<UserProfile>> getAll() {
         return ResponseEntity.ok(service.getAll());
     }
 
+
     @PutMapping("/{id}")
-    public ResponseEntity<UserProfileDTO> update(@PathVariable Long id, @RequestBody UserProfileDTO dto) {
-        return ResponseEntity.ok(service.update(id, dto));
+    public ResponseEntity<UserProfile> update(@PathVariable Long id, @RequestBody UserProfile model) {
+        return ResponseEntity.ok(service.update(id, model));
     }
+
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         service.delete(id);
         return ResponseEntity.noContent().build();
+    }
+
+
+    @DeleteMapping("/logical/{id}")
+    public ResponseEntity<UserProfile> deleteLogical(@PathVariable Long id) {
+        return ResponseEntity.ok(service.deleteLogical(id));
+    }
+
+
+    @GetMapping("/active")
+    public ResponseEntity<List<UserProfile>> getAllActive() {
+        return ResponseEntity.ok(service.getAllActive());
+    }
+
+
+    @GetMapping("/active/email/{email}")
+    public ResponseEntity<UserProfile> getByEmailActive(@PathVariable String email) {
+        return ResponseEntity.ok(service.getByEmailActive(email));
+    }
+
+
+    @GetMapping("/active/{id}")
+    public ResponseEntity<UserProfile> getByIdActive(@PathVariable Long id) {
+        return ResponseEntity.ok(service.getByIdActive(id));
+    }
+
+
+    @GetMapping("/active/document/{document}")
+    public ResponseEntity<UserProfile> getByDocumentActive(@PathVariable Long document) {
+        return ResponseEntity.ok(service.getByDocumentActive(document));
     }
 }

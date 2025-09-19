@@ -1,107 +1,165 @@
 package com.example.users_service.service.impl;
 
-import com.example.users_service.dto.UserProfileDTO;
-import com.example.users_service.entity.UserProfile;
+import com.example.users_service.entity.UserProfileEntity;
+import com.example.users_service.model.UserProfile;
 import com.example.users_service.repository.UserProfileRepository;
 import com.example.users_service.service.UserProfileService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.modelmapper.ModelMapper;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
 public class UserProfileServiceImpl implements UserProfileService {
 
-    private final UserProfileRepository repository;
+    @Autowired
+    private final UserProfileRepository userProfileRepository;
+    @Autowired
+    private final ModelMapper modelMapper;
+
 
     @Override
-    @Transactional
-    public UserProfileDTO create(UserProfileDTO dto) {
-        UserProfile entity = mapToEntity(dto);
-        entity.setCreatedAt(LocalDateTime.now());
-        entity.setUpdatedAt(LocalDateTime.now());
-        UserProfile saved = repository.save(entity);
-        return mapToDTO(saved);
+    public UserProfile create(UserProfile model) {
+        Optional<UserProfileEntity> userExist = userProfileRepository.findByDocument(model.getDocument());
+        if (userExist.isEmpty()) {
+            UserProfileEntity userProfileEntity = modelMapper.map(model, UserProfileEntity.class);
+            UserProfileEntity userPofileEntitySaved = userProfileRepository.save(userProfileEntity);
+            return modelMapper.map(userPofileEntitySaved, UserProfile.class);
+        } else  {
+            throw new RuntimeException("No se puede registrar.");
+        }
+
+
     }
 
     @Override
-    public UserProfileDTO getById(Long id) {
-        return repository.findById(id)
-                .map(this::mapToDTO)
-                .orElseThrow(() -> new RuntimeException("UserProfile not found"));
+    public UserProfile getById(Long id) {
+        Optional<UserProfileEntity> userExist = userProfileRepository.findById(id);
+        if (!userExist.isEmpty()) {
+            return modelMapper.map(userExist, UserProfile.class);
+        }else {
+            throw new RuntimeException("UserProfile con id " + id + " no encontrado");
+        }
+
     }
 
     @Override
-    public List<UserProfileDTO> getAll() {
-        return repository.findAll().stream()
-                .map(this::mapToDTO)
-                .collect(Collectors.toList());
+    public UserProfile getByEmail(String email) {
+        Optional<UserProfileEntity> userExist = userProfileRepository.findByEmail(email);
+        if (!userExist.isEmpty()) {
+            return modelMapper.map(userExist, UserProfile.class);
+        }else {
+            throw new RuntimeException("UserProfile con email " + email + " no encontrado");
+        }
     }
 
     @Override
-    @Transactional
-    public UserProfileDTO update(Long id, UserProfileDTO dto) {
-        UserProfile entity = repository.findById(id)
-                .orElseThrow(() -> new RuntimeException("UserProfile not found"));
-
-        entity.setName(dto.getName());
-        entity.setLastName(dto.getLastName());
-        entity.setGender(dto.getGender());
-        entity.setDocument(dto.getDocument());
-        entity.setBornDate(dto.getBornDate());
-        entity.setTelephone(dto.getTelephone());
-        entity.setProfileImageUrl(dto.getProfileImageUrl());
-        entity.setPreferences(dto.getPreferences() != null ? dto.getPreferences().toString() : null);
-        entity.setIsActive(dto.getIsActive());
-        entity.setUpdatedAt(LocalDateTime.now());
-
-        return mapToDTO(repository.save(entity));
+    public UserProfile getByDocument(Long document) {
+        Optional<UserProfileEntity> userExist = userProfileRepository.findByDocument(document);
+        if (!userExist.isEmpty()) {
+            return modelMapper.map(userExist, UserProfile.class);
+        }else {
+            throw new RuntimeException("UserProfile con documento " + document + " no encontrado");
+        }
     }
 
     @Override
-    @Transactional
+    public List<UserProfile> getAll() {
+        List<UserProfileEntity> userProfileEntities = userProfileRepository.findAll();
+
+        return userProfileEntities.stream()
+                .map(entity -> modelMapper.map(entity, UserProfile.class))
+                .toList();
+    }
+
+    @Override
+    public UserProfile update(Long id, UserProfile model) {
+        // Buscamos solo usuarios activos
+        Optional<UserProfileEntity> userExist = userProfileRepository.findByIdAndIsActiveTrue(id);
+
+        if (userExist.isPresent()) {
+            UserProfileEntity entity = userExist.get();
+
+            // Mapear los cambios desde el modelo al entity
+            modelMapper.map(model, entity);
+
+            // Guardar los cambios
+            UserProfileEntity updatedEntity = userProfileRepository.save(entity);
+
+            return modelMapper.map(updatedEntity, UserProfile.class);
+        } else {
+            // Usuario no encontrado o inactivo
+            throw new RuntimeException("UserProfile activo con id " + id + " no encontrado");
+        }
+    }
+
+
+    @Override
     public void delete(Long id) {
-        repository.deleteById(id);
+        // Delete físico
+        if (userProfileRepository.existsById(id)) {
+            userProfileRepository.deleteById(id);
+        } else {
+            throw new RuntimeException("UserProfile con id " + id + " no encontrado");
+        }
     }
 
-    // =================== MAPPERS ===================
-
-    private UserProfileDTO mapToDTO(UserProfile entity) {
-        UserProfileDTO dto = new UserProfileDTO();
-        dto.setId(entity.getId());
-        dto.setAuthUserId(entity.getAuthUserId());
-        dto.setName(entity.getName());
-        dto.setLastName(entity.getLastName());
-        dto.setGender(entity.getGender());
-        dto.setDocument(entity.getDocument());
-        dto.setBornDate(entity.getBornDate());
-        dto.setTelephone(entity.getTelephone());
-        dto.setProfileImageUrl(entity.getProfileImageUrl());
-        dto.setPreferences(Map.of("raw", entity.getPreferences())); // simplificado
-        dto.setCreatedAt(entity.getCreatedAt());
-        dto.setUpdatedAt(entity.getUpdatedAt());
-        dto.setIsActive(entity.getIsActive());
-        return dto;
+    /**
+     * Delete lógico: marca isActive = false
+     */
+    @Transactional
+    @Override
+    public UserProfile deleteLogical(Long id) {
+        Optional<UserProfileEntity> userExist = userProfileRepository.findById(id);
+        if (userExist.isPresent()) {
+            UserProfileEntity entity = userExist.get();
+            entity.setIsActive(false);
+            UserProfileEntity updatedEntity = userProfileRepository.save(entity);
+            return modelMapper.map(updatedEntity, UserProfile.class);
+        } else {
+            throw new RuntimeException("UserProfile con id " + id + " no encontrado");
+        }
     }
 
-    private UserProfile mapToEntity(UserProfileDTO dto) {
-        UserProfile entity = new UserProfile();
-        entity.setId(dto.getId());
-        entity.setAuthUserId(dto.getAuthUserId());
-        entity.setName(dto.getName());
-        entity.setLastName(dto.getLastName());
-        entity.setGender(dto.getGender());
-        entity.setDocument(dto.getDocument());
-        entity.setBornDate(dto.getBornDate());
-        entity.setTelephone(dto.getTelephone());
-        entity.setProfileImageUrl(dto.getProfileImageUrl());
-        entity.setPreferences(dto.getPreferences() != null ? dto.getPreferences().toString() : null);
-        entity.setIsActive(dto.getIsActive());
-        return entity;
+    @Override
+    public List<UserProfile> getAllActive() {
+        List<UserProfileEntity> userProfileEntities = userProfileRepository.findByIsActiveTrue();
+        return userProfileEntities.stream()
+                .map(entity -> modelMapper.map(entity, UserProfile.class))
+                .toList();
     }
+
+    @Override
+    public UserProfile getByEmailActive(String email) {
+        Optional<UserProfileEntity> userExist = userProfileRepository.findByEmailAndIsActiveTrue(email);
+        if (userExist.isPresent()) {
+            return modelMapper.map(userExist.get(), UserProfile.class);
+        } else {
+            throw new RuntimeException("UserProfile activo con email " + email + " no encontrado");
+        }
+    }
+    @Override
+    public UserProfile getByIdActive(Long id) {
+        Optional<UserProfileEntity> userExist = userProfileRepository.findByIdAndIsActiveTrue(id);
+        if (userExist.isPresent()) {
+            return modelMapper.map(userExist.get(), UserProfile.class);
+        } else {
+            throw new RuntimeException("UserProfile activo con id " + id + " no encontrado");
+        }
+    }
+    @Override
+    public UserProfile getByDocumentActive(Long document) {
+        Optional<UserProfileEntity> userExist = userProfileRepository.findByDocumentAndIsActiveTrue(document);
+        if (userExist.isPresent()) {
+            return modelMapper.map(userExist.get(), UserProfile.class);
+        } else {
+            throw new RuntimeException("UserProfile activo con documento " + document + " no encontrado");
+        }
+    }
+
 }
