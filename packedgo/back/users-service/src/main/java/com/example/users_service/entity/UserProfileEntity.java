@@ -1,4 +1,5 @@
 package com.example.users_service.entity;
+
 import com.example.users_service.model.Gender;
 import jakarta.persistence.*;
 import lombok.Getter;
@@ -30,9 +31,11 @@ public class UserProfileEntity {
     @Enumerated(EnumType.STRING)
     private Gender gender;
 
-
     @Column(unique = true, nullable = false)
     private Long document;
+
+//    @Column(name = "email", nullable = false, length = 100, unique = true)
+//    private String email;
 
     @Column(name = "born_date", nullable = false)
     private LocalDate bornDate;
@@ -43,7 +46,6 @@ public class UserProfileEntity {
     @Column(name = "profile_image_url", length = 500)
     private String profileImageUrl;
 
-
     @Column(name = "created_at", nullable = false, updatable = false,
             columnDefinition = "TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
     private LocalDateTime createdAt;
@@ -52,6 +54,18 @@ public class UserProfileEntity {
             columnDefinition = "TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
     private LocalDateTime updatedAt;
 
-    @Column(name = "is_active", nullable = false)
+    @Column(columnDefinition = "BOOLEAN DEFAULT TRUE")
     private Boolean isActive = true;
+
+    // Métodos de ciclo de vida JPA
+    @PrePersist
+    protected void onCreate() {
+        this.createdAt = LocalDateTime.now();
+        this.updatedAt = LocalDateTime.now();
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
+        this.updatedAt = LocalDateTime.now();
+    }
 }

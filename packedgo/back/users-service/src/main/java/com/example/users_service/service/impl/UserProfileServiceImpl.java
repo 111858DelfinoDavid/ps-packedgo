@@ -25,44 +25,51 @@ public class UserProfileServiceImpl implements UserProfileService {
 
     @Override
     public UserProfile create(UserProfile model) {
+        // Comprueba si ya existe un perfil con el mismo documento
         Optional<UserProfileEntity> userExist = userProfileRepository.findByDocument(model.getDocument());
-        if (userExist.isEmpty()) {
+
+        if (userExist.isPresent()) {
+            // Si el usuario existe, lanza una excepción clara
+            throw new RuntimeException("El perfil de usuario con documento " + model.getDocument() + " ya existe.");
+        } else {
+            // Mapea el DTO a la entidad
             UserProfileEntity userProfileEntity = modelMapper.map(model, UserProfileEntity.class);
-            UserProfileEntity userPofileEntitySaved = userProfileRepository.save(userProfileEntity);
-            return modelMapper.map(userPofileEntitySaved, UserProfile.class);
-        } else  {
-            throw new RuntimeException("No se puede registrar.");
+
+            // Guarda la nueva entidad en la base de datos
+            userProfileEntity.setId(null);
+            UserProfileEntity userProfileEntitySaved = userProfileRepository.save(userProfileEntity);
+
+            // Mapea la entidad guardada de vuelta a un DTO y lo retorna
+            return modelMapper.map(userProfileEntitySaved, UserProfile.class);
         }
-
-
     }
 
     @Override
     public UserProfile getById(Long id) {
         Optional<UserProfileEntity> userExist = userProfileRepository.findById(id);
-        if (!userExist.isEmpty()) {
-            return modelMapper.map(userExist, UserProfile.class);
+        if (userExist.isPresent()) {
+            return modelMapper.map(userExist.get(), UserProfile.class);
         }else {
             throw new RuntimeException("UserProfile con id " + id + " no encontrado");
         }
 
     }
 
-    @Override
-    public UserProfile getByEmail(String email) {
-        Optional<UserProfileEntity> userExist = userProfileRepository.findByEmail(email);
-        if (!userExist.isEmpty()) {
-            return modelMapper.map(userExist, UserProfile.class);
-        }else {
-            throw new RuntimeException("UserProfile con email " + email + " no encontrado");
-        }
-    }
+//    @Override
+//    public UserProfile getByEmail(String email) {
+//        Optional<UserProfileEntity> userExist = userProfileRepository.findByEmail(email);
+//        if (!userExist.isEmpty()) {
+//            return modelMapper.map(userExist, UserProfile.class);
+//        }else {
+//            throw new RuntimeException("UserProfile con email " + email + " no encontrado");
+//        }
+//    }
 
     @Override
     public UserProfile getByDocument(Long document) {
         Optional<UserProfileEntity> userExist = userProfileRepository.findByDocument(document);
-        if (!userExist.isEmpty()) {
-            return modelMapper.map(userExist, UserProfile.class);
+        if (userExist.isPresent()) {
+            return modelMapper.map(userExist.get(), UserProfile.class);
         }else {
             throw new RuntimeException("UserProfile con documento " + document + " no encontrado");
         }
@@ -83,12 +90,15 @@ public class UserProfileServiceImpl implements UserProfileService {
         Optional<UserProfileEntity> userExist = userProfileRepository.findByIdAndIsActiveTrue(id);
 
         if (userExist.isPresent()) {
-            UserProfileEntity entity = userExist.get();
+            UserProfileEntity entity = modelMapper.map(model,UserProfileEntity.class);
 
             // Mapear los cambios desde el modelo al entity
-            modelMapper.map(model, entity);
+
+//            modelMapper.map(model, entity);
+
 
             // Guardar los cambios
+            entity.setId(id);
             UserProfileEntity updatedEntity = userProfileRepository.save(entity);
 
             return modelMapper.map(updatedEntity, UserProfile.class);
@@ -134,15 +144,15 @@ public class UserProfileServiceImpl implements UserProfileService {
                 .toList();
     }
 
-    @Override
-    public UserProfile getByEmailActive(String email) {
-        Optional<UserProfileEntity> userExist = userProfileRepository.findByEmailAndIsActiveTrue(email);
-        if (userExist.isPresent()) {
-            return modelMapper.map(userExist.get(), UserProfile.class);
-        } else {
-            throw new RuntimeException("UserProfile activo con email " + email + " no encontrado");
-        }
-    }
+//    @Override
+//    public UserProfile getByEmailActive(String email) {
+//        Optional<UserProfileEntity> userExist = userProfileRepository.findByEmailAndIsActiveTrue(email);
+//        if (userExist.isPresent()) {
+//            return modelMapper.map(userExist.get(), UserProfile.class);
+//        } else {
+//            throw new RuntimeException("UserProfile activo con email " + email + " no encontrado");
+//        }
+//    }
     @Override
     public UserProfile getByIdActive(Long id) {
         Optional<UserProfileEntity> userExist = userProfileRepository.findByIdAndIsActiveTrue(id);

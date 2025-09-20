@@ -12,16 +12,17 @@ import java.util.Map;
 public class UserProfile {
 
     private Long id;
-    private Long auth_user_id;
+    private Long authUserId;
     private String name;
     private String lastName;
     private Gender gender;
     private Long document;
-    private LocalDate born_date;
+//    private String email;
+    private LocalDate bornDate;
     private Long telephone;
-    private String profile_image_url;
-    private LocalDateTime created_at;
-    private LocalDateTime updated_at;
-    private Boolean is_active;
+    private String profileImageUrl;
+    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
+    private Boolean isActive = true;
 
 }

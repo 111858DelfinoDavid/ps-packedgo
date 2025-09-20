@@ -11,7 +11,7 @@ public interface UserProfileService {
 
     UserProfile getById(Long id);
 
-    UserProfile getByEmail(String email);
+//    UserProfile getByEmail(String email);
 
     UserProfile getByDocument(Long document);
 
@@ -26,7 +26,7 @@ public interface UserProfileService {
 
     List<UserProfile> getAllActive();
 
-    UserProfile getByEmailActive(String email);
+//    UserProfile getByEmailActive(String email);
 
     UserProfile getByIdActive(Long id);
 

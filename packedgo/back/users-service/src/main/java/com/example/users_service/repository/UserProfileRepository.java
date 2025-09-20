@@ -12,12 +12,12 @@ import java.util.Optional;
 public interface UserProfileRepository extends JpaRepository<UserProfileEntity, Long> {
     Optional<UserProfileEntity> findById(Long id);
     Optional<UserProfileEntity> findByDocument(Long document);
-    Optional<UserProfileEntity> findByEmail(String email);
+//    Optional<UserProfileEntity> findByEmail(String email);
 
 
     List<UserProfileEntity> findByIsActiveTrue();
 
-    Optional<UserProfileEntity> findByEmailAndIsActiveTrue(String email);
+//    Optional<UserProfileEntity> findByEmailAndIsActiveTrue(String email);
 
     Optional<UserProfileEntity> findByIdAndIsActiveTrue(Long id);
 
