@@ -1,0 +1,15 @@
+{
+  "authUserId": 1,
+  "name": "Juan",
+  "lastName": "Perez",
+  "gender": "M",
+  "document": 12345678,
+  "bornDate": "1990-01-01",
+  "telephone": 987654321,
+  "profileImageUrl": "https://example.com/image.jpg",
+  "preferences": {
+    "theme": "dark",
+    "language": "es"
+  }
+}
+
