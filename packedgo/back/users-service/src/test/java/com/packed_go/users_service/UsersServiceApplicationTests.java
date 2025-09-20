@@ -1,10 +1,11 @@
-package com.packed_go.auth_service;
+package com.packed_go.users_service;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 
 @SpringBootTest
-class AuthServiceApplicationTests {
+
+class UsersServiceApplicationTests {
 	@Test
 	void contextLoads() {
 	}

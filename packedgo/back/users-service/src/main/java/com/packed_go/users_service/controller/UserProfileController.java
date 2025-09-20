@@ -1,8 +1,8 @@
-package com.example.users_service.controller;
+package com.packed_go.users_service.controller;
 
-import com.example.users_service.dto.UserProfileDTO;
-import com.example.users_service.model.UserProfile;
-import com.example.users_service.service.UserProfileService;
+import com.packed_go.users_service.dto.UserProfileDTO;
+import com.packed_go.users_service.model.UserProfile;
+import com.packed_go.users_service.service.UserProfileService;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
 import org.springframework.http.ResponseEntity;

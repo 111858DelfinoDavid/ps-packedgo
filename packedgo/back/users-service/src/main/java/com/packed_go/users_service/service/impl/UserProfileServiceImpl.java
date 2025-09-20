@@ -1,9 +1,9 @@
-package com.example.users_service.service.impl;
+package com.packed_go.users_service.service.impl;
 
-import com.example.users_service.entity.UserProfileEntity;
-import com.example.users_service.model.UserProfile;
-import com.example.users_service.repository.UserProfileRepository;
-import com.example.users_service.service.UserProfileService;
+import com.packed_go.users_service.entity.UserProfileEntity;
+import com.packed_go.users_service.model.UserProfile;
+import com.packed_go.users_service.repository.UserProfileRepository;
+import com.packed_go.users_service.service.UserProfileService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;

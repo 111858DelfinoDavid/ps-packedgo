@@ -1,6 +1,6 @@
-package com.example.users_service.entity;
+package com.packed_go.users_service.entity;
 
-import com.example.users_service.model.Gender;
+import com.packed_go.users_service.model.Gender;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;

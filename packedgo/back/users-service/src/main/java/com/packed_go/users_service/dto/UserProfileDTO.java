@@ -1,6 +1,6 @@
-package com.example.users_service.dto;
+package com.packed_go.users_service.dto;
 
-import com.example.users_service.model.Gender;
+import com.packed_go.users_service.model.Gender;
 import lombok.Getter;
 import lombok.Setter;
 

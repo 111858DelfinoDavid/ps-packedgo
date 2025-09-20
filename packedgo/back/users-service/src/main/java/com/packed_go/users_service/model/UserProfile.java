@@ -1,4 +1,4 @@
-package com.example.users_service.model;
+package com.packed_go.users_service.model;
 
 import lombok.Getter;
 import lombok.Setter;

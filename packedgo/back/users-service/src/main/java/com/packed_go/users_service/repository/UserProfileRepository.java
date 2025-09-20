@@ -1,7 +1,7 @@
-package com.example.users_service.repository;
+package com.packed_go.users_service.repository;
 
-import com.example.users_service.entity.UserProfileEntity;
-import com.example.users_service.model.UserProfile;
+import com.packed_go.users_service.entity.UserProfileEntity;
+import com.packed_go.users_service.model.UserProfile;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 

@@ -1,7 +1,7 @@
-package com.example.users_service.service;
+package com.packed_go.users_service.service;
 
-import com.example.users_service.dto.UserProfileDTO;
-import com.example.users_service.model.UserProfile;
+import com.packed_go.users_service.dto.UserProfileDTO;
+import com.packed_go.users_service.model.UserProfile;
 import jakarta.transaction.Transactional;
 
 import java.util.List;

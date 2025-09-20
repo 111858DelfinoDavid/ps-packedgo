@@ -1,9 +1,9 @@
-package com.example.users_service.config;
+package com.packed_go.users_service.config;
 
-import com.example.users_service.dto.UserProfileDTO;
-import com.example.users_service.entity.UserProfileEntity;
-import com.example.users_service.model.Gender;
-import com.example.users_service.model.UserProfile;
+import com.packed_go.users_service.dto.UserProfileDTO;
+import com.packed_go.users_service.entity.UserProfileEntity;
+import com.packed_go.users_service.model.Gender;
+import com.packed_go.users_service.model.UserProfile;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
