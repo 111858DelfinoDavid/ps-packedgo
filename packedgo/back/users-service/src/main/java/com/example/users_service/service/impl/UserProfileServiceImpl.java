@@ -86,24 +86,17 @@ public class UserProfileServiceImpl implements UserProfileService {
 
     @Override
     public UserProfile update(Long id, UserProfile model) {
-        // Buscamos solo usuarios activos
+
         Optional<UserProfileEntity> userExist = userProfileRepository.findByIdAndIsActiveTrue(id);
 
         if (userExist.isPresent()) {
             UserProfileEntity entity = modelMapper.map(model,UserProfileEntity.class);
-
-            // Mapear los cambios desde el modelo al entity
-
-//            modelMapper.map(model, entity);
-
-
-            // Guardar los cambios
             entity.setId(id);
             UserProfileEntity updatedEntity = userProfileRepository.save(entity);
 
             return modelMapper.map(updatedEntity, UserProfile.class);
         } else {
-            // Usuario no encontrado o inactivo
+
             throw new RuntimeException("UserProfile activo con id " + id + " no encontrado");
         }
     }
