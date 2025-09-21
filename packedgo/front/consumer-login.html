@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PackedGo - Iniciar SesiÃ³n</title>
+    <title>PackedGo - Login Cliente</title>
     
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -15,7 +15,7 @@
     <style>
         :root {
             --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            --secondary-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            --consumer-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
             --text-dark: #333;
             --text-light: #666;
             --border-radius: 15px;
@@ -31,7 +31,7 @@
 
         body {
             font-family: 'Poppins', sans-serif;
-            background: var(--primary-gradient);
+            background: var(--consumer-gradient);
             min-height: 100vh;
             display: flex;
             align-items: center;
@@ -71,6 +71,19 @@
             border: 1px solid rgba(255, 255, 255, 0.2);
         }
 
+        .user-type-badge {
+            background: var(--consumer-gradient);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-align: center;
+            margin-bottom: 1rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
         .brand {
             text-align: center;
             margin-bottom: 2rem;
@@ -78,7 +91,7 @@
 
         .brand-logo {
             font-size: 3rem;
-            background: var(--primary-gradient);
+            background: var(--consumer-gradient);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
@@ -119,8 +132,8 @@
         }
 
         .form-control:focus {
-            border-color: #667eea;
-            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+            border-color: #4facfe;
+            box-shadow: 0 0 0 3px rgba(79, 172, 254, 0.1);
             background: white;
         }
 
@@ -130,7 +143,7 @@
         }
 
         .btn-login {
-            background: var(--primary-gradient);
+            background: var(--consumer-gradient);
             border: none;
             color: white;
             padding: 1rem;
@@ -193,20 +206,20 @@
             font-size: 0.9rem;
         }
 
-        .register-link {
+        .register-link, .admin-link {
             text-align: center;
             margin-top: 1.5rem;
         }
 
-        .register-link a {
-            color: #667eea;
+        .register-link a, .admin-link a {
+            color: #4facfe;
             text-decoration: none;
             font-weight: 500;
             transition: all 0.3s ease;
         }
 
-        .register-link a:hover {
-            color: #764ba2;
+        .register-link a:hover, .admin-link a:hover {
+            color: #00f2fe;
             text-decoration: underline;
         }
 
@@ -237,20 +250,15 @@
             margin-right: 0.5rem;
         }
 
-        .forgot-password {
+        .dni-info {
+            background: #e3f2fd;
+            border: 1px solid #bbdefb;
+            color: #1976d2;
+            padding: 0.8rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            font-size: 0.85rem;
             text-align: center;
-            margin-top: 1rem;
-        }
-
-        .forgot-password a {
-            color: var(--text-light);
-            text-decoration: none;
-            font-size: 0.9rem;
-            transition: color 0.3s ease;
-        }
-
-        .forgot-password a:hover {
-            color: #667eea;
         }
 
         @media (max-width: 768px) {
@@ -263,6 +271,11 @@
 </head>
 <body>
     <div class="login-container">
+        <div class="user-type-badge">
+            <i class="bi bi-person-heart me-2"></i>
+            Acceso Cliente
+        </div>
+
         <div class="brand">
             <div class="brand-logo">
                 <i class="bi bi-calendar-event"></i>
@@ -271,7 +284,12 @@
             <div class="brand-subtitle">Tu portal de eventos favorito</div>
         </div>
 
-        <h2 class="form-title">Iniciar SesiÃ³n</h2>
+        <h2 class="form-title">Iniciar Sesión</h2>
+
+        <div class="dni-info">
+            <i class="bi bi-info-circle me-2"></i>
+            Ingresa tu DNI sin puntos ni espacios
+        </div>
 
         <div id="errorMessage" class="error-message">
             <i class="bi bi-exclamation-triangle me-2"></i>
@@ -285,22 +303,22 @@
 
         <form id="loginForm" novalidate>
             <div class="form-floating">
-                <input type="text" class="form-control" id="document" name="document" placeholder="DNI" required pattern="[0-9]{7,8}" maxlength="8">
-                <label for="document">
-                    <i class="bi bi-card-text me-2"></i>DNI
+                <input type="text" class="form-control" id="dni" name="dni" placeholder="DNI" required pattern="[0-9]{7,8}" maxlength="8">
+                <label for="dni">
+                    <i class="bi bi-card-text me-2"></i>Documento (DNI)
                 </label>
                 <div class="invalid-feedback">
-                    Por favor, ingrese su DNI (7-8 dÃ­gitos).
+                    Por favor, ingrese un DNI válido (7-8 dígitos).
                 </div>
             </div>
 
             <div class="form-floating">
-                <input type="password" class="form-control" id="password" name="password" placeholder="ContraseÃ±a" required>
+                <input type="password" class="form-control" id="password" name="password" placeholder="Contraseña" required minlength="6">
                 <label for="password">
-                    <i class="bi bi-lock me-2"></i>ContraseÃ±a
+                    <i class="bi bi-lock me-2"></i>Contraseña
                 </label>
                 <div class="invalid-feedback">
-                    Por favor, ingrese su contraseÃ±a.
+                    Por favor, ingrese su contraseña.
                 </div>
             </div>
 
@@ -314,22 +332,25 @@
             <button type="submit" class="btn btn-login">
                 <span class="loading-spinner spinner-border spinner-border-sm" role="status"></span>
                 <i class="bi bi-box-arrow-in-right me-2"></i>
-                <span id="loginButtonText">Iniciar SesiÃ³n</span>
+                <span id="loginButtonText">Iniciar Sesión</span>
             </button>
         </form>
 
-        <div class="forgot-password">
-            <a href="#" id="forgotPasswordLink">Â¿Olvidaste tu contraseÃ±a?</a>
-        </div>
-
         <div class="divider">
-            <span>Â¿No tienes cuenta?</span>
+            <span>¿No tienes cuenta?</span>
         </div>
 
         <div class="register-link">
-            <a href="register.html">
+            <a href="consumer-register.html">
                 <i class="bi bi-person-plus me-1"></i>
-                Crear nueva cuenta
+                Crear cuenta de cliente
+            </a>
+        </div>
+
+        <div class="admin-link">
+            <a href="admin-login.html">
+                <i class="bi bi-shield me-1"></i>
+                ¿Eres administrador? Entra aquí
             </a>
         </div>
 
@@ -345,12 +366,12 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     
     <script>
-        // Estado de la aplicaciÃ³n
+        // Estado de la aplicación
         let isLoading = false;
 
         // Referencias DOM
         const loginForm = document.getElementById('loginForm');
-        const documentInput = document.getElementById('document');
+        const dniInput = document.getElementById('dni');
         const passwordInput = document.getElementById('password');
         const rememberMeCheckbox = document.getElementById('rememberMe');
         const loginButton = document.querySelector('.btn-login');
@@ -384,30 +405,30 @@
             if (loading) {
                 loginButton.disabled = true;
                 loadingSpinner.style.display = 'inline-block';
-                loginButtonText.textContent = 'Iniciando sesiÃ³n...';
+                loginButtonText.textContent = 'Iniciando sesión...';
             } else {
                 loginButton.disabled = false;
                 loadingSpinner.style.display = 'none';
-                loginButtonText.textContent = 'Iniciar SesiÃ³n';
+                loginButtonText.textContent = 'Iniciar Sesión';
             }
         }
 
-        // ValidaciÃ³n del formulario
+        // Validación del formulario
         function validateForm() {
             let isValid = true;
             
             // Validar DNI
-            const documentValue = documentInput.value.trim();
-            if (!documentValue || !/^[0-9]{7,8}$/.test(documentValue)) {
-                documentInput.classList.add('is-invalid');
+            const dniValue = dniInput.value.trim();
+            if (!dniValue || !/^[0-9]{7,8}$/.test(dniValue)) {
+                dniInput.classList.add('is-invalid');
                 isValid = false;
             } else {
-                documentInput.classList.remove('is-invalid');
-                documentInput.classList.add('is-valid');
+                dniInput.classList.remove('is-invalid');
+                dniInput.classList.add('is-valid');
             }
 
-            // Validar contraseÃ±a
-            if (!passwordInput.value.trim()) {
+            // Validar contraseña
+            if (!passwordInput.value.trim() || passwordInput.value.length < 6) {
                 passwordInput.classList.add('is-invalid');
                 isValid = false;
             } else {
@@ -418,52 +439,58 @@
             return isValid;
         }
 
-        // FunciÃ³n de login
-        async function performLogin(credentials) {
+        // Función de login para consumidores
+        async function performConsumerLogin(credentials) {
             try {
+                // URL específica para login de consumidores
                 const response = await fetch('http://localhost:8081/auth/customer/login', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify(credentials)
+                    body: JSON.stringify({
+                        document: parseInt(credentials.dni),  // Enviar como número
+                        password: credentials.password
+                    })
                 });
 
-                const data = await response.json();
-
                 if (response.ok) {
-                    // Login exitoso
-                    showSuccess('Â¡Inicio de sesiÃ³n exitoso! Redirigiendo...');
+                    const data = await response.json();
                     
-                    // Guardar datos de sesiÃ³n
-                    localStorage.setItem('userToken', data.token || 'mock-token');
-                    localStorage.setItem('userRole', data.role || 'CUSTOMER');
-                    localStorage.setItem('userName', data.name || credentials.document);
+                    // Login exitoso
+                    showSuccess('¡Inicio de sesión exitoso! Redirigiendo...');
+                    
+                    // Guardar datos de sesión
+                    localStorage.setItem('userToken', data.token || 'consumer-token-' + Date.now());
+                    localStorage.setItem('userRole', 'CUSTOMER');
+                    localStorage.setItem('userName', data.name || 'Cliente');
+                    localStorage.setItem('userDocument', credentials.dni);
                     
                     if (rememberMeCheckbox.checked) {
                         localStorage.setItem('rememberMe', 'true');
-                        localStorage.setItem('savedDocument', credentials.document);
+                        localStorage.setItem('savedDocument', credentials.dni);
                     } else {
                         localStorage.removeItem('rememberMe');
                         localStorage.removeItem('savedDocument');
                     }
 
-                    // Redirigir despuÃ©s de 1 segundo
+                    // Redirigir después de 1 segundo
                     setTimeout(() => {
-                        window.location.href = 'dashboard.html';
+                        window.location.href = 'consumer-dashboard.html';
                     }, 1000);
                     
                 } else {
                     // Error de login
-                    throw new Error(data.message || 'Credenciales invÃ¡lidas');
+                    const errorData = await response.json().catch(() => ({}));
+                    throw new Error(errorData.message || 'DNI o contraseña incorrectos');
                 }
             } catch (error) {
-                console.error('Login error:', error);
+                console.error('Consumer login error:', error);
                 
                 if (error.name === 'TypeError' && error.message.includes('fetch')) {
-                    showError('Error de conexiÃ³n. Verifique que el servidor estÃ© funcionando.');
+                    showError('Error de conexión. Verifique que el servidor esté funcionando en el puerto 8081.');
                 } else {
-                    showError(error.message || 'Error al iniciar sesiÃ³n. Verifique sus credenciales.');
+                    showError(error.message || 'Error al iniciar sesión. Verifique su DNI y contraseña.');
                 }
             }
         }
@@ -485,28 +512,33 @@
             setLoading(true);
 
             const credentials = {
-                document: parseInt(documentInput.value.trim()),
+                dni: dniInput.value.trim(),
                 password: passwordInput.value.trim()
             };
 
-            await performLogin(credentials);
+            await performConsumerLogin(credentials);
             setLoading(false);
         });
 
-        // Limpiar validaciÃ³n en tiempo real
-        [documentInput, passwordInput].forEach(input => {
-            input.addEventListener('input', function() {
-                if (this.classList.contains('is-invalid') && this.value.trim()) {
-                    this.classList.remove('is-invalid');
-                    this.classList.add('is-valid');
-                }
-                hideMessages();
-            });
+        // Validar DNI en tiempo real
+        dniInput.addEventListener('input', function() {
+            // Solo permitir números
+            this.value = this.value.replace(/[^0-9]/g, '');
+            
+            if (this.classList.contains('is-invalid') && this.value.trim() && /^[0-9]{7,8}$/.test(this.value)) {
+                this.classList.remove('is-invalid');
+                this.classList.add('is-valid');
+            }
+            hideMessages();
         });
 
-        // ValidaciÃ³n de solo nÃºmeros para DNI
-        documentInput.addEventListener('input', function() {
-            this.value = this.value.replace(/[^0-9]/g, '');
+        // Limpiar validación en tiempo real para contraseña
+        passwordInput.addEventListener('input', function() {
+            if (this.classList.contains('is-invalid') && this.value.trim() && this.value.length >= 6) {
+                this.classList.remove('is-invalid');
+                this.classList.add('is-valid');
+            }
+            hideMessages();
         });
 
         // Cargar DNI guardado si existe
@@ -515,20 +547,14 @@
             const rememberMe = localStorage.getItem('rememberMe');
             
             if (rememberMe === 'true' && savedDocument) {
-                documentInput.value = savedDocument;
+                dniInput.value = savedDocument;
                 rememberMeCheckbox.checked = true;
             }
         });
 
-        // Manejar "Olvidaste tu contraseÃ±a"
-        document.getElementById('forgotPasswordLink').addEventListener('click', function(e) {
-            e.preventDefault();
-            alert('Funcionalidad de recuperaciÃ³n de contraseÃ±a prÃ³ximamente disponible.');
-        });
-
-        // Verificar si ya estÃ¡ logueado
-        if (localStorage.getItem('userToken')) {
-            window.location.href = 'dashboard.html';
+        // Verificar si ya está logueado
+        if (localStorage.getItem('userToken') && localStorage.getItem('userRole') === 'CUSTOMER') {
+            window.location.href = 'consumer-dashboard.html';
         }
     </script>
 </body>

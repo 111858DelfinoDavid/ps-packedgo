@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PackedGo - Iniciar Sesi√≥n</title>
+    <title>PackedGo - Login Administrador</title>
     
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -14,8 +14,8 @@
     
     <style>
         :root {
-            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            --secondary-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            --admin-gradient: linear-gradient(135deg, #ff6b6b 0%, #ee5a52 100%);
+            --admin-secondary: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
             --text-dark: #333;
             --text-light: #666;
             --border-radius: 15px;
@@ -31,7 +31,7 @@
 
         body {
             font-family: 'Poppins', sans-serif;
-            background: var(--primary-gradient);
+            background: var(--admin-secondary);
             min-height: 100vh;
             display: flex;
             align-items: center;
@@ -47,15 +47,29 @@
             left: -50%;
             width: 200%;
             height: 200%;
-            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle fill="rgba(255,255,255,0.05)" cx="50" cy="50" r="40"/></svg>') repeat;
-            animation: float 20s ease-in-out infinite;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><polygon fill="rgba(255,255,255,0.03)" points="0,100 100,0 100,100"/></svg>') repeat;
+            animation: float 30s ease-in-out infinite;
             pointer-events: none;
         }
 
         @keyframes float {
             0%, 100% { transform: translate(0, 0) rotate(0deg); }
-            33% { transform: translate(20px, -20px) rotate(120deg); }
-            66% { transform: translate(-10px, 10px) rotate(240deg); }
+            50% { transform: translate(30px, -30px) rotate(180deg); }
+        }
+
+        .admin-alert {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: var(--admin-gradient);
+            color: white;
+            padding: 0.8rem;
+            text-align: center;
+            font-weight: 600;
+            font-size: 0.9rem;
+            z-index: 1001;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
         }
 
         .login-container {
@@ -69,6 +83,20 @@
             position: relative;
             z-index: 2;
             border: 1px solid rgba(255, 255, 255, 0.2);
+            margin-top: 4rem;
+        }
+
+        .user-type-badge {
+            background: var(--admin-gradient);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-align: center;
+            margin-bottom: 1rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
         }
 
         .brand {
@@ -78,10 +106,7 @@
 
         .brand-logo {
             font-size: 3rem;
-            background: var(--primary-gradient);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
+            color: #e74c3c;
             margin-bottom: 0.5rem;
         }
 
@@ -119,8 +144,8 @@
         }
 
         .form-control:focus {
-            border-color: #667eea;
-            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+            border-color: #e74c3c;
+            box-shadow: 0 0 0 3px rgba(231, 76, 60, 0.1);
             background: white;
         }
 
@@ -130,7 +155,7 @@
         }
 
         .btn-login {
-            background: var(--primary-gradient);
+            background: var(--admin-gradient);
             border: none;
             color: white;
             padding: 1rem;
@@ -193,20 +218,20 @@
             font-size: 0.9rem;
         }
 
-        .register-link {
+        .consumer-link {
             text-align: center;
             margin-top: 1.5rem;
         }
 
-        .register-link a {
-            color: #667eea;
+        .consumer-link a {
+            color: #4facfe;
             text-decoration: none;
             font-weight: 500;
             transition: all 0.3s ease;
         }
 
-        .register-link a:hover {
-            color: #764ba2;
+        .consumer-link a:hover {
+            color: #00f2fe;
             text-decoration: underline;
         }
 
@@ -237,41 +262,53 @@
             margin-right: 0.5rem;
         }
 
-        .forgot-password {
+        .admin-warning {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            color: #856404;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            font-size: 0.85rem;
             text-align: center;
-            margin-top: 1rem;
-        }
-
-        .forgot-password a {
-            color: var(--text-light);
-            text-decoration: none;
-            font-size: 0.9rem;
-            transition: color 0.3s ease;
-        }
-
-        .forgot-password a:hover {
-            color: #667eea;
         }
 
         @media (max-width: 768px) {
             .login-container {
                 margin: 1rem;
                 padding: 2rem;
+                margin-top: 5rem;
             }
         }
     </style>
 </head>
 <body>
+    <!-- Admin Alert -->
+    <div class="admin-alert">
+        <i class="bi bi-shield-exclamation me-2"></i>
+        <strong>¡REA ADMINISTRATIVA</strong> - Acceso restringido solo para administradores autorizados
+    </div>
+
     <div class="login-container">
-        <div class="brand">
-            <div class="brand-logo">
-                <i class="bi bi-calendar-event"></i>
-            </div>
-            <div class="brand-name">PackedGo</div>
-            <div class="brand-subtitle">Tu portal de eventos favorito</div>
+        <div class="user-type-badge">
+            <i class="bi bi-shield-lock-fill me-2"></i>
+            Acceso Administrador
         </div>
 
-        <h2 class="form-title">Iniciar Sesi√≥n</h2>
+        <div class="brand">
+            <div class="brand-logo">
+                <i class="bi bi-shield-check"></i>
+            </div>
+            <div class="brand-name">Admin Panel</div>
+            <div class="brand-subtitle">Panel de administraciÛn</div>
+        </div>
+
+        <h2 class="form-title">Inicio de SesiÛn</h2>
+
+        <div class="admin-warning">
+            <i class="bi bi-exclamation-triangle me-2"></i>
+            Solo personal autorizado con credenciales de administrador
+        </div>
 
         <div id="errorMessage" class="error-message">
             <i class="bi bi-exclamation-triangle me-2"></i>
@@ -285,51 +322,47 @@
 
         <form id="loginForm" novalidate>
             <div class="form-floating">
-                <input type="text" class="form-control" id="document" name="document" placeholder="DNI" required pattern="[0-9]{7,8}" maxlength="8">
-                <label for="document">
-                    <i class="bi bi-card-text me-2"></i>DNI
+                <input type="email" class="form-control" id="email" name="email" placeholder="Email administrativo" required>
+                <label for="email">
+                    <i class="bi bi-envelope me-2"></i>Email Administrativo
                 </label>
                 <div class="invalid-feedback">
-                    Por favor, ingrese su DNI (7-8 d√≠gitos).
+                    Por favor, ingrese un email v·lido.
                 </div>
             </div>
 
             <div class="form-floating">
-                <input type="password" class="form-control" id="password" name="password" placeholder="Contrase√±a" required>
+                <input type="password" class="form-control" id="password" name="password" placeholder="ContraseÒa" required minlength="8">
                 <label for="password">
-                    <i class="bi bi-lock me-2"></i>Contrase√±a
+                    <i class="bi bi-lock me-2"></i>ContraseÒa
                 </label>
                 <div class="invalid-feedback">
-                    Por favor, ingrese su contrase√±a.
+                    Por favor, ingrese su contraseÒa (mÌnimo 8 caracteres).
                 </div>
             </div>
 
             <div class="form-check mb-3">
                 <input class="form-check-input" type="checkbox" id="rememberMe">
                 <label class="form-check-label" for="rememberMe">
-                    Recordarme
+                    Recordar sesiÛn administrativa
                 </label>
             </div>
 
             <button type="submit" class="btn btn-login">
                 <span class="loading-spinner spinner-border spinner-border-sm" role="status"></span>
-                <i class="bi bi-box-arrow-in-right me-2"></i>
-                <span id="loginButtonText">Iniciar Sesi√≥n</span>
+                <i class="bi bi-shield-check me-2"></i>
+                <span id="loginButtonText">Acceder al Panel</span>
             </button>
         </form>
 
-        <div class="forgot-password">
-            <a href="#" id="forgotPasswordLink">¬øOlvidaste tu contrase√±a?</a>
-        </div>
-
         <div class="divider">
-            <span>¬øNo tienes cuenta?</span>
+            <span>øNo eres administrador?</span>
         </div>
 
-        <div class="register-link">
-            <a href="register.html">
-                <i class="bi bi-person-plus me-1"></i>
-                Crear nueva cuenta
+        <div class="consumer-link">
+            <a href="consumer-login.html">
+                <i class="bi bi-person me-1"></i>
+                Ingresa como cliente
             </a>
         </div>
 
@@ -345,12 +378,12 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     
     <script>
-        // Estado de la aplicaci√≥n
+        // Estado de la aplicaciÛn
         let isLoading = false;
 
         // Referencias DOM
         const loginForm = document.getElementById('loginForm');
-        const documentInput = document.getElementById('document');
+        const emailInput = document.getElementById('email');
         const passwordInput = document.getElementById('password');
         const rememberMeCheckbox = document.getElementById('rememberMe');
         const loginButton = document.querySelector('.btn-login');
@@ -384,30 +417,31 @@
             if (loading) {
                 loginButton.disabled = true;
                 loadingSpinner.style.display = 'inline-block';
-                loginButtonText.textContent = 'Iniciando sesi√≥n...';
+                loginButtonText.textContent = 'Verificando credenciales...';
             } else {
                 loginButton.disabled = false;
                 loadingSpinner.style.display = 'none';
-                loginButtonText.textContent = 'Iniciar Sesi√≥n';
+                loginButtonText.textContent = 'Acceder al Panel';
             }
         }
 
-        // Validaci√≥n del formulario
+        // ValidaciÛn del formulario
         function validateForm() {
             let isValid = true;
             
-            // Validar DNI
-            const documentValue = documentInput.value.trim();
-            if (!documentValue || !/^[0-9]{7,8}$/.test(documentValue)) {
-                documentInput.classList.add('is-invalid');
+            // Validar email
+            const emailValue = emailInput.value.trim();
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailValue || !emailRegex.test(emailValue)) {
+                emailInput.classList.add('is-invalid');
                 isValid = false;
             } else {
-                documentInput.classList.remove('is-invalid');
-                documentInput.classList.add('is-valid');
+                emailInput.classList.remove('is-invalid');
+                emailInput.classList.add('is-valid');
             }
 
-            // Validar contrase√±a
-            if (!passwordInput.value.trim()) {
+            // Validar contraseÒa
+            if (!passwordInput.value.trim() || passwordInput.value.length < 8) {
                 passwordInput.classList.add('is-invalid');
                 isValid = false;
             } else {
@@ -418,52 +452,58 @@
             return isValid;
         }
 
-        // Funci√≥n de login
-        async function performLogin(credentials) {
+        // FunciÛn de login para administradores
+        async function performAdminLogin(credentials) {
             try {
-                const response = await fetch('http://localhost:8081/auth/customer/login', {
+                // URL especÌfica para login de administradores
+                const response = await fetch('http://localhost:8081/auth/admin/login', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify(credentials)
+                    body: JSON.stringify({
+                        email: credentials.email,
+                        password: credentials.password
+                    })
                 });
 
-                const data = await response.json();
-
                 if (response.ok) {
-                    // Login exitoso
-                    showSuccess('¬°Inicio de sesi√≥n exitoso! Redirigiendo...');
+                    const data = await response.json();
                     
-                    // Guardar datos de sesi√≥n
-                    localStorage.setItem('userToken', data.token || 'mock-token');
-                    localStorage.setItem('userRole', data.role || 'CUSTOMER');
-                    localStorage.setItem('userName', data.name || credentials.document);
+                    // Login exitoso
+                    showSuccess('°Acceso autorizado! Cargando panel administrativo...');
+                    
+                    // Guardar datos de sesiÛn administrativa
+                    localStorage.setItem('userToken', data.token || 'admin-token-' + Date.now());
+                    localStorage.setItem('userRole', 'ADMIN');
+                    localStorage.setItem('userName', data.name || 'Administrador');
+                    localStorage.setItem('userEmail', credentials.email);
                     
                     if (rememberMeCheckbox.checked) {
                         localStorage.setItem('rememberMe', 'true');
-                        localStorage.setItem('savedDocument', credentials.document);
+                        localStorage.setItem('savedAdminEmail', credentials.email);
                     } else {
                         localStorage.removeItem('rememberMe');
-                        localStorage.removeItem('savedDocument');
+                        localStorage.removeItem('savedAdminEmail');
                     }
 
-                    // Redirigir despu√©s de 1 segundo
+                    // Redirigir despuÈs de 1.5 segundos
                     setTimeout(() => {
-                        window.location.href = 'dashboard.html';
-                    }, 1000);
+                        window.location.href = 'admin-dashboard.html';
+                    }, 1500);
                     
                 } else {
                     // Error de login
-                    throw new Error(data.message || 'Credenciales inv√°lidas');
+                    const errorData = await response.json().catch(() => ({}));
+                    throw new Error(errorData.message || 'Email o contraseÒa de administrador incorrectos');
                 }
             } catch (error) {
-                console.error('Login error:', error);
+                console.error('Admin login error:', error);
                 
                 if (error.name === 'TypeError' && error.message.includes('fetch')) {
-                    showError('Error de conexi√≥n. Verifique que el servidor est√© funcionando.');
+                    showError('Error de conexiÛn. Verifique que el servidor estÈ funcionando en el puerto 8081.');
                 } else {
-                    showError(error.message || 'Error al iniciar sesi√≥n. Verifique sus credenciales.');
+                    showError(error.message || 'Error de autenticaciÛn administrativa. Verifique sus credenciales.');
                 }
             }
         }
@@ -485,50 +525,49 @@
             setLoading(true);
 
             const credentials = {
-                document: parseInt(documentInput.value.trim()),
+                email: emailInput.value.trim(),
                 password: passwordInput.value.trim()
             };
 
-            await performLogin(credentials);
+            await performAdminLogin(credentials);
             setLoading(false);
         });
 
-        // Limpiar validaci√≥n en tiempo real
-        [documentInput, passwordInput].forEach(input => {
+        // Limpiar validaciÛn en tiempo real
+        [emailInput, passwordInput].forEach(input => {
             input.addEventListener('input', function() {
-                if (this.classList.contains('is-invalid') && this.value.trim()) {
-                    this.classList.remove('is-invalid');
-                    this.classList.add('is-valid');
+                if (this.classList.contains('is-invalid')) {
+                    if (this === emailInput) {
+                        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                        if (this.value.trim() && emailRegex.test(this.value.trim())) {
+                            this.classList.remove('is-invalid');
+                            this.classList.add('is-valid');
+                        }
+                    } else if (this === passwordInput) {
+                        if (this.value.trim() && this.value.length >= 8) {
+                            this.classList.remove('is-invalid');
+                            this.classList.add('is-valid');
+                        }
+                    }
                 }
                 hideMessages();
             });
         });
 
-        // Validaci√≥n de solo n√∫meros para DNI
-        documentInput.addEventListener('input', function() {
-            this.value = this.value.replace(/[^0-9]/g, '');
-        });
-
-        // Cargar DNI guardado si existe
+        // Cargar email guardado si existe
         document.addEventListener('DOMContentLoaded', function() {
-            const savedDocument = localStorage.getItem('savedDocument');
+            const savedAdminEmail = localStorage.getItem('savedAdminEmail');
             const rememberMe = localStorage.getItem('rememberMe');
             
-            if (rememberMe === 'true' && savedDocument) {
-                documentInput.value = savedDocument;
+            if (rememberMe === 'true' && savedAdminEmail) {
+                emailInput.value = savedAdminEmail;
                 rememberMeCheckbox.checked = true;
             }
         });
 
-        // Manejar "Olvidaste tu contrase√±a"
-        document.getElementById('forgotPasswordLink').addEventListener('click', function(e) {
-            e.preventDefault();
-            alert('Funcionalidad de recuperaci√≥n de contrase√±a pr√≥ximamente disponible.');
-        });
-
-        // Verificar si ya est√° logueado
-        if (localStorage.getItem('userToken')) {
-            window.location.href = 'dashboard.html';
+        // Verificar si ya est· logueado como admin
+        if (localStorage.getItem('userToken') && localStorage.getItem('userRole') === 'ADMIN') {
+            window.location.href = 'admin-dashboard.html';
         }
     </script>
 </body>

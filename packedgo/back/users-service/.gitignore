@@ -31,3 +31,14 @@ build/
 
 ### VS Code ###
 .vscode/
+
+### Environment Variables ###
+.env
+.env.local
+.env.production
+.env.test
+*.env
+
+### H2 Database Files (legacy) ###
+testdb.mv.db
+testdb.trace.db

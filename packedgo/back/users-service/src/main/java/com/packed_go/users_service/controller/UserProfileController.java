@@ -1,9 +1,11 @@
 package com.packed_go.users_service.controller;
 
 import com.packed_go.users_service.dto.UserProfileDTO;
+import com.packed_go.users_service.dto.request.CreateProfileFromAuthRequest;
 import com.packed_go.users_service.model.UserProfile;
 import com.packed_go.users_service.service.UserProfileService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -13,6 +15,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/user-profiles")
 @RequiredArgsConstructor
+@Slf4j
 public class UserProfileController {
 
     private final UserProfileService service;
@@ -26,6 +29,27 @@ public class UserProfileController {
             return ResponseEntity.ok(modelMapper.map(created,UserProfileDTO.class));
         } else {
             return ResponseEntity.status(409).build();
+        }
+    }
+
+    @PostMapping("/from-auth")
+    public ResponseEntity<UserProfileDTO> createFromAuthService(@RequestBody CreateProfileFromAuthRequest request) {
+        try {
+            log.info("Creating profile from auth-service for authUserId: {}", request.getAuthUserId());
+            
+            UserProfile created = service.createFromAuthService(request);
+            
+            log.info("Successfully created profile with ID: {} for authUserId: {}", 
+                    created.getId(), request.getAuthUserId());
+            
+            return ResponseEntity.ok(modelMapper.map(created, UserProfileDTO.class));
+            
+        } catch (RuntimeException e) {
+            log.warn("Failed to create profile from auth-service: {}", e.getMessage());
+            return ResponseEntity.badRequest().build();
+        } catch (Exception e) {
+            log.error("Unexpected error creating profile from auth-service", e);
+            return ResponseEntity.internalServerError().build();
         }
     }
 

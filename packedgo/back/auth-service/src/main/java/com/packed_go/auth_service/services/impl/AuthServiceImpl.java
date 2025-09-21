@@ -2,6 +2,7 @@ package com.packed_go.auth_service.services.impl;
 
 import com.packed_go.auth_service.dto.request.AdminLoginRequest;
 import com.packed_go.auth_service.dto.request.AdminRegistrationRequest;
+import com.packed_go.auth_service.dto.request.CreateProfileFromAuthRequest;
 import com.packed_go.auth_service.dto.request.CustomerLoginRequest;
 import com.packed_go.auth_service.dto.request.CustomerRegistrationRequest;
 import com.packed_go.auth_service.dto.response.LoginResponse;
@@ -13,6 +14,7 @@ import com.packed_go.auth_service.exceptions.UnauthorizedException;
 import com.packed_go.auth_service.repositories.*;
 import com.packed_go.auth_service.security.JwtTokenProvider;
 import com.packed_go.auth_service.services.AuthService;
+import com.packed_go.auth_service.services.UsersServiceClient;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -37,6 +39,7 @@ public class AuthServiceImpl implements AuthService {
     // private final EmailVerificationTokenRepository emailVerificationTokenRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
+    private final UsersServiceClient usersServiceClient;
     // TODO: Agregar cuando sea necesario mapear DTOs complejos
     // private final ModelMapper modelMapper;
 
@@ -148,8 +151,28 @@ public class AuthServiceImpl implements AuthService {
         AuthUser savedUser = authUserRepository.save(newUser);
         log.info("Customer registered successfully with ID: {}", savedUser.getId());
         
-        // TODO: Enviar evento para crear perfil en USER-SERVICE
-        // TODO: Enviar email de verificaci�n
+        // Llamar al users-service para crear el perfil de usuario
+        try {
+            CreateProfileFromAuthRequest profileRequest = CreateProfileFromAuthRequest.builder()
+                    .authUserId(savedUser.getId())
+                    .document(savedUser.getDocument())
+                    .name(request.getName())
+                    .lastName(request.getLastName())
+                    .bornDate(request.getBornDate())
+                    .telephone(request.getTelephone())
+                    .gender(request.getGender())
+                    .build();
+            
+            usersServiceClient.createUserProfile(profileRequest);
+            log.info("User profile creation request sent for authUserId: {}", savedUser.getId());
+            
+        } catch (Exception e) {
+            log.error("Failed to create user profile for authUserId: {}, continuing with registration", 
+                     savedUser.getId(), e);
+            // No lanzamos la excepción para que el registro en auth-service continúe
+        }
+        
+        // TODO: Enviar email de verificación
         
         return savedUser;
     }

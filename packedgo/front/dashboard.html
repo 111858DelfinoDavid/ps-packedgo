@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PackedGo - Dashboard</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --secondary-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            --success-gradient: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            --warning-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            --text-dark: #333;
+            --text-light: #666;
+            --border-radius: 15px;
+            --shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            --hover-shadow: 0 15px 40px rgba(0, 0, 0, 0.15);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: #f8f9fa;
+            min-height: 100vh;
+        }
+
+        .loading-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--primary-gradient);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            transition: opacity 0.5s ease;
+        }
+
+        .loading-content {
+            text-align: center;
+            color: white;
+        }
+
+        .loading-spinner {
+            width: 60px;
+            height: 60px;
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top: 4px solid white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .main-content {
+            opacity: 0;
+            transition: opacity 0.5s ease;
+        }
+
+        .hero-dashboard {
+            background: var(--primary-gradient);
+            padding: 4rem 0 2rem;
+            color: white;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero-dashboard::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000"><polygon fill="rgba(255,255,255,0.05)" points="0,1000 1000,0 1000,1000"/></svg>');
+            pointer-events: none;
+        }
+
+        .welcome-section {
+            position: relative;
+            z-index: 2;
+            text-align: center;
+        }
+
+        .welcome-title {
+            font-size: 3rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            line-height: 1.2;
+        }
+
+        .welcome-subtitle {
+            font-size: 1.3rem;
+            opacity: 0.9;
+            margin-bottom: 2rem;
+        }
+
+        .role-selection {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(20px);
+            border-radius: var(--border-radius);
+            padding: 2rem;
+            margin-top: 2rem;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .role-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 2rem;
+            margin-top: 2rem;
+        }
+
+        .role-card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: var(--border-radius);
+            padding: 2rem;
+            text-align: center;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            border: 2px solid transparent;
+            color: var(--text-dark);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .role-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(102, 126, 234, 0.1), transparent);
+            transition: left 0.5s;
+        }
+
+        .role-card:hover::before {
+            left: 100%;
+        }
+
+        .role-card:hover {
+            transform: translateY(-10px);
+            box-shadow: var(--hover-shadow);
+            border-color: rgba(102, 126, 234, 0.3);
+        }
+
+        .role-icon {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+            background: var(--primary-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .role-title {
+            font-size: 1.8rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: var(--text-dark);
+        }
+
+        .role-description {
+            color: var(--text-light);
+            margin-bottom: 1.5rem;
+            line-height: 1.6;
+        }
+
+        .role-features {
+            list-style: none;
+            padding: 0;
+            margin-bottom: 2rem;
+        }
+
+        .role-features li {
+            padding: 0.5rem 0;
+            color: var(--text-light);
+            font-size: 0.9rem;
+        }
+
+        .role-features li i {
+            color: #28a745;
+            margin-right: 0.5rem;
+        }
+
+        .btn-role {
+            background: var(--primary-gradient);
+            border: none;
+            color: white;
+            padding: 1rem 2rem;
+            border-radius: 50px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            width: 100%;
+        }
+
+        .btn-role:hover {
+            transform: translateY(-2px);
+            color: white;
+        }
+
+        .btn-admin {
+            background: var(--warning-gradient);
+        }
+
+        .user-info {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 50px;
+            padding: 0.5rem 1rem;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .logout-btn {
+            background: transparent;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+            margin-left: 1rem;
+        }
+
+        .logout-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+        }
+
+        .quick-stats {
+            background: white;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+            padding: 2rem;
+            margin: -3rem 1rem 3rem;
+            position: relative;
+            z-index: 3;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 2rem;
+        }
+
+        .stat-item {
+            text-align: center;
+            padding: 1rem;
+            border-radius: 10px;
+            background: #f8f9fa;
+        }
+
+        .stat-number {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #667eea;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-label {
+            color: var(--text-light);
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .footer {
+            text-align: center;
+            padding: 2rem;
+            color: var(--text-light);
+        }
+
+        @media (max-width: 768px) {
+            .welcome-title {
+                font-size: 2rem;
+            }
+
+            .role-cards {
+                grid-template-columns: 1fr;
+            }
+
+            .user-info {
+                position: relative;
+                top: auto;
+                right: auto;
+                margin-bottom: 1rem;
+                text-align: center;
+            }
+
+            .quick-stats {
+                margin: -2rem 0.5rem 2rem;
+                padding: 1.5rem;
+            }
+        }
+
+        .fade-in {
+            animation: fadeIn 0.8s ease forwards;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Loading Screen -->
+    <div class="loading-screen" id="loadingScreen">
+        <div class="loading-content">
+            <div class="loading-spinner"></div>
+            <h3>Cargando Dashboard...</h3>
+            <p>Preparando tu experiencia PersonName</p>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content" id="mainContent">
+        <!-- Hero Dashboard -->
+        <section class="hero-dashboard">
+            <div class="user-info">
+                <span id="userWelcome">?? Hola, Usuario</span>
+                <button class="logout-btn" onclick="logout()">
+                    <i class="bi bi-box-arrow-right"></i> Cerrar Sesión
+                </button>
+            </div>
+
+            <div class="container">
+                <div class="welcome-section">
+                    <h1 class="welcome-title">¡Bienvenido a PackedGo!</h1>
+                    <p class="welcome-subtitle">
+                        ¿Cómo te gustaría continuar hoy?
+                    </p>
+
+                    <div class="role-selection">
+                        <h3 style="margin-bottom: 0; color: white;">Selecciona tu experiencia</h3>
+                        
+                        <div class="role-cards">
+                            <!-- Consumer Card -->
+                            <div class="role-card" onclick="goToConsumer()">
+                                <div class="role-icon">
+                                    <i class="bi bi-person-heart"></i>
+                                </div>
+                                <h3 class="role-title">Explorador de Eventos</h3>
+                                <p class="role-description">
+                                    Descubre, compra y disfruta los mejores eventos
+                                </p>
+                                <ul class="role-features">
+                                    <li><i class="bi bi-check-circle"></i> Explorar eventos por categorías</li>
+                                    <li><i class="bi bi-check-circle"></i> Comprar entradas de forma segura</li>
+                                    <li><i class="bi bi-check-circle"></i> Gestionar tus reservas</li>
+                                    <li><i class="bi bi-check-circle"></i> Recibir recomendaciones personalizadas</li>
+                                </ul>
+                                <button class="btn btn-role">
+                                    <i class="bi bi-arrow-right-circle me-2"></i>
+                                    Explorar Eventos
+                                </button>
+                            </div>
+
+                            <!-- Admin Card -->
+                            <div class="role-card" onclick="goToAdmin()" id="adminCard" style="display: none;">
+                                <div class="role-icon">
+                                    <i class="bi bi-gear-fill"></i>
+                                </div>
+                                <h3 class="role-title">Panel Administrativo</h3>
+                                <p class="role-description">
+                                    Gestiona eventos, usuarios y toda la plataforma
+                                </p>
+                                <ul class="role-features">
+                                    <li><i class="bi bi-check-circle"></i> Crear y gestionar eventos</li>
+                                    <li><i class="bi bi-check-circle"></i> Administrar usuarios</li>
+                                    <li><i class="bi bi-check-circle"></i> Ver analytics y reportes</li>
+                                    <li><i class="bi bi-check-circle"></i> Configurar la plataforma</li>
+                                </ul>
+                                <button class="btn btn-role btn-admin">
+                                    <i class="bi bi-shield-check me-2"></i>
+                                    Panel de Control
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Quick Stats -->
+        <div class="container">
+            <div class="quick-stats fade-in">
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <div class="stat-number" id="eventsCount">150+</div>
+                        <div class="stat-label">Eventos Disponibles</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number" id="usersCount">25K+</div>
+                        <div class="stat-label">Usuarios Activos</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number" id="citiesCount">50+</div>
+                        <div class="stat-label">Ciudades</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number" id="satisfactionRate">98%</div>
+                        <div class="stat-label">Satisfacción</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="footer">
+            <p>&copy; 2025 PackedGo. Todos los derechos reservados.</p>
+            <p class="mt-2">
+                <a href="index.html" class="text-decoration-none" style="color: #667eea;">
+                    <i class="bi bi-house me-1"></i>Volver al inicio
+                </a>
+            </p>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        // Variables globales
+        let userRole = 'CUSTOMER';
+        let userName = 'Usuario';
+        let userToken = null;
+
+        // Función para verificar autenticación
+        function checkAuthentication() {
+            userToken = localStorage.getItem('userToken');
+            userRole = localStorage.getItem('userRole') || 'CUSTOMER';
+            userName = localStorage.getItem('userName') || 'Usuario';
+
+            if (!userToken) {
+                // No está autenticado, redirigir al login
+                window.location.href = 'login.html';
+                return false;
+            }
+
+            return true;
+        }
+
+        // Función para mostrar contenido basado en rol
+        function setupRoleBasedUI() {
+            const adminCard = document.getElementById('adminCard');
+            const userWelcome = document.getElementById('userWelcome');
+
+            // Actualizar saludo
+            userWelcome.textContent = `?? Hola, ${userName}`;
+
+            // Mostrar carta de admin solo si es administrador
+            if (userRole === 'ADMIN' || userRole === 'ADMINISTRATOR') {
+                adminCard.style.display = 'block';
+            }
+        }
+
+        // Función para simular carga de datos
+        function loadDashboardData() {
+            return new Promise((resolve) => {
+                // Simular carga de estadísticas
+                setTimeout(() => {
+                    // Aquí podrías hacer llamadas reales a tu API
+                    // updateStats();
+                    resolve();
+                }, 2000);
+            });
+        }
+
+        // Función para actualizar estadísticas (placeholder)
+        function updateStats() {
+            // Esto se conectaría con tu API real
+            const stats = {
+                events: Math.floor(Math.random() * 200) + 100,
+                users: Math.floor(Math.random() * 10000) + 20000,
+                cities: Math.floor(Math.random() * 30) + 40,
+                satisfaction: 95 + Math.floor(Math.random() * 5)
+            };
+
+            document.getElementById('eventsCount').textContent = stats.events + '+';
+            document.getElementById('usersCount').textContent = (stats.users / 1000).toFixed(0) + 'K+';
+            document.getElementById('citiesCount').textContent = stats.cities + '+';
+            document.getElementById('satisfactionRate').textContent = stats.satisfaction + '%';
+        }
+
+        // Función para ir al dashboard del consumer
+        function goToConsumer() {
+            // Agregar animación de salida
+            document.body.style.opacity = '0.8';
+            
+            setTimeout(() => {
+                window.location.href = 'consumer-dashboard.html';
+            }, 300);
+        }
+
+        // Función para ir al dashboard del admin
+        function goToAdmin() {
+            if (userRole !== 'ADMIN' && userRole !== 'ADMINISTRATOR') {
+                alert('No tienes permisos para acceder al panel administrativo.');
+                return;
+            }
+
+            // Agregar animación de salida
+            document.body.style.opacity = '0.8';
+            
+            setTimeout(() => {
+                window.location.href = 'admin-dashboard.html';
+            }, 300);
+        }
+
+        // Función para cerrar sesión
+        function logout() {
+            if (confirm('¿Estás seguro que deseas cerrar sesión?')) {
+                // Limpiar datos de sesión
+                localStorage.removeItem('userToken');
+                localStorage.removeItem('userRole');
+                localStorage.removeItem('userName');
+                
+                // Mantener "recordarme" si estaba activado
+                if (localStorage.getItem('rememberMe') !== 'true') {
+                    localStorage.removeItem('savedUsername');
+                }
+                
+                // Redirigir al login
+                window.location.href = 'login.html';
+            }
+        }
+
+        // Función principal de inicialización
+        async function initDashboard() {
+            // Verificar autenticación
+            if (!checkAuthentication()) {
+                return;
+            }
+
+            // Configurar UI basado en rol
+            setupRoleBasedUI();
+
+            // Cargar datos del dashboard
+            await loadDashboardData();
+
+            // Ocultar pantalla de carga y mostrar contenido
+            setTimeout(() => {
+                document.getElementById('loadingScreen').style.opacity = '0';
+                setTimeout(() => {
+                    document.getElementById('loadingScreen').style.display = 'none';
+                    document.getElementById('mainContent').style.opacity = '1';
+                }, 500);
+            }, 1000);
+        }
+
+        // Evento al cargar la página
+        document.addEventListener('DOMContentLoaded', initDashboard);
+
+        // Prevenir acceso directo sin autenticación
+        window.addEventListener('beforeunload', function() {
+            if (!localStorage.getItem('userToken')) {
+                event.returnValue = 'Sesión expirada';
+            }
+        });
+
+        // Actualizar texto de carga con nombre de usuario
+        document.addEventListener('DOMContentLoaded', function() {
+            const loadingText = document.querySelector('.loading-content p');
+            const storedName = localStorage.getItem('userName') || 'Usuario';
+            loadingText.textContent = `Preparando tu experiencia, ${storedName}`;
+        });
+    </script>
+</body>
+</html>

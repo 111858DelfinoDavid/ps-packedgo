@@ -17,7 +17,7 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/auth")
 @RequiredArgsConstructor
 @Slf4j
-@CrossOrigin(origins = "*") // En producci�n, configurar espec�ficamente
+@CrossOrigin(origins = "*") // En producciï¿½n, configurar especï¿½ficamente
 public class AuthController {
 
     private final AuthService authService;
@@ -109,7 +109,7 @@ public class AuthController {
         return ResponseEntity.ok(ApiResponse.success(newToken, "Token refreshed successfully"));
     }
 
-    // M�todos de utilidad
+    // Mï¿½todos de utilidad
     private String getClientIpAddress(HttpServletRequest request) {
         String xfHeader = request.getHeader("X-Forwarded-For");
         if (xfHeader == null) {

@@ -1,0 +1,794 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PackedGo - Registro Administrador</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --admin-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --admin-dark: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+            --text-dark: #333;
+            --text-light: #666;
+            --border-radius: 15px;
+            --shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
+            --hover-shadow: 0 20px 45px rgba(0, 0, 0, 0.2);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: var(--admin-dark);
+            min-height: 100vh;
+            padding: 2rem 0;
+        }
+
+        .register-container {
+            background: rgba(255, 255, 255, 0.98);
+            backdrop-filter: blur(20px);
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+            padding: 3rem;
+            margin: 2rem auto;
+            max-width: 700px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .user-type-badge {
+            background: var(--admin-gradient);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-align: center;
+            margin-bottom: 1rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            position: relative;
+        }
+
+        .user-type-badge::before {
+            content: '??';
+            position: absolute;
+            left: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+
+        .brand {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .brand-logo {
+            font-size: 3rem;
+            background: var(--admin-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 0.5rem;
+        }
+
+        .brand-name {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--text-dark);
+            margin-bottom: 0.5rem;
+        }
+
+        .brand-subtitle {
+            color: var(--text-light);
+            font-size: 0.95rem;
+        }
+
+        .form-title {
+            color: var(--text-dark);
+            font-weight: 600;
+            margin-bottom: 2rem;
+            text-align: center;
+            font-size: 1.5rem;
+        }
+
+        .security-warning {
+            background: linear-gradient(135deg, #ff6b6b, #ee5a52);
+            color: white;
+            padding: 1rem;
+            border-radius: 10px;
+            margin-bottom: 2rem;
+            font-size: 0.9rem;
+            text-align: center;
+            position: relative;
+        }
+
+        .security-warning::before {
+            content: '??';
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 1.2rem;
+        }
+
+        .form-label {
+            font-weight: 500;
+            color: var(--text-dark);
+            margin-bottom: 0.5rem;
+        }
+
+        .form-control, .form-select {
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            padding: 0.75rem;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            background: #fafafa;
+        }
+
+        .form-control:focus, .form-select:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+            background: white;
+        }
+
+        .btn-register {
+            background: var(--admin-gradient);
+            border: none;
+            color: white;
+            padding: 1rem;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 1.1rem;
+            width: 100%;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-register::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.5s;
+        }
+
+        .btn-register:hover::before {
+            left: 100%;
+        }
+
+        .btn-register:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--hover-shadow);
+            color: white;
+        }
+
+        .btn-register:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .error-message {
+            background: #ffe6e6;
+            border: 1px solid #ffb3b3;
+            color: #d63384;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            font-size: 0.9rem;
+            display: none;
+        }
+
+        .success-message {
+            background: #e8f5e8;
+            border: 1px solid #b3d9b3;
+            color: #198754;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            font-size: 0.9rem;
+            display: none;
+        }
+
+        .loading-spinner {
+            display: none;
+            margin-right: 0.5rem;
+        }
+
+        .form-steps {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 2rem;
+        }
+
+        .step {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background: #e9ecef;
+            color: var(--text-light);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            margin: 0 0.5rem;
+        }
+
+        .step.active {
+            background: var(--admin-gradient);
+            color: white;
+        }
+
+        .step.completed {
+            background: #28a745;
+            color: white;
+        }
+
+        .login-link {
+            text-align: center;
+            margin-top: 2rem;
+        }
+
+        .login-link a {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .login-link a:hover {
+            color: #764ba2;
+            text-decoration: underline;
+        }
+
+        .required {
+            color: #e74c3c;
+        }
+
+        .password-strength {
+            font-size: 0.8rem;
+            margin-top: 0.5rem;
+        }
+
+        .strength-weak { color: #e74c3c; }
+        .strength-medium { color: #f39c12; }
+        .strength-strong { color: #27ae60; }
+
+        @media (max-width: 768px) {
+            .register-container {
+                margin: 1rem;
+                padding: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="register-container">
+        <div class="user-type-badge">
+            Registro Administrador
+        </div>
+
+        <div class="security-warning">
+            Solo personal autorizado puede crear cuentas de administrador
+        </div>
+
+        <div class="brand">
+            <div class="brand-logo">
+                <i class="bi bi-shield-lock"></i>
+            </div>
+            <div class="brand-name">PackedGo Admin</div>
+            <div class="brand-subtitle">Panel de Administración de Eventos</div>
+        </div>
+
+        <h2 class="form-title">Crear Cuenta de Administrador</h2>
+
+        <div class="form-steps">
+            <div class="step active" id="step1">1</div>
+            <div class="step" id="step2">2</div>
+        </div>
+
+        <div id="errorMessage" class="error-message">
+            <i class="bi bi-exclamation-triangle me-2"></i>
+            <span id="errorText"></span>
+        </div>
+
+        <div id="successMessage" class="success-message">
+            <i class="bi bi-check-circle me-2"></i>
+            <span id="successText"></span>
+        </div>
+
+        <form id="registerForm" novalidate>
+            <!-- Paso 1: Información Profesional -->
+            <div id="step1-content" class="step-content">
+                <h4 class="mb-3">
+                    <i class="bi bi-person-badge me-2"></i>
+                    Información Profesional
+                </h4>
+                
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="name" class="form-label">Nombre <span class="required">*</span></label>
+                        <input type="text" class="form-control" id="name" name="name" required>
+                        <div class="invalid-feedback">
+                            Por favor, ingrese su nombre.
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6 mb-3">
+                        <label for="lastName" class="form-label">Apellido <span class="required">*</span></label>
+                        <input type="text" class="form-control" id="lastName" name="lastName" required>
+                        <div class="invalid-feedback">
+                            Por favor, ingrese su apellido.
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label for="email" class="form-label">Correo Electrónico Corporativo <span class="required">*</span></label>
+                    <input type="email" class="form-control" id="email" name="email" required>
+                    <div class="form-text">Use su correo electrónico profesional o corporativo.</div>
+                    <div class="invalid-feedback">
+                        Por favor, ingrese un correo electrónico válido.
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="telephone" class="form-label">Teléfono <span class="required">*</span></label>
+                        <input type="tel" class="form-control" id="telephone" name="telephone" pattern="[0-9]{8,15}" required>
+                        <div class="invalid-feedback">
+                            Por favor, ingrese un número de teléfono válido.
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6 mb-3">
+                        <label for="department" class="form-label">Departamento <span class="required">*</span></label>
+                        <select class="form-select" id="department" name="department" required>
+                            <option value="">Seleccionar departamento</option>
+                            <option value="EVENTS">Gestión de Eventos</option>
+                            <option value="MARKETING">Marketing</option>
+                            <option value="OPERATIONS">Operaciones</option>
+                            <option value="FINANCE">Finanzas</option>
+                            <option value="CUSTOMER_SERVICE">Atención al Cliente</option>
+                            <option value="IT">Tecnología</option>
+                            <option value="HR">Recursos Humanos</option>
+                            <option value="MANAGEMENT">Gerencia</option>
+                        </select>
+                        <div class="invalid-feedback">
+                            Por favor, seleccione su departamento.
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label for="position" class="form-label">Cargo/Posición <span class="required">*</span></label>
+                    <input type="text" class="form-control" id="position" name="position" required>
+                    <div class="form-text">Ej: Coordinador de Eventos, Gerente de Marketing, etc.</div>
+                    <div class="invalid-feedback">
+                        Por favor, ingrese su cargo o posición.
+                    </div>
+                </div>
+
+                <div class="d-grid">
+                    <button type="button" class="btn btn-register" onclick="nextStep(1)">
+                        Continuar <i class="bi bi-arrow-right ms-2"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Paso 2: Credenciales de Seguridad -->
+            <div id="step2-content" class="step-content" style="display: none;">
+                <h4 class="mb-3">
+                    <i class="bi bi-lock me-2"></i>
+                    Credenciales de Seguridad
+                </h4>
+                
+                <div class="mb-3">
+                    <label for="username" class="form-label">Nombre de Usuario <span class="required">*</span></label>
+                    <input type="text" class="form-control" id="username" name="username" minlength="5" required>
+                    <div class="form-text">Mínimo 5 caracteres, solo letras, números y guiones bajos.</div>
+                    <div class="invalid-feedback">
+                        Por favor, ingrese un nombre de usuario válido (mínimo 5 caracteres).
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label for="password" class="form-label">Contraseña <span class="required">*</span></label>
+                    <input type="password" class="form-control" id="password" name="password" minlength="8" required>
+                    <div class="form-text">Mínimo 8 caracteres con al menos una mayúscula, una minúscula y un número.</div>
+                    <div class="password-strength" id="passwordStrength"></div>
+                    <div class="invalid-feedback">
+                        Por favor, ingrese una contraseña segura (mínimo 8 caracteres).
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label for="confirmPassword" class="form-label">Confirmar Contraseña <span class="required">*</span></label>
+                    <input type="password" class="form-control" id="confirmPassword" name="confirmPassword" required>
+                    <div class="invalid-feedback">
+                        Las contraseñas no coinciden.
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label for="authCode" class="form-label">Código de Autorización <span class="required">*</span></label>
+                    <input type="text" class="form-control" id="authCode" name="authCode" required>
+                    <div class="form-text">Solicite este código al administrador del sistema.</div>
+                    <div class="invalid-feedback">
+                        Por favor, ingrese el código de autorización.
+                    </div>
+                </div>
+
+                <div class="form-check mb-3">
+                    <input class="form-check-input" type="checkbox" id="acceptTerms" required>
+                    <label class="form-check-label" for="acceptTerms">
+                        Acepto los <a href="#" class="text-decoration-none">términos y condiciones para administradores</a> <span class="required">*</span>
+                    </label>
+                    <div class="invalid-feedback">
+                        Debe aceptar los términos y condiciones.
+                    </div>
+                </div>
+
+                <div class="form-check mb-3">
+                    <input class="form-check-input" type="checkbox" id="acceptResponsibility" required>
+                    <label class="form-check-label" for="acceptResponsibility">
+                        Acepto la responsabilidad del manejo de datos y funciones administrativas <span class="required">*</span>
+                    </label>
+                    <div class="invalid-feedback">
+                        Debe aceptar las responsabilidades administrativas.
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-6">
+                        <button type="button" class="btn btn-outline-secondary w-100" onclick="previousStep(2)">
+                            <i class="bi bi-arrow-left me-2"></i>Anterior
+                        </button>
+                    </div>
+                    <div class="col-6">
+                        <button type="submit" class="btn btn-register w-100">
+                            <span class="loading-spinner spinner-border spinner-border-sm" role="status"></span>
+                            <i class="bi bi-shield-check me-2"></i>
+                            <span id="registerButtonText">Crear Cuenta Admin</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </form>
+
+        <div class="login-link">
+            <a href="admin-login.html">
+                <i class="bi bi-arrow-left me-1"></i>
+                ¿Ya tienes cuenta de admin? Inicia sesión
+            </a>
+        </div>
+
+        <div class="text-center mt-3">
+            <a href="index.html" class="text-muted text-decoration-none">
+                <i class="bi bi-house me-1"></i>
+                Volver al inicio
+            </a>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        // Estado de la aplicación
+        let currentStep = 1;
+        let isLoading = false;
+        
+        // Referencias DOM
+        const registerForm = document.getElementById('registerForm');
+        const errorMessage = document.getElementById('errorMessage');
+        const successMessage = document.getElementById('successMessage');
+        const errorText = document.getElementById('errorText');
+        const successText = document.getElementById('successText');
+        const loadingSpinner = document.querySelector('.loading-spinner');
+        const registerButtonText = document.getElementById('registerButtonText');
+        const passwordField = document.getElementById('password');
+        const passwordStrength = document.getElementById('passwordStrength');
+
+        // Funciones de utilidad
+        function showError(message) {
+            errorText.textContent = message;
+            errorMessage.style.display = 'block';
+            successMessage.style.display = 'none';
+        }
+
+        function showSuccess(message) {
+            successText.textContent = message;
+            successMessage.style.display = 'block';
+            errorMessage.style.display = 'none';
+        }
+
+        function hideMessages() {
+            errorMessage.style.display = 'none';
+            successMessage.style.display = 'none';
+        }
+
+        function setLoading(loading) {
+            isLoading = loading;
+            const submitButton = document.querySelector('button[type="submit"]');
+            if (loading) {
+                submitButton.disabled = true;
+                loadingSpinner.style.display = 'inline-block';
+                registerButtonText.textContent = 'Creando cuenta...';
+            } else {
+                submitButton.disabled = false;
+                loadingSpinner.style.display = 'none';
+                registerButtonText.textContent = 'Crear Cuenta Admin';
+            }
+        }
+
+        // Análisis de fortaleza de contraseña
+        function checkPasswordStrength(password) {
+            let strength = 0;
+            let feedback = [];
+
+            if (password.length >= 8) strength++;
+            else feedback.push('mínimo 8 caracteres');
+
+            if (/[a-z]/.test(password)) strength++;
+            else feedback.push('una minúscula');
+
+            if (/[A-Z]/.test(password)) strength++;
+            else feedback.push('una mayúscula');
+
+            if (/[0-9]/.test(password)) strength++;
+            else feedback.push('un número');
+
+            if (/[^A-Za-z0-9]/.test(password)) {
+                strength++;
+                feedback.push('caracter especial (recomendado)');
+            }
+
+            let strengthText = '';
+            let strengthClass = '';
+
+            if (strength <= 2) {
+                strengthText = '?? Débil';
+                strengthClass = 'strength-weak';
+            } else if (strength <= 3) {
+                strengthText = '? Moderada';
+                strengthClass = 'strength-medium';
+            } else {
+                strengthText = '? Fuerte';
+                strengthClass = 'strength-strong';
+            }
+
+            if (feedback.length > 0 && strength < 4) {
+                strengthText += ` - Falta: ${feedback.join(', ')}`;
+            }
+
+            passwordStrength.textContent = strengthText;
+            passwordStrength.className = `password-strength ${strengthClass}`;
+        }
+
+        // Navegación entre pasos
+        function nextStep(step) {
+            if (!validateCurrentStep(step)) return;
+
+            hideMessages();
+            
+            // Ocultar paso actual
+            document.getElementById(`step${step}-content`).style.display = 'none';
+            document.getElementById(`step${step}`).classList.remove('active');
+            document.getElementById(`step${step}`).classList.add('completed');
+
+            // Mostrar siguiente paso
+            const nextStepNum = step + 1;
+            document.getElementById(`step${nextStepNum}-content`).style.display = 'block';
+            document.getElementById(`step${nextStepNum}`).classList.add('active');
+            
+            currentStep = nextStepNum;
+        }
+
+        function previousStep(step) {
+            hideMessages();
+            
+            // Ocultar paso actual
+            document.getElementById(`step${step}-content`).style.display = 'none';
+            document.getElementById(`step${step}`).classList.remove('active');
+
+            // Mostrar paso anterior
+            const prevStepNum = step - 1;
+            document.getElementById(`step${prevStepNum}-content`).style.display = 'block';
+            document.getElementById(`step${prevStepNum}`).classList.remove('completed');
+            document.getElementById(`step${prevStepNum}`).classList.add('active');
+            
+            currentStep = prevStepNum;
+        }
+
+        // Validación por pasos
+        function validateCurrentStep(step) {
+            let isValid = true;
+            const stepContent = document.getElementById(`step${step}-content`);
+            const inputs = stepContent.querySelectorAll('input, select');
+
+            inputs.forEach(input => {
+                if (input.required && !input.value.trim()) {
+                    input.classList.add('is-invalid');
+                    isValid = false;
+                } else if (input.type === 'email' && input.value && !isValidEmail(input.value)) {
+                    input.classList.add('is-invalid');
+                    isValid = false;
+                } else if (input.name === 'telephone' && input.value && !/^[0-9]{8,15}$/.test(input.value)) {
+                    input.classList.add('is-invalid');
+                    isValid = false;
+                } else {
+                    input.classList.remove('is-invalid');
+                    input.classList.add('is-valid');
+                }
+            });
+
+            return isValid;
+        }
+
+        function isValidEmail(email) {
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            return emailRegex.test(email);
+        }
+
+        // Validación final completa
+        function validateCompleteForm() {
+            let isValid = true;
+            const allInputs = document.querySelectorAll('input, select');
+
+            allInputs.forEach(input => {
+                if (input.required && !input.value.trim()) {
+                    input.classList.add('is-invalid');
+                    isValid = false;
+                } else {
+                    input.classList.remove('is-invalid');
+                    input.classList.add('is-valid');
+                }
+            });
+
+            // Validar contraseña fuerte
+            const password = document.getElementById('password').value;
+            if (password.length < 8 || 
+                !/[a-z]/.test(password) || 
+                !/[A-Z]/.test(password) || 
+                !/[0-9]/.test(password)) {
+                document.getElementById('password').classList.add('is-invalid');
+                showError('La contraseña debe tener al menos 8 caracteres, incluyendo mayúsculas, minúsculas y números.');
+                isValid = false;
+            }
+
+            // Validar confirmación de contraseña
+            const confirmPassword = document.getElementById('confirmPassword').value;
+            if (password !== confirmPassword) {
+                document.getElementById('confirmPassword').classList.add('is-invalid');
+                showError('Las contraseñas no coinciden.');
+                isValid = false;
+            }
+
+            // Validar términos y condiciones
+            if (!document.getElementById('acceptTerms').checked) {
+                document.getElementById('acceptTerms').classList.add('is-invalid');
+                showError('Debe aceptar los términos y condiciones.');
+                isValid = false;
+            }
+
+            if (!document.getElementById('acceptResponsibility').checked) {
+                document.getElementById('acceptResponsibility').classList.add('is-invalid');
+                showError('Debe aceptar las responsabilidades administrativas.');
+                isValid = false;
+            }
+
+            return isValid;
+        }
+
+        // Función de registro
+        async function performRegistration(formData) {
+            try {
+                const response = await fetch('http://localhost:8081/auth/admin/register', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        username: formData.username,
+                        email: formData.email,
+                        password: formData.password,
+                        name: formData.name,
+                        lastName: formData.lastName,
+                        telephone: parseInt(formData.telephone),
+                        department: formData.department,
+                        position: formData.position,
+                        authorizationCode: formData.authCode
+                    })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    showSuccess('¡Cuenta de administrador creada exitosamente! Redirigiendo al login...');
+                    
+                    // Redirigir después de 2 segundos
+                    setTimeout(() => {
+                        window.location.href = 'admin-login.html';
+                    }, 2000);
+                } else {
+                    const errorData = await response.json().catch(() => ({}));
+                    throw new Error(errorData.message || 'Error al crear la cuenta de administrador');
+                }
+            } catch (error) {
+                console.error('Registration error:', error);
+                
+                if (error.name === 'TypeError' && error.message.includes('fetch')) {
+                    showError('Error de conexión. Verifique que el servidor esté funcionando en el puerto 8081.');
+                } else {
+                    showError(error.message || 'Error al crear la cuenta. Intente nuevamente.');
+                }
+            }
+        }
+
+        // Event listeners
+        registerForm.addEventListener('submit', async function(event) {
+            event.preventDefault();
+            event.stopPropagation();
+
+            if (isLoading) return;
+
+            hideMessages();
+
+            if (!validateCompleteForm()) {
+                return;
+            }
+
+            setLoading(true);
+
+            const formData = new FormData(registerForm);
+            const data = Object.fromEntries(formData);
+
+            await performRegistration(data);
+            setLoading(false);
+        });
+
+        // Validación en tiempo real
+        passwordField.addEventListener('input', function() {
+            checkPasswordStrength(this.value);
+        });
+
+        document.getElementById('telephone').addEventListener('input', function() {
+            this.value = this.value.replace(/[^0-9]/g, '');
+        });
+
+        document.getElementById('username').addEventListener('input', function() {
+            this.value = this.value.replace(/[^a-zA-Z0-9_]/g, '');
+        });
+
+        // Limpiar validación en tiempo real
+        document.querySelectorAll('input, select').forEach(input => {
+            input.addEventListener('input', function() {
+                if (this.classList.contains('is-invalid') && this.value.trim()) {
+                    this.classList.remove('is-invalid');
+                    if (this.checkValidity()) {
+                        this.classList.add('is-valid');
+                    }
+                }
+                hideMessages();
+            });
+        });
+    </script>
+</body>
+</html>

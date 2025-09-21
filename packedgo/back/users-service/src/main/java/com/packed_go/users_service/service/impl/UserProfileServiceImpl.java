@@ -1,7 +1,9 @@
 package com.packed_go.users_service.service.impl;
 
+import com.packed_go.users_service.dto.request.CreateProfileFromAuthRequest;
 import com.packed_go.users_service.entity.UserProfileEntity;
 import com.packed_go.users_service.model.UserProfile;
+import com.packed_go.users_service.model.Gender;
 import com.packed_go.users_service.repository.UserProfileRepository;
 import com.packed_go.users_service.service.UserProfileService;
 import jakarta.transaction.Transactional;
@@ -73,6 +75,47 @@ public class UserProfileServiceImpl implements UserProfileService {
         }else {
             throw new RuntimeException("UserProfile con documento " + document + " no encontrado");
         }
+    }
+
+    @Override
+    public UserProfile getByAuthUserId(Long authUserId) {
+        Optional<UserProfileEntity> userExist = userProfileRepository.findByAuthUserId(authUserId);
+        if (userExist.isPresent()) {
+            return modelMapper.map(userExist.get(), UserProfile.class);
+        } else {
+            throw new RuntimeException("UserProfile con authUserId " + authUserId + " no encontrado");
+        }
+    }
+
+    @Override
+    public boolean existsByAuthUserId(Long authUserId) {
+        return userProfileRepository.existsByAuthUserId(authUserId);
+    }
+
+    @Override
+    public UserProfile createFromAuthService(CreateProfileFromAuthRequest request) {
+        // Verificar si ya existe un perfil para este authUserId
+        if (existsByAuthUserId(request.getAuthUserId())) {
+            throw new RuntimeException("Ya existe un perfil para el usuario con authUserId: " + request.getAuthUserId());
+        }
+
+        // Crear nuevo perfil con todos los datos reales del request
+        UserProfile userProfile = new UserProfile();
+        userProfile.setAuthUserId(request.getAuthUserId());
+        userProfile.setDocument(request.getDocument());
+        
+        // ? Usar datos reales en lugar de placeholders
+        userProfile.setName(request.getName());
+        userProfile.setLastName(request.getLastName());
+        userProfile.setBornDate(request.getBornDate());
+        userProfile.setTelephone(request.getTelephone());
+        userProfile.setGender(request.getGender());
+        
+        // Solo estos campos tienen valores por defecto
+        userProfile.setProfileImageUrl("");
+        userProfile.setIsActive(true);
+
+        return create(userProfile);
     }
 
     @Override
@@ -162,6 +205,16 @@ public class UserProfileServiceImpl implements UserProfileService {
             return modelMapper.map(userExist.get(), UserProfile.class);
         } else {
             throw new RuntimeException("UserProfile activo con documento " + document + " no encontrado");
+        }
+    }
+
+    @Override
+    public UserProfile getByAuthUserIdActive(Long authUserId) {
+        Optional<UserProfileEntity> userExist = userProfileRepository.findByAuthUserIdAndIsActiveTrue(authUserId);
+        if (userExist.isPresent()) {
+            return modelMapper.map(userExist.get(), UserProfile.class);
+        } else {
+            throw new RuntimeException("UserProfile activo con authUserId " + authUserId + " no encontrado");
         }
     }
 

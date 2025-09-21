@@ -12,6 +12,8 @@ import java.util.Optional;
 public interface UserProfileRepository extends JpaRepository<UserProfileEntity, Long> {
     Optional<UserProfileEntity> findById(Long id);
     Optional<UserProfileEntity> findByDocument(Long document);
+    Optional<UserProfileEntity> findByAuthUserId(Long authUserId);
+    boolean existsByAuthUserId(Long authUserId);
 //    Optional<UserProfileEntity> findByEmail(String email);
 
 
@@ -22,4 +24,5 @@ public interface UserProfileRepository extends JpaRepository<UserProfileEntity, 
     Optional<UserProfileEntity> findByIdAndIsActiveTrue(Long id);
 
     Optional<UserProfileEntity> findByDocumentAndIsActiveTrue(Long document);
+    Optional<UserProfileEntity> findByAuthUserIdAndIsActiveTrue(Long authUserId);
 }

@@ -1,0 +1,1076 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PackedGo - Panel Administrativo</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --secondary-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            --success-gradient: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            --warning-gradient: linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%);
+            --danger-gradient: linear-gradient(135deg, #ff6b6b 0%, #ee5a52 100%);
+            --text-dark: #333;
+            --text-light: #666;
+            --border-radius: 15px;
+            --shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            --hover-shadow: 0 15px 40px rgba(0, 0, 0, 0.15);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: #f8f9fa;
+        }
+
+        /* ADMIN ALERT */
+        .admin-alert {
+            background: var(--warning-gradient);
+            color: white;
+            padding: 0.5rem 0;
+            text-align: center;
+            font-weight: 500;
+            font-size: 0.9rem;
+        }
+
+        /* SIDEBAR */
+        .sidebar {
+            background: linear-gradient(180deg, #2c3e50 0%, #34495e 100%);
+            width: 280px;
+            height: 100vh;
+            position: fixed;
+            left: 0;
+            top: 0;
+            box-shadow: var(--shadow);
+            z-index: 1000;
+            transition: all 0.3s ease;
+            color: white;
+        }
+
+        .sidebar.collapsed {
+            width: 80px;
+        }
+
+        .sidebar-header {
+            padding: 2rem 1.5rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            position: relative;
+        }
+
+        .sidebar-brand {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: white;
+            display: flex;
+            align-items: center;
+        }
+
+        .sidebar-brand i {
+            margin-right: 0.5rem;
+            font-size: 2rem;
+            color: #f39c12;
+        }
+
+        .admin-badge {
+            background: #e74c3c;
+            color: white;
+            font-size: 0.7rem;
+            padding: 0.2rem 0.5rem;
+            border-radius: 10px;
+            margin-left: 0.5rem;
+        }
+
+        .sidebar-toggle {
+            position: absolute;
+            top: 2rem;
+            right: 1rem;
+            background: none;
+            border: none;
+            font-size: 1.2rem;
+            color: rgba(255, 255, 255, 0.7);
+            cursor: pointer;
+        }
+
+        .sidebar-menu {
+            padding: 1rem 0;
+        }
+
+        .menu-section {
+            margin-bottom: 2rem;
+        }
+
+        .menu-section-title {
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            padding: 0 1.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .menu-item {
+            display: flex;
+            align-items: center;
+            padding: 1rem 1.5rem;
+            color: rgba(255, 255, 255, 0.8);
+            text-decoration: none;
+            transition: all 0.3s ease;
+            border-left: 3px solid transparent;
+        }
+
+        .menu-item:hover,
+        .menu-item.active {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            border-left-color: #f39c12;
+        }
+
+        .menu-item i {
+            margin-right: 1rem;
+            font-size: 1.2rem;
+            width: 20px;
+            text-align: center;
+        }
+
+        .sidebar.collapsed .menu-item span,
+        .sidebar.collapsed .menu-section-title {
+            display: none;
+        }
+
+        .sidebar.collapsed .menu-item {
+            justify-content: center;
+        }
+
+        /* MAIN CONTENT */
+        .main-content {
+            margin-left: 280px;
+            transition: all 0.3s ease;
+            min-height: 100vh;
+        }
+
+        .main-content.expanded {
+            margin-left: 80px;
+        }
+
+        /* HEADER */
+        .top-header {
+            background: white;
+            padding: 1.5rem 2rem;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .page-title {
+            font-size: 1.8rem;
+            font-weight: 600;
+            color: var(--text-dark);
+            margin: 0;
+            display: flex;
+            align-items: center;
+        }
+
+        .page-title i {
+            margin-right: 0.5rem;
+            color: #e74c3c;
+        }
+
+        .admin-profile {
+            display: flex;
+            align-items: center;
+        }
+
+        .admin-avatar {
+            width: 45px;
+            height: 45px;
+            background: var(--danger-gradient);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            margin-right: 1rem;
+        }
+
+        .admin-info h6 {
+            margin: 0;
+            color: var(--text-dark);
+        }
+
+        .admin-info small {
+            color: #e74c3c;
+            font-weight: 600;
+        }
+
+        /* DASHBOARD CONTENT */
+        .dashboard-content {
+            padding: 2rem;
+        }
+
+        /* STATS CARDS */
+        .stats-row {
+            margin-bottom: 3rem;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: var(--border-radius);
+            padding: 2rem;
+            box-shadow: var(--shadow);
+            text-align: center;
+            transition: all 0.3s ease;
+            border-left: 4px solid transparent;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 80px;
+            height: 80px;
+            opacity: 0.1;
+            font-size: 4rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--hover-shadow);
+        }
+
+        .stat-card.events {
+            border-left-color: #3498db;
+        }
+
+        .stat-card.users {
+            border-left-color: #2ecc71;
+        }
+
+        .stat-card.sales {
+            border-left-color: #f39c12;
+        }
+
+        .stat-card.revenue {
+            border-left-color: #e74c3c;
+        }
+
+        .stat-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+
+        .stat-icon.events {
+            color: #3498db;
+        }
+
+        .stat-icon.users {
+            color: #2ecc71;
+        }
+
+        .stat-icon.sales {
+            color: #f39c12;
+        }
+
+        .stat-icon.revenue {
+            color: #e74c3c;
+        }
+
+        .stat-number {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--text-dark);
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-label {
+            color: var(--text-light);
+            font-weight: 500;
+            text-transform: uppercase;
+            font-size: 0.9rem;
+            letter-spacing: 1px;
+        }
+
+        .stat-change {
+            font-size: 0.8rem;
+            margin-top: 0.5rem;
+        }
+
+        .stat-change.positive {
+            color: #2ecc71;
+        }
+
+        .stat-change.negative {
+            color: #e74c3c;
+        }
+
+        /* SECTION CARDS */
+        .section-card {
+            background: white;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+            margin-bottom: 2rem;
+        }
+
+        .section-header {
+            padding: 1.5rem 2rem;
+            border-bottom: 1px solid #e9ecef;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .section-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: var(--text-dark);
+            margin: 0;
+            display: flex;
+            align-items: center;
+        }
+
+        .section-title i {
+            margin-right: 0.5rem;
+        }
+
+        .section-content {
+            padding: 2rem;
+        }
+
+        /* QUICK ACTIONS */
+        .quick-actions {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 3rem;
+        }
+
+        .action-card {
+            background: white;
+            border-radius: var(--border-radius);
+            padding: 2rem;
+            box-shadow: var(--shadow);
+            text-align: center;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            border: 2px solid transparent;
+        }
+
+        .action-card:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--hover-shadow);
+            border-color: rgba(102, 126, 234, 0.3);
+        }
+
+        .action-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            background: var(--primary-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .action-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--text-dark);
+            margin-bottom: 0.5rem;
+        }
+
+        .action-description {
+            color: var(--text-light);
+            font-size: 0.9rem;
+        }
+
+        /* TABLES */
+        .table-container {
+            overflow-x: auto;
+        }
+
+        .admin-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .admin-table th,
+        .admin-table td {
+            padding: 1rem;
+            text-align: left;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .admin-table th {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: var(--text-dark);
+        }
+
+        .admin-table tr:hover {
+            background: #f8f9fa;
+        }
+
+        .status-badge {
+            padding: 0.3rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+
+        .status-active {
+            background: #e8f5e8;
+            color: #2ecc71;
+        }
+
+        .status-inactive {
+            background: #ffe6e6;
+            color: #e74c3c;
+        }
+
+        .status-pending {
+            background: #fff3cd;
+            color: #f39c12;
+        }
+
+        /* BUTTONS */
+        .btn-admin-primary {
+            background: var(--primary-gradient);
+            border: none;
+            color: white;
+            padding: 0.7rem 1.5rem;
+            border-radius: 8px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .btn-admin-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--hover-shadow);
+            color: white;
+        }
+
+        .btn-admin-danger {
+            background: var(--danger-gradient);
+            border: none;
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+        }
+
+        .btn-admin-danger:hover {
+            transform: translateY(-1px);
+            color: white;
+        }
+
+        /* RESPONSIVE */
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-100%);
+            }
+
+            .sidebar.mobile-show {
+                transform: translateX(0);
+            }
+
+            .main-content {
+                margin-left: 0;
+            }
+
+            .main-content.expanded {
+                margin-left: 0;
+            }
+
+            .top-header {
+                padding: 1rem;
+            }
+
+            .dashboard-content {
+                padding: 1rem;
+            }
+
+            .mobile-menu-btn {
+                display: block;
+                background: none;
+                border: none;
+                font-size: 1.5rem;
+                color: var(--text-dark);
+            }
+
+            .quick-actions {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .mobile-menu-btn {
+            display: none;
+        }
+
+        .mobile-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 999;
+            display: none;
+        }
+
+        @media (max-width: 768px) {
+            .mobile-overlay.show {
+                display: block;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Admin Alert -->
+    <div class="admin-alert">
+        <i class="bi bi-shield-exclamation me-2"></i>
+        <strong>PANEL ADMINISTRATIVO</strong> - Acceso restringido a administradores
+    </div>
+
+    <!-- Mobile Overlay -->
+    <div class="mobile-overlay" id="mobileOverlay" onclick="closeMobileSidebar()"></div>
+
+    <!-- Sidebar -->
+    <div class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <div class="sidebar-brand">
+                <i class="bi bi-shield-lock-fill"></i>
+                <span>Admin Panel</span>
+                <span class="admin-badge">ADMIN</span>
+            </div>
+            <button class="sidebar-toggle" onclick="toggleSidebar()">
+                <i class="bi bi-list"></i>
+            </button>
+        </div>
+        
+        <nav class="sidebar-menu">
+            <div class="menu-section">
+                <div class="menu-section-title">General</div>
+                <a href="#" class="menu-item active" onclick="showSection('dashboard')">
+                    <i class="bi bi-speedometer2"></i>
+                    <span>Dashboard</span>
+                </a>
+                <a href="#" class="menu-item" onclick="showSection('analytics')">
+                    <i class="bi bi-graph-up"></i>
+                    <span>Analytics</span>
+                </a>
+            </div>
+
+            <div class="menu-section">
+                <div class="menu-section-title">Gestión</div>
+                <a href="#" class="menu-item" onclick="showSection('events')">
+                    <i class="bi bi-calendar-event"></i>
+                    <span>Eventos</span>
+                </a>
+                <a href="#" class="menu-item" onclick="showSection('users')">
+                    <i class="bi bi-people"></i>
+                    <span>Usuarios</span>
+                </a>
+                <a href="#" class="menu-item" onclick="showSection('orders')">
+                    <i class="bi bi-receipt"></i>
+                    <span>Órdenes</span>
+                </a>
+                <a href="#" class="menu-item" onclick="showSection('venues')">
+                    <i class="bi bi-building"></i>
+                    <span>Venues</span>
+                </a>
+            </div>
+
+            <div class="menu-section">
+                <div class="menu-section-title">Sistema</div>
+                <a href="#" class="menu-item" onclick="showSection('settings')">
+                    <i class="bi bi-gear"></i>
+                    <span>Configuración</span>
+                </a>
+                <a href="#" class="menu-item" onclick="showSection('logs')">
+                    <i class="bi bi-file-text"></i>
+                    <span>Logs</span>
+                </a>
+            </div>
+
+            <div class="menu-section">
+                <div class="menu-section-title">Navegación</div>
+                <a href="dashboard.html" class="menu-item">
+                    <i class="bi bi-arrow-left"></i>
+                    <span>Volver</span>
+                </a>
+                <a href="#" class="menu-item" onclick="logout()">
+                    <i class="bi bi-box-arrow-right"></i>
+                    <span>Cerrar Sesión</span>
+                </a>
+            </div>
+        </nav>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content" id="mainContent">
+        <!-- Header -->
+        <header class="top-header">
+            <div class="d-flex align-items-center">
+                <button class="mobile-menu-btn" onclick="toggleMobileSidebar()">
+                    <i class="bi bi-list"></i>
+                </button>
+                <h1 class="page-title" id="pageTitle">
+                    <i class="bi bi-shield-check"></i>
+                    Panel Administrativo
+                </h1>
+            </div>
+            
+            <div class="admin-profile">
+                <div class="admin-avatar" id="adminAvatar">A</div>
+                <div class="admin-info">
+                    <h6 id="adminName">Administrador</h6>
+                    <small>ADMINISTRADOR</small>
+                </div>
+            </div>
+        </header>
+
+        <!-- Dashboard Content -->
+        <div class="dashboard-content">
+            <!-- Dashboard Section -->
+            <div id="dashboard-section" class="content-section">
+                <!-- Stats Row -->
+                <div class="row stats-row">
+                    <div class="col-lg-3 col-md-6 mb-4">
+                        <div class="stat-card events">
+                            <div class="stat-icon events">
+                                <i class="bi bi-calendar-event"></i>
+                            </div>
+                            <div class="stat-number" id="totalEvents">156</div>
+                            <div class="stat-label">Eventos Totales</div>
+                            <div class="stat-change positive">
+                                <i class="bi bi-arrow-up"></i> +12% este mes
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-3 col-md-6 mb-4">
+                        <div class="stat-card users">
+                            <div class="stat-icon users">
+                                <i class="bi bi-people"></i>
+                            </div>
+                            <div class="stat-number" id="totalUsers">45.2K</div>
+                            <div class="stat-label">Usuarios Activos</div>
+                            <div class="stat-change positive">
+                                <i class="bi bi-arrow-up"></i> +8% este mes
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-3 col-md-6 mb-4">
+                        <div class="stat-card sales">
+                            <div class="stat-icon sales">
+                                <i class="bi bi-ticket-perforated"></i>
+                            </div>
+                            <div class="stat-number" id="totalSales">12.8K</div>
+                            <div class="stat-label">Entradas Vendidas</div>
+                            <div class="stat-change positive">
+                                <i class="bi bi-arrow-up"></i> +25% este mes
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-3 col-md-6 mb-4">
+                        <div class="stat-card revenue">
+                            <div class="stat-icon revenue">
+                                <i class="bi bi-currency-dollar"></i>
+                            </div>
+                            <div class="stat-number" id="totalRevenue">$2.1M</div>
+                            <div class="stat-label">Ingresos Totales</div>
+                            <div class="stat-change positive">
+                                <i class="bi bi-arrow-up"></i> +18% este mes
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Quick Actions -->
+                <div class="quick-actions">
+                    <div class="action-card" onclick="showSection('events')">
+                        <div class="action-icon">
+                            <i class="bi bi-plus-circle"></i>
+                        </div>
+                        <div class="action-title">Crear Evento</div>
+                        <div class="action-description">Añadir un nuevo evento a la plataforma</div>
+                    </div>
+                    <div class="action-card" onclick="showSection('users')">
+                        <div class="action-icon">
+                            <i class="bi bi-person-plus"></i>
+                        </div>
+                        <div class="action-title">Gestionar Usuarios</div>
+                        <div class="action-description">Administrar cuentas de usuarios</div>
+                    </div>
+                    <div class="action-card" onclick="showSection('analytics')">
+                        <div class="action-icon">
+                            <i class="bi bi-bar-chart"></i>
+                        </div>
+                        <div class="action-title">Ver Reportes</div>
+                        <div class="action-description">Analizar métricas y estadísticas</div>
+                    </div>
+                    <div class="action-card" onclick="showSection('settings')">
+                        <div class="action-icon">
+                            <i class="bi bi-gear-fill"></i>
+                        </div>
+                        <div class="action-title">Configuración</div>
+                        <div class="action-description">Ajustar configuraciones del sistema</div>
+                    </div>
+                </div>
+
+                <!-- Recent Activity -->
+                <div class="section-card">
+                    <div class="section-header">
+                        <h3 class="section-title">
+                            <i class="bi bi-clock-history"></i>
+                            Actividad Reciente
+                        </h3>
+                        <button class="btn btn-admin-primary">
+                            <i class="bi bi-arrow-right me-2"></i>Ver Todo
+                        </button>
+                    </div>
+                    <div class="section-content">
+                        <div class="table-container">
+                            <table class="admin-table">
+                                <thead>
+                                    <tr>
+                                        <th>Usuario</th>
+                                        <th>Acción</th>
+                                        <th>Evento</th>
+                                        <th>Fecha</th>
+                                        <th>Estado</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>Juan Pérez</td>
+                                        <td>Compra de entrada</td>
+                                        <td>Festival Rock Nacional</td>
+                                        <td>Hace 2 horas</td>
+                                        <td><span class="status-badge status-active">Completado</span></td>
+                                    </tr>
+                                    <tr>
+                                        <td>María García</td>
+                                        <td>Registro nuevo</td>
+                                        <td>-</td>
+                                        <td>Hace 4 horas</td>
+                                        <td><span class="status-badge status-active">Activo</span></td>
+                                    </tr>
+                                    <tr>
+                                        <td>Carlos López</td>
+                                        <td>Cancelación</td>
+                                        <td>Romeo y Julieta</td>
+                                        <td>Hace 6 horas</td>
+                                        <td><span class="status-badge status-pending">Procesando</span></td>
+                                    </tr>
+                                    <tr>
+                                        <td>Ana Martínez</td>
+                                        <td>Compra de entrada</td>
+                                        <td>Copa Argentina Final</td>
+                                        <td>Hace 1 día</td>
+                                        <td><span class="status-badge status-active">Completado</span></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- System Status -->
+                <div class="section-card">
+                    <div class="section-header">
+                        <h3 class="section-title">
+                            <i class="bi bi-cpu"></i>
+                            Estado del Sistema
+                        </h3>
+                    </div>
+                    <div class="section-content">
+                        <div class="row">
+                            <div class="col-md-3 mb-3">
+                                <div class="d-flex align-items-center">
+                                    <div class="me-3">
+                                        <i class="bi bi-server" style="font-size: 2rem; color: #2ecc71;"></i>
+                                    </div>
+                                    <div>
+                                        <h6 class="mb-1">Servidor</h6>
+                                        <small class="text-success">Online</small>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <div class="d-flex align-items-center">
+                                    <div class="me-3">
+                                        <i class="bi bi-database" style="font-size: 2rem; color: #2ecc71;"></i>
+                                    </div>
+                                    <div>
+                                        <h6 class="mb-1">Base de Datos</h6>
+                                        <small class="text-success">Conectada</small>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <div class="d-flex align-items-center">
+                                    <div class="me-3">
+                                        <i class="bi bi-cloud" style="font-size: 2rem; color: #f39c12;"></i>
+                                    </div>
+                                    <div>
+                                        <h6 class="mb-1">API Externa</h6>
+                                        <small class="text-warning">Latencia alta</small>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <div class="d-flex align-items-center">
+                                    <div class="me-3">
+                                        <i class="bi bi-shield-check" style="font-size: 2rem; color: #2ecc71;"></i>
+                                    </div>
+                                    <div>
+                                        <h6 class="mb-1">Seguridad</h6>
+                                        <small class="text-success">Protegido</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Other Sections (Hidden by default) -->
+            <div id="events-section" class="content-section" style="display: none;">
+                <div class="section-card">
+                    <div class="section-header">
+                        <h3 class="section-title">
+                            <i class="bi bi-calendar-event"></i>
+                            Gestión de Eventos
+                        </h3>
+                        <button class="btn btn-admin-primary">
+                            <i class="bi bi-plus me-2"></i>Crear Evento
+                        </button>
+                    </div>
+                    <div class="section-content text-center">
+                        <i class="bi bi-calendar-event" style="font-size: 4rem; color: var(--text-light); margin-bottom: 1rem;"></i>
+                        <h4>Gestión de Eventos</h4>
+                        <p>Aquí podrás crear, editar y administrar todos los eventos de la plataforma.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div id="users-section" class="content-section" style="display: none;">
+                <div class="section-card">
+                    <div class="section-header">
+                        <h3 class="section-title">
+                            <i class="bi bi-people"></i>
+                            Gestión de Usuarios
+                        </h3>
+                        <button class="btn btn-admin-primary">
+                            <i class="bi bi-person-plus me-2"></i>Nuevo Usuario
+                        </button>
+                    </div>
+                    <div class="section-content text-center">
+                        <i class="bi bi-people" style="font-size: 4rem; color: var(--text-light); margin-bottom: 1rem;"></i>
+                        <h4>Administración de Usuarios</h4>
+                        <p>Gestiona todos los usuarios registrados en la plataforma.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div id="analytics-section" class="content-section" style="display: none;">
+                <div class="section-card">
+                    <div class="section-header">
+                        <h3 class="section-title">
+                            <i class="bi bi-graph-up"></i>
+                            Analytics y Reportes
+                        </h3>
+                    </div>
+                    <div class="section-content text-center">
+                        <i class="bi bi-bar-chart" style="font-size: 4rem; color: var(--text-light); margin-bottom: 1rem;"></i>
+                        <h4>Analytics Avanzados</h4>
+                        <p>Visualiza métricas detalladas y reportes de la plataforma.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        // Variables globales
+        let currentAdmin = {
+            name: 'Administrador',
+            role: 'ADMIN',
+            token: null
+        };
+
+        // Verificar autenticación al cargar
+        document.addEventListener('DOMContentLoaded', function() {
+            checkAdminAuthentication();
+            loadAdminData();
+        });
+
+        function checkAdminAuthentication() {
+            const token = localStorage.getItem('userToken');
+            const role = localStorage.getItem('userRole');
+            
+            if (!token) {
+                window.location.href = 'login.html';
+                return false;
+            }
+
+            if (role !== 'ADMIN' && role !== 'ADMINISTRATOR') {
+                alert('Acceso denegado. No tienes permisos de administrador.');
+                window.location.href = 'dashboard.html';
+                return false;
+            }
+            
+            currentAdmin.token = token;
+            currentAdmin.name = localStorage.getItem('userName') || 'Administrador';
+            currentAdmin.role = role;
+            
+            return true;
+        }
+
+        function loadAdminData() {
+            // Actualizar UI con datos del admin
+            const adminName = document.getElementById('adminName');
+            const adminAvatar = document.getElementById('adminAvatar');
+            
+            adminName.textContent = currentAdmin.name;
+            adminAvatar.textContent = currentAdmin.name.charAt(0).toUpperCase();
+
+            // Simular carga de estadísticas en tiempo real
+            updateAdminStats();
+        }
+
+        function updateAdminStats() {
+            // En una aplicación real, esto se conectaría con tu API
+            const stats = {
+                events: Math.floor(Math.random() * 50) + 150,
+                users: (Math.floor(Math.random() * 10) + 40) + '.2K',
+                sales: (Math.floor(Math.random() * 5) + 12) + '.8K',
+                revenue: '$' + (Math.floor(Math.random() * 0.5) + 2.0).toFixed(1) + 'M'
+            };
+
+            document.getElementById('totalEvents').textContent = stats.events;
+            document.getElementById('totalUsers').textContent = stats.users;
+            document.getElementById('totalSales').textContent = stats.sales;
+            document.getElementById('totalRevenue').textContent = stats.revenue;
+        }
+
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const mainContent = document.getElementById('mainContent');
+            
+            sidebar.classList.toggle('collapsed');
+            mainContent.classList.toggle('expanded');
+        }
+
+        function toggleMobileSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('mobileOverlay');
+            
+            sidebar.classList.toggle('mobile-show');
+            overlay.classList.toggle('show');
+        }
+
+        function closeMobileSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('mobileOverlay');
+            
+            sidebar.classList.remove('mobile-show');
+            overlay.classList.remove('show');
+        }
+
+        function showSection(sectionName) {
+            // Ocultar todas las secciones
+            const sections = document.querySelectorAll('.content-section');
+            sections.forEach(section => {
+                section.style.display = 'none';
+            });
+
+            // Mostrar la sección seleccionada
+            const selectedSection = document.getElementById(sectionName + '-section');
+            if (selectedSection) {
+                selectedSection.style.display = 'block';
+            }
+
+            // Actualizar título de página
+            const pageTitle = document.getElementById('pageTitle');
+            const titles = {
+                'dashboard': 'Panel Administrativo',
+                'events': 'Gestión de Eventos',
+                'users': 'Gestión de Usuarios',
+                'orders': 'Gestión de Órdenes',
+                'venues': 'Gestión de Venues',
+                'analytics': 'Analytics y Reportes',
+                'settings': 'Configuración del Sistema',
+                'logs': 'Logs del Sistema'
+            };
+            
+            const icon = '<i class="bi bi-shield-check"></i>';
+            pageTitle.innerHTML = icon + ' ' + (titles[sectionName] || 'Panel Admin');
+
+            // Actualizar menú activo
+            const menuItems = document.querySelectorAll('.menu-item');
+            menuItems.forEach(item => {
+                item.classList.remove('active');
+            });
+            
+            if (event && event.target) {
+                event.target.classList.add('active');
+            }
+            
+            // Cerrar sidebar en móvil después de seleccionar
+            if (window.innerWidth <= 768) {
+                closeMobileSidebar();
+            }
+        }
+
+        function logout() {
+            if (confirm('¿Estás seguro que deseas cerrar sesión del panel administrativo?')) {
+                localStorage.removeItem('userToken');
+                localStorage.removeItem('userRole');
+                localStorage.removeItem('userName');
+                
+                if (localStorage.getItem('rememberMe') !== 'true') {
+                    localStorage.removeItem('savedUsername');
+                }
+                
+                window.location.href = 'login.html';
+            }
+        }
+
+        // Responsive handling
+        window.addEventListener('resize', function() {
+            if (window.innerWidth > 768) {
+                closeMobileSidebar();
+            }
+        });
+
+        // Actualizar estadísticas cada 30 segundos
+        setInterval(updateAdminStats, 30000);
+    </script>
+</body>
+</html>

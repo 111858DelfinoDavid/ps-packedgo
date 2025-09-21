@@ -1,0 +1,1084 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PackedGo - Tu Portal de Eventos</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --secondary-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            --accent-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            --dark-overlay: rgba(0, 0, 0, 0.6);
+            --text-light: #666;
+            --text-dark: #333;
+            --border-radius: 15px;
+            --shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            --hover-shadow: 0 15px 40px rgba(0, 0, 0, 0.15);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        /* HEADER */
+        .navbar {
+            background: rgba(255, 255, 255, 0.98);
+            backdrop-filter: blur(20px);
+            box-shadow: 0 2px 20px rgba(0, 0, 0, 0.1);
+            padding: 1rem 0;
+            position: fixed;
+            top: 0;
+            width: 100%;
+            z-index: 1000;
+            transition: all 0.3s ease;
+        }
+
+        .navbar.scrolled {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 0.5rem 0;
+        }
+
+        .navbar-brand {
+            font-weight: 700;
+            font-size: 1.8rem;
+            background: var(--primary-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .navbar-nav .nav-link {
+            font-weight: 500;
+            color: var(--text-dark) !important;
+            margin: 0 0.5rem;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .navbar-nav .nav-link:hover {
+            color: #667eea !important;
+        }
+
+        .navbar-nav .nav-link::after {
+            content: '';
+            position: absolute;
+            width: 0;
+            height: 2px;
+            bottom: -5px;
+            left: 50%;
+            background: var(--primary-gradient);
+            transition: all 0.3s ease;
+        }
+
+        .navbar-nav .nav-link:hover::after {
+            width: 100%;
+            left: 0;
+        }
+
+        .search-container {
+            position: relative;
+            max-width: 300px;
+        }
+
+        .search-input {
+            border: none;
+            background: #f8f9fa;
+            border-radius: 50px;
+            padding: 0.7rem 1rem 0.7rem 3rem;
+            width: 100%;
+            transition: all 0.3s ease;
+        }
+
+        .search-input:focus {
+            outline: none;
+            background: white;
+            box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.2);
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-light);
+        }
+
+        .btn-login {
+            background: var(--primary-gradient);
+            border: none;
+            color: white;
+            padding: 0.7rem 1.5rem;
+            border-radius: 50px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .btn-login:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--hover-shadow);
+            color: white;
+        }
+
+        /* HERO SECTION */
+        .hero {
+            background: var(--primary-gradient);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000"><polygon fill="rgba(255,255,255,0.1)" points="0,1000 1000,0 1000,1000"/></svg>');
+            pointer-events: none;
+        }
+
+        .hero-content {
+            position: relative;
+            z-index: 2;
+        }
+
+        .hero h1 {
+            font-size: 3.5rem;
+            font-weight: 700;
+            color: white;
+            margin-bottom: 1.5rem;
+            line-height: 1.2;
+        }
+
+        .hero .lead {
+            font-size: 1.3rem;
+            color: rgba(255, 255, 255, 0.9);
+            margin-bottom: 2.5rem;
+        }
+
+        .btn-hero {
+            background: white;
+            color: #667eea;
+            padding: 1rem 2.5rem;
+            border-radius: 50px;
+            font-weight: 600;
+            font-size: 1.1rem;
+            border: none;
+            transition: all 0.3s ease;
+            margin-right: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .btn-hero:hover {
+            transform: translateY(-3px);
+            box-shadow: var(--hover-shadow);
+            color: #667eea;
+        }
+
+        .btn-hero-outline {
+            background: transparent;
+            color: white;
+            border: 2px solid rgba(255, 255, 255, 0.8);
+            padding: 1rem 2.5rem;
+            border-radius: 50px;
+            font-weight: 600;
+            font-size: 1.1rem;
+            transition: all 0.3s ease;
+        }
+
+        .btn-hero-outline:hover {
+            background: white;
+            color: #667eea;
+            transform: translateY(-3px);
+        }
+
+        /* STATS */
+        .stats {
+            background: white;
+            padding: 3rem 0;
+            box-shadow: var(--shadow);
+            position: relative;
+            z-index: 3;
+            margin-top: -3rem;
+            border-radius: var(--border-radius);
+            margin-left: 1rem;
+            margin-right: 1rem;
+        }
+
+        .stat-item {
+            text-align: center;
+            padding: 1rem;
+        }
+
+        .stat-number {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #667eea;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-label {
+            color: var(--text-light);
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-size: 0.9rem;
+        }
+
+        /* EVENTS SECTIONS */
+        .events-section {
+            padding: 5rem 0;
+            background: #f8f9fa;
+        }
+
+        .section-title {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--text-dark);
+            margin-bottom: 1rem;
+            text-align: center;
+        }
+
+        .section-subtitle {
+            color: var(--text-light);
+            font-size: 1.1rem;
+            text-align: center;
+            margin-bottom: 3rem;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .category-tabs {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 3rem;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .category-tab {
+            background: white;
+            border: none;
+            padding: 1rem 2rem;
+            border-radius: 50px;
+            font-weight: 500;
+            color: var(--text-light);
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .category-tab.active,
+        .category-tab:hover {
+            background: var(--primary-gradient);
+            color: white;
+            transform: translateY(-2px);
+        }
+
+        .event-card {
+            background: white;
+            border-radius: var(--border-radius);
+            overflow: hidden;
+            box-shadow: var(--shadow);
+            transition: all 0.3s ease;
+            cursor: pointer;
+            height: 100%;
+        }
+
+        .event-card:hover {
+            transform: translateY(-10px);
+            box-shadow: var(--hover-shadow);
+        }
+
+        .event-image {
+            height: 200px;
+            background: var(--primary-gradient);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .event-image::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: var(--dark-overlay);
+            opacity: 0;
+            transition: all 0.3s ease;
+        }
+
+        .event-card:hover .event-image::after {
+            opacity: 1;
+        }
+
+        .event-badge {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            background: var(--secondary-gradient);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            z-index: 2;
+        }
+
+        .event-info {
+            padding: 1.5rem;
+        }
+
+        .event-date {
+            color: #667eea;
+            font-weight: 600;
+            font-size: 0.9rem;
+            margin-bottom: 0.5rem;
+            text-transform: uppercase;
+        }
+
+        .event-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: var(--text-dark);
+            margin-bottom: 1rem;
+            line-height: 1.3;
+        }
+
+        .event-details {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .event-location {
+            color: var(--text-light);
+            font-size: 0.9rem;
+        }
+
+        .event-price {
+            font-weight: 700;
+            color: #667eea;
+            font-size: 1.1rem;
+        }
+
+        .btn-event {
+            width: 100%;
+            background: var(--primary-gradient);
+            border: none;
+            color: white;
+            padding: 0.8rem;
+            border-radius: 10px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .btn-event:hover {
+            transform: translateY(-2px);
+            color: white;
+        }
+
+        /* FEATURED SECTION */
+        .featured-section {
+            padding: 5rem 0;
+            background: white;
+        }
+
+        .featured-banner {
+            background: var(--accent-gradient);
+            border-radius: var(--border-radius);
+            padding: 3rem;
+            color: white;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .featured-banner::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle fill="rgba(255,255,255,0.1)" cx="50" cy="50" r="40"/></svg>') repeat;
+            animation: float 20s ease-in-out infinite;
+            pointer-events: none;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translate(0, 0) rotate(0deg); }
+            33% { transform: translate(10px, -10px) rotate(120deg); }
+            66% { transform: translate(-5px, 5px) rotate(240deg); }
+        }
+
+        .featured-content {
+            position: relative;
+            z-index: 2;
+        }
+
+        .featured-title {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+        }
+
+        .featured-subtitle {
+            font-size: 1.2rem;
+            margin-bottom: 2rem;
+            opacity: 0.9;
+        }
+
+        /* NEWSLETTER */
+        .newsletter {
+            background: var(--text-dark);
+            padding: 4rem 0;
+            color: white;
+        }
+
+        .newsletter-form {
+            max-width: 500px;
+            margin: 0 auto;
+            display: flex;
+            gap: 1rem;
+            margin-top: 2rem;
+        }
+
+        .newsletter-input {
+            flex: 1;
+            border: none;
+            padding: 1rem;
+            border-radius: 10px;
+            font-size: 1rem;
+        }
+
+        .newsletter-input:focus {
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.5);
+        }
+
+        .btn-newsletter {
+            background: var(--primary-gradient);
+            border: none;
+            color: white;
+            padding: 1rem 2rem;
+            border-radius: 10px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .btn-newsletter:hover {
+            transform: translateY(-2px);
+            color: white;
+        }
+
+        /* FOOTER */
+        .footer {
+            background: #1a1a1a;
+            color: white;
+            padding: 3rem 0 1rem;
+        }
+
+        .footer-links {
+            color: rgba(255, 255, 255, 0.7);
+            text-decoration: none;
+            transition: all 0.3s ease;
+        }
+
+        .footer-links:hover {
+            color: #667eea;
+        }
+
+        .social-icons {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+        }
+
+        .social-icon {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 50px;
+            height: 50px;
+            background: var(--primary-gradient);
+            border-radius: 50%;
+            color: white;
+            text-decoration: none;
+            transition: all 0.3s ease;
+        }
+
+        .social-icon:hover {
+            transform: translateY(-3px) scale(1.1);
+            color: white;
+        }
+
+        /* RESPONSIVE */
+        @media (max-width: 768px) {
+            .hero h1 {
+                font-size: 2.5rem;
+            }
+
+            .search-container {
+                margin: 1rem 0;
+                max-width: 100%;
+            }
+
+            .category-tabs {
+                padding: 0 1rem;
+            }
+
+            .newsletter-form {
+                flex-direction: column;
+                padding: 0 1rem;
+            }
+
+            .stats {
+                margin-left: 0.5rem;
+                margin-right: 0.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- NAVBAR -->
+    <nav class="navbar navbar-expand-lg" id="mainNav">
+        <div class="container">
+            <a class="navbar-brand" href="#home">
+                <i class="bi bi-calendar-event me-2"></i>PackedGo
+            </a>
+            
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto me-4">
+                    <li class="nav-item">
+                        <a class="nav-link" href="#home">Inicio</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#eventos">Eventos</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#musica">Música</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#teatro">Teatro</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#deportes">Deportes</a>
+                    </li>
+                </ul>
+                
+                <div class="search-container me-3">
+                    <i class="bi bi-search search-icon"></i>
+                    <input type="text" class="form-control search-input" placeholder="Buscar eventos...">
+                </div>
+                
+                <a href="register.html" class="btn btn-login">
+                    <i class="bi bi-person-plus me-1"></i>Registrarse
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- HERO SECTION -->
+    <section class="hero" id="home">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-lg-6 hero-content">
+                    <h1 class="animate__animated animate__fadeInLeft">
+                        Vive Experiencias<br>
+                        <span style="color: rgba(255,255,255,0.9);">Inolvidables</span>
+                    </h1>
+                    <p class="lead">
+                        Descubre los mejores eventos, conciertos y espectáculos. 
+                        Compra tus entradas de forma segura y fácil.
+                    </p>
+                    <div class="hero-buttons">
+                        <button class="btn btn-hero">
+                            <i class="bi bi-search me-2"></i>Explorar Eventos
+                        </button>
+                        <button class="btn btn-hero-outline">
+                            <i class="bi bi-play-circle me-2"></i>Ver Demo
+                        </button>
+                    </div>
+                </div>
+                <div class="col-lg-6">
+                    <div style="background: rgba(255,255,255,0.1); backdrop-filter: blur(20px); border-radius: 20px; padding: 2rem; text-align: center;">
+                        <i class="bi bi-calendar-event" style="font-size: 5rem; color: rgba(255,255,255,0.8); margin-bottom: 1rem;"></i>
+                        <h3 style="color: white; margin-bottom: 1rem;">¡Próximamente!</h3>
+                        <p style="color: rgba(255,255,255,0.8);">Los eventos más esperados están por llegar</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- STATS -->
+    <section class="stats">
+        <div class="container">
+            <div class="row">
+                <div class="col-lg-3 col-md-6">
+                    <div class="stat-item">
+                        <div class="stat-number">50K+</div>
+                        <div class="stat-label">Eventos Realizados</div>
+                    </div>
+                </div>
+                <div class="col-lg-3 col-md-6">
+                    <div class="stat-item">
+                        <div class="stat-number">2M+</div>
+                        <div class="stat-label">Usuarios Registrados</div>
+                    </div>
+                </div>
+                <div class="col-lg-3 col-md-6">
+                    <div class="stat-item">
+                        <div class="stat-number">150+</div>
+                        <div class="stat-label">Ciudades</div>
+                    </div>
+                </div>
+                <div class="col-lg-3 col-md-6">
+                    <div class="stat-item">
+                        <div class="stat-number">98%</div>
+                        <div class="stat-label">Satisfacción</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- EVENTOS DESTACADOS -->
+    <section class="events-section" id="eventos">
+        <div class="container">
+            <h2 class="section-title">Eventos Destacados</h2>
+            <p class="section-subtitle">
+                Los eventos más populares y esperados del momento. No te pierdas estas increíbles experiencias.
+            </p>
+            
+            <div class="category-tabs">
+                <button class="category-tab active" data-category="todos">
+                    <i class="bi bi-grid me-2"></i>Todos
+                </button>
+                <button class="category-tab" data-category="musica">
+                    <i class="bi bi-music-note-beamed me-2"></i>Música
+                </button>
+                <button class="category-tab" data-category="teatro">
+                    <i class="bi bi-mask me-2"></i>Teatro
+                </button>
+                <button class="category-tab" data-category="deportes">
+                    <i class="bi bi-trophy me-2"></i>Deportes
+                </button>
+                <button class="category-tab" data-category="familia">
+                    <i class="bi bi-heart me-2"></i>Familia
+                </button>
+            </div>
+
+            <div class="row" id="eventsContainer">
+                <!-- Event Card 1 -->
+                <div class="col-lg-4 col-md-6 mb-4" data-category="musica">
+                    <div class="event-card">
+                        <div class="event-image">
+                            <div class="event-badge">Agotándose</div>
+                            <div style="height: 100%; background: linear-gradient(45deg, #ff6b6b, #feca57); display: flex; align-items: center; justify-content: center;">
+                                <i class="bi bi-music-note" style="font-size: 3rem; color: white;"></i>
+                            </div>
+                        </div>
+                        <div class="event-info">
+                            <div class="event-date">25 Nov 2025</div>
+                            <h3 class="event-title">Festival Rock Nacional</h3>
+                            <div class="event-details">
+                                <span class="event-location">
+                                    <i class="bi bi-geo-alt me-1"></i>Estadio Luna Park
+                                </span>
+                                <span class="event-price">desde $15.000</span>
+                            </div>
+                            <button class="btn btn-event">
+                                <i class="bi bi-ticket me-2"></i>Comprar Entradas
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Event Card 2 -->
+                <div class="col-lg-4 col-md-6 mb-4" data-category="teatro">
+                    <div class="event-card">
+                        <div class="event-image">
+                            <div class="event-badge">Disponible</div>
+                            <div style="height: 100%; background: linear-gradient(45deg, #a8edea, #fed6e3); display: flex; align-items: center; justify-content: center;">
+                                <i class="bi bi-mask" style="font-size: 3rem; color: white;"></i>
+                            </div>
+                        </div>
+                        <div class="event-info">
+                            <div class="event-date">02 Dic 2025</div>
+                            <h3 class="event-title">Romeo y Julieta</h3>
+                            <div class="event-details">
+                                <span class="event-location">
+                                    <i class="bi bi-geo-alt me-1"></i>Teatro Colón
+                                </span>
+                                <span class="event-price">desde $8.500</span>
+                            </div>
+                            <button class="btn btn-event">
+                                <i class="bi bi-ticket me-2"></i>Comprar Entradas
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Event Card 3 -->
+                <div class="col-lg-4 col-md-6 mb-4" data-category="deportes">
+                    <div class="event-card">
+                        <div class="event-image">
+                            <div class="event-badge">Nuevo</div>
+                            <div style="height: 100%; background: linear-gradient(45deg, #4facfe, #00f2fe); display: flex; align-items: center; justify-content: center;">
+                                <i class="bi bi-trophy" style="font-size: 3rem; color: white;"></i>
+                            </div>
+                        </div>
+                        <div class="event-info">
+                            <div class="event-date">10 Dic 2025</div>
+                            <h3 class="event-title">Copa Argentina Final</h3>
+                            <div class="event-details">
+                                <span class="event-location">
+                                    <i class="bi bi-geo-alt me-1"></i>Estadio Monumental
+                                </span>
+                                <span class="event-price">desde $12.000</span>
+                            </div>
+                            <button class="btn btn-event">
+                                <i class="bi bi-ticket me-2"></i>Comprar Entradas
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Event Card 4 -->
+                <div class="col-lg-4 col-md-6 mb-4" data-category="musica">
+                    <div class="event-card">
+                        <div class="event-image">
+                            <div class="event-badge">VIP Disponible</div>
+                            <div style="height: 100%; background: linear-gradient(45deg, #fa709a, #fee140); display: flex; align-items: center; justify-content: center;">
+                                <i class="bi bi-headphones" style="font-size: 3rem; color: white;"></i>
+                            </div>
+                        </div>
+                        <div class="event-info">
+                            <div class="event-date">15 Dic 2025</div>
+                            <h3 class="event-title">Festival Electrónico</h3>
+                            <div class="event-details">
+                                <span class="event-location">
+                                    <i class="bi bi-geo-alt me-1"></i>Costa Salguero
+                                </span>
+                                <span class="event-price">desde $20.000</span>
+                            </div>
+                            <button class="btn btn-event">
+                                <i class="bi bi-ticket me-2"></i>Comprar Entradas
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Event Card 5 -->
+                <div class="col-lg-4 col-md-6 mb-4" data-category="familia">
+                    <div class="event-card">
+                        <div class="event-image">
+                            <div class="event-badge">Para toda la familia</div>
+                            <div style="height: 100%; background: linear-gradient(45deg, #ffecd2, #fcb69f); display: flex; align-items: center; justify-content: center;">
+                                <i class="bi bi-heart" style="font-size: 3rem; color: white;"></i>
+                            </div>
+                        </div>
+                        <div class="event-info">
+                            <div class="event-date">22 Dic 2025</div>
+                            <h3 class="event-title">El Rey León Musical</h3>
+                            <div class="event-details">
+                                <span class="event-location">
+                                    <i class="bi bi-geo-alt me-1"></i>Teatro Gran Rex
+                                </span>
+                                <span class="event-price">desde $6.000</span>
+                            </div>
+                            <button class="btn btn-event">
+                                <i class="bi bi-ticket me-2"></i>Comprar Entradas
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Event Card 6 -->
+                <div class="col-lg-4 col-md-6 mb-4" data-category="musica">
+                    <div class="event-card">
+                        <div class="event-image">
+                            <div class="event-badge">Últimas entradas</div>
+                            <div style="height: 100%; background: linear-gradient(45deg, #667eea, #764ba2); display: flex; align-items: center; justify-content: center;">
+                                <i class="bi bi-mic" style="font-size: 3rem; color: white;"></i>
+                            </div>
+                        </div>
+                        <div class="event-info">
+                            <div class="event-date">30 Dic 2025</div>
+                            <h3 class="event-title">Concierto de Año Nuevo</h3>
+                            <div class="event-details">
+                                <span class="event-location">
+                                    <i class="bi bi-geo-alt me-1"></i>Teatro Opera
+                                </span>
+                                <span class="event-price">desde $25.000</span>
+                            </div>
+                            <button class="btn btn-event">
+                                <i class="bi bi-ticket me-2"></i>Comprar Entradas
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="text-center mt-4">
+                <button class="btn btn-hero">
+                    <i class="bi bi-arrow-right me-2"></i>Ver Todos los Eventos
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <!-- FEATURED BANNER -->
+    <section class="featured-section">
+        <div class="container">
+            <div class="featured-banner">
+                <div class="featured-content">
+                    <h2 class="featured-title">¡Suscríbete y Ahorra!</h2>
+                    <p class="featured-subtitle">
+                        Únete a PackedGo Premium y obtén descuentos exclusivos en todos los eventos
+                    </p>
+                    <button class="btn btn-hero">
+                        <i class="bi bi-star me-2"></i>Conocer PackedGo Premium
+                    </button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- NEWSLETTER -->
+    <section class="newsletter">
+        <div class="container text-center">
+            <h2 class="mb-3">Mantente Informado</h2>
+            <p class="lead mb-4">Recibe las últimas noticias sobre eventos y ofertas exclusivas</p>
+            <div class="newsletter-form">
+                <input type="email" class="newsletter-input" placeholder="Tu correo electrónico">
+                <button class="btn btn-newsletter">
+                    <i class="bi bi-envelope me-2"></i>Suscribirse
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <!-- FOOTER -->
+    <footer class="footer">
+        <div class="container">
+            <div class="row">
+                <div class="col-lg-4 mb-4">
+                    <h5 class="mb-3">PackedGo</h5>
+                    <p class="mb-3">Tu plataforma confiable para descubrir y comprar entradas para los mejores eventos.</p>
+                    <div class="social-icons">
+                        <a href="#" class="social-icon">
+                            <i class="bi bi-facebook"></i>
+                        </a>
+                        <a href="#" class="social-icon">
+                            <i class="bi bi-twitter"></i>
+                        </a>
+                        <a href="#" class="social-icon">
+                            <i class="bi bi-instagram"></i>
+                        </a>
+                        <a href="#" class="social-icon">
+                            <i class="bi bi-linkedin"></i>
+                        </a>
+                    </div>
+                </div>
+                <div class="col-lg-2 col-md-6 mb-4">
+                    <h6 class="mb-3">Eventos</h6>
+                    <ul class="list-unstyled">
+                        <li><a href="#" class="footer-links">Música</a></li>
+                        <li><a href="#" class="footer-links">Teatro</a></li>
+                        <li><a href="#" class="footer-links">Deportes</a></li>
+                        <li><a href="#" class="footer-links">Familia</a></li>
+                    </ul>
+                </div>
+                <div class="col-lg-2 col-md-6 mb-4">
+                    <h6 class="mb-3">Soporte</h6>
+                    <ul class="list-unstyled">
+                        <li><a href="#" class="footer-links">Ayuda</a></li>
+                        <li><a href="#" class="footer-links">Contacto</a></li>
+                        <li><a href="#" class="footer-links">FAQ</a></li>
+                        <li><a href="#" class="footer-links">Términos</a></li>
+                    </ul>
+                </div>
+                <div class="col-lg-2 col-md-6 mb-4">
+                    <h6 class="mb-3">Empresa</h6>
+                    <ul class="list-unstyled">
+                        <li><a href="#" class="footer-links">Acerca de</a></li>
+                        <li><a href="#" class="footer-links">Carreras</a></li>
+                        <li><a href="#" class="footer-links">Prensa</a></li>
+                        <li><a href="#" class="footer-links">Blog</a></li>
+                    </ul>
+                </div>
+                <div class="col-lg-2 col-md-6 mb-4">
+                    <h6 class="mb-3">Legal</h6>
+                    <ul class="list-unstyled">
+                        <li><a href="#" class="footer-links">Privacidad</a></li>
+                        <li><a href="#" class="footer-links">Cookies</a></li>
+                        <li><a href="#" class="footer-links">Términos</a></li>
+                        <li><a href="#" class="footer-links">Licencias</a></li>
+                    </ul>
+                </div>
+            </div>
+            <hr class="my-4" style="border-color: rgba(255,255,255,0.2);">
+            <div class="row align-items-center">
+                <div class="col-md-6">
+                    <p class="mb-0">&copy; 2025 PackedGo. Todos los derechos reservados.</p>
+                </div>
+                <div class="col-md-6 text-md-end">
+                    <p class="mb-0">Hecho con <i class="bi bi-heart-fill text-danger"></i> en Argentina</p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        // Navbar scroll effect
+        window.addEventListener('scroll', function() {
+            const navbar = document.getElementById('mainNav');
+            if (window.scrollY > 100) {
+                navbar.classList.add('scrolled');
+            } else {
+                navbar.classList.remove('scrolled');
+            }
+        });
+
+        // Category tabs functionality
+        const categoryTabs = document.querySelectorAll('.category-tab');
+        const eventCards = document.querySelectorAll('[data-category]');
+
+        categoryTabs.forEach(tab => {
+            tab.addEventListener('click', function() {
+                // Remove active class from all tabs
+                categoryTabs.forEach(t => t.classList.remove('active'));
+                // Add active class to clicked tab
+                this.classList.add('active');
+                
+                const selectedCategory = this.getAttribute('data-category');
+                
+                // Filter events
+                eventCards.forEach(card => {
+                    if (selectedCategory === 'todos' || card.getAttribute('data-category') === selectedCategory) {
+                        card.style.display = 'block';
+                        card.style.animation = 'fadeInUp 0.6s ease forwards';
+                    } else {
+                        card.style.display = 'none';
+                    }
+                });
+            });
+        });
+
+        // Search functionality
+        const searchInput = document.querySelector('.search-input');
+        searchInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                const searchTerm = this.value.trim();
+                if (searchTerm) {
+                    alert(`Buscando eventos: "${searchTerm}"`);
+                    // Aquí implementarías la búsqueda real
+                }
+            }
+        });
+
+        // Event card hover effects
+        const eventCards2 = document.querySelectorAll('.event-card');
+        eventCards2.forEach(card => {
+            card.addEventListener('click', function() {
+                const eventTitle = this.querySelector('.event-title').textContent;
+                alert(`Ir a detalles del evento: ${eventTitle}`);
+                // Aquí implementarías la navegación a la página del evento
+            });
+        });
+
+        // Newsletter subscription
+        const newsletterForm = document.querySelector('.newsletter-form');
+        const newsletterInput = document.querySelector('.newsletter-input');
+        const newsletterBtn = document.querySelector('.btn-newsletter');
+
+        newsletterBtn.addEventListener('click', function() {
+            const email = newsletterInput.value.trim();
+            if (email && email.includes('@')) {
+                alert('¡Gracias por suscribirte! Te mantendremos informado sobre los mejores eventos.');
+                newsletterInput.value = '';
+            } else {
+                alert('Por favor, ingresa un email válido.');
+            }
+        });
+
+        // Smooth scrolling for navigation links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
+        });
+
+        // Add some animations when elements come into view
+        const observerOptions = {
+            threshold: 0.1,
+            rootMargin: '0px 0px -50px 0px'
+        };
+
+        const observer = new IntersectionObserver(function(entries) {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.style.animation = 'fadeInUp 0.8s ease forwards';
+                }
+            });
+        }, observerOptions);
+
+        // Observe all event cards and stats
+        document.querySelectorAll('.event-card, .stat-item').forEach(el => {
+            observer.observe(el);
+        });
+    </script>
+
+    <style>
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
+</body>
+</html>
