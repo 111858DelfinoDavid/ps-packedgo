@@ -12,8 +12,8 @@ import org.springframework.stereotype.Service;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 
 @Service
 @RequiredArgsConstructor
@@ -34,7 +34,9 @@ public class EmailServiceImpl implements EmailService {
     private String readTemplate(String templateName) {
         try {
             ClassPathResource resource = new ClassPathResource("templates/email/" + templateName);
-            return Files.readString(resource.getFile().toPath(), StandardCharsets.UTF_8);
+            try (InputStream inputStream = resource.getInputStream()) {
+                return new String(inputStream.readAllBytes(), StandardCharsets.UTF_8);
+            }
         } catch (IOException e) {
             log.error("Failed to read email template {}: {}", templateName, e.getMessage());
             throw new RuntimeException("Failed to read email template", e);
