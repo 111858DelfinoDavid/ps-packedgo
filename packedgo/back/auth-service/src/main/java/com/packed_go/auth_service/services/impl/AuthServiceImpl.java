@@ -21,6 +21,9 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.packed_go.auth_service.services.EmailService;
+import java.util.UUID;
+
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -36,7 +39,8 @@ public class AuthServiceImpl implements AuthService {
     private final LoginAttemptRepository loginAttemptRepository;
     // TODO: Agregar cuando se implemente recuperaci�n de contrase�as y verificaci�n de email
     // private final PasswordRecoveryTokenRepository passwordRecoveryTokenRepository;
-    // private final EmailVerificationTokenRepository emailVerificationTokenRepository;
+    private final EmailService emailService;
+    private final EmailVerificationTokenRepository emailVerificationTokenRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
     private final UsersServiceClient usersServiceClient;
@@ -172,9 +176,75 @@ public class AuthServiceImpl implements AuthService {
             // No lanzamos la excepción para que el registro en auth-service continúe
         }
         
-        // TODO: Enviar email de verificación
+        
+        // Generar y enviar email de verificación
+        try {
+            sendVerificationEmail(savedUser);
+            log.info("Verification email sent for user ID: {}", savedUser.getId());
+        } catch (Exception e) {
+            log.error("Failed to send verification email for user ID: {}", savedUser.getId(), e);
+            // No lanzamos la excepción para que el registro continúe
+        }
         
         return savedUser;
+    }
+
+    @Override
+public boolean verifyEmail(String token) {
+    try {
+        EmailVerificationToken verificationToken = emailVerificationTokenRepository
+                .findByTokenAndIsVerifiedFalse(token)
+                .orElse(null);
+        
+        if (verificationToken == null) {
+            log.warn("Verification token not found: {}", token);
+            return false;
+        }
+        
+        if (verificationToken.isExpired()) {
+            log.warn("Verification token expired: {}", token);
+            return false;
+        }
+        
+        // Marcar como verificado
+        emailVerificationTokenRepository.markAsVerified(token, LocalDateTime.now());
+        
+        // Actualizar el usuario
+        AuthUser user = authUserRepository.findById(verificationToken.getAuthUserId())
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+        
+        user.setIsEmailVerified(true);
+        user.setUpdatedAt(LocalDateTime.now());
+        authUserRepository.save(user);
+        
+        log.info("Email verified successfully for user ID: {}", user.getId());
+        return true;
+        
+    } catch (Exception e) {
+        log.error("Error verifying email token: {}", token, e);
+        return false;
+    }
+}
+
+    private void sendVerificationEmail(AuthUser user) {
+        // Generar token único
+        String token = UUID.randomUUID().toString().replace("-", "");
+        
+        // Crear token de verificación con expiración de 24 horas
+        EmailVerificationToken verificationToken = EmailVerificationToken.builder()
+                .token(token)
+                .authUserId(user.getId())
+                .expiresAt(LocalDateTime.now().plusHours(24))
+                .isVerified(false)
+                .createdAt(LocalDateTime.now())
+                .build();
+        
+        emailVerificationTokenRepository.save(verificationToken);
+        
+        // Enviar email
+        emailService.sendVerificationEmail(user.getEmail(), user.getUsername(), token);
+        
+        log.info("Email verification token generated for user ID: {}", user.getId());
     }
 
     public AuthUser registerAdmin(AdminRegistrationRequest request) {
@@ -210,6 +280,14 @@ public class AuthServiceImpl implements AuthService {
         log.info("Admin registered successfully with ID: {}", savedAdmin.getId());
         
         // TODO: Enviar email de verificaci�n
+        // Generar y enviar email de verificación
+        try {
+            sendVerificationEmail(savedAdmin);
+            log.info("Verification email sent for admin ID: {}", savedAdmin.getId());
+        } catch (Exception e) {
+            log.error("Failed to send verification email for admin ID: {}", savedAdmin.getId(), e);
+            // No lanzamos la excepción para que el registro continúe
+        }
         
         return savedAdmin;
     }

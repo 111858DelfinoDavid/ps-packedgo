@@ -43,4 +43,14 @@ public class EmailVerificationToken {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "auth_user_id", insertable = false, updatable = false)
     private AuthUser authUser;
+
+    // Método de conveniencia para verificar si el token está expirado
+    public boolean isExpired() {
+        return LocalDateTime.now().isAfter(expiresAt);
+    }
+
+    // Método de conveniencia para verificar si el token es válido
+    public boolean isValid() {
+        return !isVerified && !isExpired();
+    }
 }

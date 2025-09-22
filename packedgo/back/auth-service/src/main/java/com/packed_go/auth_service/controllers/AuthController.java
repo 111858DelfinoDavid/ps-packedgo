@@ -98,6 +98,21 @@ public class AuthController {
         return ResponseEntity.ok(ApiResponse.success("Logout successful"));
     }
 
+    @GetMapping("/verify-email")
+    public ResponseEntity<ApiResponse<String>> verifyEmail(
+            @RequestParam("token") String token) {
+        
+        log.info("Email verification request for token: {}", token.substring(0, Math.min(token.length(), 8)) + "...");
+        
+        boolean verified = authService.verifyEmail(token);
+        
+        if (verified) {
+            return ResponseEntity.ok(ApiResponse.success("Email verified successfully"));
+        } else {
+            return ResponseEntity.badRequest().body(ApiResponse.error("Invalid or expired verification token"));
+        }
+    }
+
     @PostMapping("/refresh")
     public ResponseEntity<ApiResponse<String>> refreshToken(
             @RequestBody String refreshToken) {

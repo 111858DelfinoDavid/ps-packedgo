@@ -37,4 +37,6 @@ public interface AuthService {
     boolean existsByEmail(String email);
     
     boolean existsByDocument(Long document);
+    
+    boolean verifyEmail(String token);
 }
