@@ -1,7 +1,7 @@
 package com.packed_go.event_service.controllers;
 
-import com.packed_go.event_service.dtos.CreateEventDto;
-import com.packed_go.event_service.dtos.EventDto;
+import com.packed_go.event_service.dtos.event.CreateEventDto;
+import com.packed_go.event_service.dtos.event.EventDto;
 import com.packed_go.event_service.services.EventService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

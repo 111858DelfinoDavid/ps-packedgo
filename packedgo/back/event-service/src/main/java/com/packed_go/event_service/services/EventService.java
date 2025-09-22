@@ -1,14 +1,12 @@
 package com.packed_go.event_service.services;
 
-import com.packed_go.event_service.dtos.CreateEventDto;
-import com.packed_go.event_service.dtos.EventDto;
-import com.packed_go.event_service.entities.EventEntity;
+import com.packed_go.event_service.dtos.event.CreateEventDto;
+import com.packed_go.event_service.dtos.event.EventDto;
 import jakarta.transaction.Transactional;
 
 import java.awt.*;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Optional;
 
 public interface EventService {
     EventDto findById(Long id);

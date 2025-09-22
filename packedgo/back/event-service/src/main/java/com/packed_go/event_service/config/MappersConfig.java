@@ -1,8 +1,8 @@
 package com.packed_go.event_service.config;
 
-import com.packed_go.event_service.dtos.CreateEventDto;
-import com.packed_go.event_service.dtos.EventDto;
-import com.packed_go.event_service.entities.EventEntity;
+import com.packed_go.event_service.dtos.event.CreateEventDto;
+import com.packed_go.event_service.dtos.event.EventDto;
+import com.packed_go.event_service.entities.event.EventEntity;
 import org.modelmapper.ModelMapper;
 import org.modelmapper.spi.MappingContext;
 import org.locationtech.jts.geom.GeometryFactory;

@@ -1,7 +1,6 @@
-package com.packed_go.event_service.repositories;
+package com.packed_go.event_service.repositories.event;
 
-import com.packed_go.event_service.dtos.EventDto;
-import com.packed_go.event_service.entities.EventEntity;
+import com.packed_go.event_service.entities.event.EventEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 

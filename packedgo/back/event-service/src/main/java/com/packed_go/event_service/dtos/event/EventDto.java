@@ -1,18 +1,20 @@
-package com.packed_go.event_service.dtos;
+package com.packed_go.event_service.dtos.event;
 
 import lombok.Getter;
 import lombok.Setter;
-
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Getter
 @Setter
-public class CreateEventDto {
+public class EventDto {
 
+    private Long id;
+    private Long categoryId;
     private String name;
     private String description;
     private LocalDateTime eventDate;
+    //    private Point location;
     private double lat;
     private double lng;
     private Integer maxCapacity;
@@ -23,4 +25,5 @@ public class CreateEventDto {
     private Long createdBy;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+    private boolean active;
 }

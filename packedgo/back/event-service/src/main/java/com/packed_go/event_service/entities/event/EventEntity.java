@@ -1,5 +1,6 @@
-package com.packed_go.event_service.entities;
+package com.packed_go.event_service.entities.event;
 
+import com.packed_go.event_service.entities.eventCategory.EventCategoryEntity;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -16,6 +17,10 @@ public class EventEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @ManyToOne
+    @JoinColumn(name="category_id")
+    private EventCategoryEntity category;
+
     private String name;
     private String description;
     private LocalDateTime eventDate;
@@ -25,10 +30,10 @@ public class EventEntity {
     private Integer currentCapacity;
     private BigDecimal basePrice;
     private String imageUrl;
-    private String status;
+    private String status="ACTIVE";
     private Long createdBy;
-    private LocalDateTime createdAt;
-    private LocalDateTime updatedAt;
+    private LocalDateTime createdAt=LocalDateTime.now();
+    private LocalDateTime updatedAt=LocalDateTime.now();
     private boolean active;
 
 }
