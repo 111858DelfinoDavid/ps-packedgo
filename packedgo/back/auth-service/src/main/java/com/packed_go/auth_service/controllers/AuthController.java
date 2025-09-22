@@ -155,7 +155,7 @@ public class AuthController {
         }
     }
 
-    // Mï¿½todos de utilidad
+    // Métodos de utilidad
     private String getClientIpAddress(HttpServletRequest request) {
         String xfHeader = request.getHeader("X-Forwarded-For");
         if (xfHeader == null) {

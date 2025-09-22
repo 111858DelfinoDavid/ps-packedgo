@@ -23,4 +23,7 @@ public class AdminRegistrationRequest {
     @NotBlank(message = "Password is required")
     @Size(min = 8, message = "Password must be at least 8 characters")
     private String password;
+    
+    @NotBlank(message = "Authorization code is required")
+    private String authorizationCode;
 }

@@ -252,6 +252,11 @@ public boolean verifyEmail(String token) {
     public AuthUser registerAdmin(AdminRegistrationRequest request) {
         log.debug("Registering new admin with username: {}", request.getUsername());
         
+        // Validar código de autorización
+        if (!"PACKEDGO-ADMIN-2025".equals(request.getAuthorizationCode())) {
+            throw new BadRequestException("Invalid authorization code");
+        }
+        
         // Validar que no exista el username
         if (authUserRepository.existsByUsername(request.getUsername())) {
             throw new BadRequestException("Username already exists");
