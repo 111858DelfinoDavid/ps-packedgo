@@ -2,8 +2,10 @@ package com.packed_go.auth_service.services;
 
 import com.packed_go.auth_service.dto.request.AdminLoginRequest;
 import com.packed_go.auth_service.dto.request.AdminRegistrationRequest;
+import com.packed_go.auth_service.dto.request.ChangePasswordRequest;
 import com.packed_go.auth_service.dto.request.CustomerLoginRequest;
 import com.packed_go.auth_service.dto.request.CustomerRegistrationRequest;
+import com.packed_go.auth_service.dto.request.PasswordResetRequest;
 import com.packed_go.auth_service.dto.response.LoginResponse;
 import com.packed_go.auth_service.dto.response.TokenValidationResponse;
 import com.packed_go.auth_service.entities.AuthUser;
@@ -39,4 +41,8 @@ public interface AuthService {
     boolean existsByDocument(Long document);
     
     boolean verifyEmail(String token);
+    
+    void requestPasswordReset(PasswordResetRequest request);
+    
+    boolean resetPassword(ChangePasswordRequest request);
 }

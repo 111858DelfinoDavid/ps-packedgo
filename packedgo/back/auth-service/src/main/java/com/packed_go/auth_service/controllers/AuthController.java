@@ -124,6 +124,37 @@ public class AuthController {
         return ResponseEntity.ok(ApiResponse.success(newToken, "Token refreshed successfully"));
     }
 
+    @PostMapping("/forgot-password")
+    public ResponseEntity<ApiResponse<String>> forgotPassword(
+            @Valid @RequestBody PasswordResetRequest request) {
+        
+        log.info("Password reset request for email: {}", request.getEmail());
+        
+        try {
+            authService.requestPasswordReset(request);
+            return ResponseEntity.ok(ApiResponse.success("Password reset email sent if email exists"));
+        } catch (Exception e) {
+            // Por seguridad, no revelamos si el email existe o no
+            log.error("Password reset request failed: {}", e.getMessage());
+            return ResponseEntity.ok(ApiResponse.success("Password reset email sent if email exists"));
+        }
+    }
+
+    @PostMapping("/reset-password")
+    public ResponseEntity<ApiResponse<String>> resetPassword(
+            @Valid @RequestBody ChangePasswordRequest request) {
+        
+        log.info("Password reset attempt");
+        
+        boolean reset = authService.resetPassword(request);
+        
+        if (reset) {
+            return ResponseEntity.ok(ApiResponse.success("Password reset successfully"));
+        } else {
+            return ResponseEntity.badRequest().body(ApiResponse.error("Failed to reset password"));
+        }
+    }
+
     // Mï¿½todos de utilidad
     private String getClientIpAddress(HttpServletRequest request) {
         String xfHeader = request.getHeader("X-Forwarded-For");

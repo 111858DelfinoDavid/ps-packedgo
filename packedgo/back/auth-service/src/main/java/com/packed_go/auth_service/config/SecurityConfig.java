@@ -87,10 +87,10 @@ public class SecurityConfig {
                         .requestMatchers("/auth/logout").permitAll()
                         .requestMatchers("/auth/password/reset").permitAll()
                         .requestMatchers("/auth/password/change").permitAll()
+                        .requestMatchers("/auth/forgot-password").permitAll()
+                        .requestMatchers("/auth/reset-password").permitAll()
                         .requestMatchers("/auth/verify-email").permitAll()
-                        // Utility endpoints - Public
                         .requestMatchers("/users/exists/**").permitAll()
-                        // System endpoints - Public
                         .requestMatchers("/actuator/**").permitAll()
                         .requestMatchers("/v3/api-docs/**", "/swagger-ui/**").permitAll()
                         .anyRequest().authenticated())

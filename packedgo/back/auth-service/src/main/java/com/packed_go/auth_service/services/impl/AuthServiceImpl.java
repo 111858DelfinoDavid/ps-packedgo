@@ -2,9 +2,11 @@ package com.packed_go.auth_service.services.impl;
 
 import com.packed_go.auth_service.dto.request.AdminLoginRequest;
 import com.packed_go.auth_service.dto.request.AdminRegistrationRequest;
+import com.packed_go.auth_service.dto.request.ChangePasswordRequest;
 import com.packed_go.auth_service.dto.request.CreateProfileFromAuthRequest;
 import com.packed_go.auth_service.dto.request.CustomerLoginRequest;
 import com.packed_go.auth_service.dto.request.CustomerRegistrationRequest;
+import com.packed_go.auth_service.dto.request.PasswordResetRequest;
 import com.packed_go.auth_service.dto.response.LoginResponse;
 import com.packed_go.auth_service.dto.response.TokenValidationResponse;
 import com.packed_go.auth_service.entities.*;
@@ -26,6 +28,7 @@ import java.util.UUID;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -37,8 +40,7 @@ public class AuthServiceImpl implements AuthService {
     private final UserSessionRepository userSessionRepository;
     private final RolePermissionRepository rolePermissionRepository;
     private final LoginAttemptRepository loginAttemptRepository;
-    // TODO: Agregar cuando se implemente recuperaci�n de contrase�as y verificaci�n de email
-    // private final PasswordRecoveryTokenRepository passwordRecoveryTokenRepository;
+    private final PasswordRecoveryTokenRepository passwordRecoveryTokenRepository;
     private final EmailService emailService;
     private final EmailVerificationTokenRepository emailVerificationTokenRepository;
     private final PasswordEncoder passwordEncoder;
@@ -386,6 +388,90 @@ public boolean verifyEmail(String token) {
     @Override
     public boolean existsByDocument(Long document) {
         return authUserRepository.existsByDocument(document);
+    }
+
+    @Override
+    public void requestPasswordReset(PasswordResetRequest request) {
+        log.info("Password reset request for email: {} and document: {}", request.getEmail(), request.getDocument());
+        
+        // Buscar usuario por email y documento para validar que coincidan
+        AuthUser userByEmail = authUserRepository.findByEmail(request.getEmail())
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with email: " + request.getEmail()));
+        
+        AuthUser userByDocument = authUserRepository.findByDocument(request.getDocument())
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with document: " + request.getDocument()));
+        
+        // Verificar que el email y documento pertenezcan al mismo usuario
+        if (!userByEmail.getId().equals(userByDocument.getId())) {
+            throw new BadRequestException("Email and document do not match");
+        }
+        
+        AuthUser user = userByEmail; // Usar cualquiera de los dos ya que son el mismo
+        
+        // Verificar si ya existe un token activo para este usuario
+        Optional<PasswordRecoveryToken> existingToken = passwordRecoveryTokenRepository
+                .findByAuthUserIdAndIsUsedFalseAndExpiresAtAfter(user.getId(), LocalDateTime.now());
+        
+        if (existingToken.isPresent()) {
+            log.warn("Active password reset token already exists for user: {}", user.getId());
+            throw new BadRequestException("Password reset request already exists. Check your email.");
+        }
+        
+        // Generar nuevo token
+        String resetToken = UUID.randomUUID().toString();
+        LocalDateTime expiresAt = LocalDateTime.now().plusHours(1); // Token válido por 1 hora
+        
+        PasswordRecoveryToken token = PasswordRecoveryToken.builder()
+                .authUserId(user.getId())
+                .token(resetToken)
+                .expiresAt(expiresAt)
+                .isUsed(false)
+                .createdAt(LocalDateTime.now())
+                .build();
+        
+        passwordRecoveryTokenRepository.save(token);
+        
+        // Enviar email de recuperación
+        try {
+            emailService.sendPasswordResetEmail(user.getEmail(), user.getUsername(), resetToken);
+            log.info("Password reset email sent for user: {}", user.getId());
+        } catch (Exception e) {
+            log.error("Failed to send password reset email for user: {}", user.getId(), e);
+            throw new RuntimeException("Failed to send password reset email", e);
+        }
+    }
+
+    @Override
+    public boolean resetPassword(ChangePasswordRequest request) {
+        log.info("Password reset attempt with token");
+        
+        // Buscar token válido
+        PasswordRecoveryToken token = passwordRecoveryTokenRepository
+                .findByTokenAndIsUsedFalse(request.getToken())
+                .orElseThrow(() -> new BadRequestException("Invalid or expired reset token"));
+        
+        // Verificar si el token ha expirado
+        if (token.getExpiresAt().isBefore(LocalDateTime.now())) {
+            throw new BadRequestException("Reset token has expired");
+        }
+        
+        // Buscar el usuario
+        AuthUser user = authUserRepository.findById(token.getAuthUserId())
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+        
+        // Cambiar la contraseña
+        user.setPasswordHash(passwordEncoder.encode(request.getNewPassword()));
+        user.setUpdatedAt(LocalDateTime.now());
+        authUserRepository.save(user);
+        
+        // Invalidar todas las sesiones activas del usuario por seguridad
+        logoutAllSessions(user.getId());
+        
+        // Marcar el token como usado
+        passwordRecoveryTokenRepository.markAsUsed(token.getToken(), LocalDateTime.now());
+        
+        log.info("Password reset successful for user: {} - All sessions invalidated", user.getId());
+        return true;
     }
 
     // M�todos privados de ayuda
