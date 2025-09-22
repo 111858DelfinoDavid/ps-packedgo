@@ -10,6 +10,7 @@ import java.time.LocalDateTime;
 @Setter
 public class CreateEventDto {
 
+    private Long categoryId;
     private String name;
     private String description;
     private LocalDateTime eventDate;

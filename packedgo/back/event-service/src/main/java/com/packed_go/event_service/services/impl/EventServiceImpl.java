@@ -3,7 +3,9 @@ package com.packed_go.event_service.services.impl;
 import com.packed_go.event_service.dtos.event.CreateEventDto;
 import com.packed_go.event_service.dtos.event.EventDto;
 import com.packed_go.event_service.entities.event.EventEntity;
+import com.packed_go.event_service.entities.eventCategory.EventCategoryEntity;
 import com.packed_go.event_service.repositories.event.EventRepository;
+import com.packed_go.event_service.repositories.eventCategory.EventCategoryRepository;
 import com.packed_go.event_service.services.EventService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -26,11 +28,14 @@ public class EventServiceImpl implements EventService {
     @Autowired
     private final ModelMapper modelMapper;
 
+    @Autowired
+    private final EventCategoryRepository eventCategoryRepository;
+
     @Override
     public EventDto findById(Long id) {
         Optional<EventEntity> eventExist = eventRepository.findById(id);
         if (eventExist.isPresent()) {
-            EventDto event=modelMapper.map(eventExist.get(), EventDto.class);
+            EventDto event = modelMapper.map(eventExist.get(), EventDto.class);
             return modelMapper.map(eventExist.get(), EventDto.class);
         } else {
             throw new RuntimeException("Event with id" + id + " not found");
@@ -77,17 +82,21 @@ public class EventServiceImpl implements EventService {
 
     @Override
     public EventDto createEvent(CreateEventDto createEventDto) {
-        // Convertir el DTO de creación a una entidad.
-        // Como el DTO no tiene ID, ModelMapper no intentará establecerlo.
+        EventCategoryEntity category = eventCategoryRepository.findById(createEventDto.getCategoryId())
+                .orElseThrow(() -> new RuntimeException(
+                        "Category with id " + createEventDto.getCategoryId() + " not found"
+                ));
+
         EventEntity eventEntity = modelMapper.map(createEventDto, EventEntity.class);
 
-        // La base de datos asignará el ID autogenerado al guardar.
         eventEntity.setActive(true);
+        eventEntity.setCategory(category);
+
         EventEntity savedEvent = eventRepository.save(eventEntity);
 
-        // Mapear la entidad guardada (con el ID ya asignado) a un DTO completo para la respuesta.
         return modelMapper.map(savedEvent, EventDto.class);
     }
+
 
     @Override
     public EventDto updateEvent(Long id, EventDto eventDto) {

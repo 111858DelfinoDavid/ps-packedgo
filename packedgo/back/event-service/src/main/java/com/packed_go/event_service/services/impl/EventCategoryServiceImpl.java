@@ -6,21 +6,22 @@ import com.packed_go.event_service.entities.eventCategory.EventCategoryEntity;
 import com.packed_go.event_service.repositories.eventCategory.EventCategoryRepository;
 import com.packed_go.event_service.services.EventCategoryService;
 import jakarta.transaction.Transactional;
+import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import javax.swing.text.html.Option;
 import java.util.List;
 import java.util.Optional;
 
 @Service
+@RequiredArgsConstructor
 public class EventCategoryServiceImpl implements EventCategoryService {
 
     @Autowired
-    private EventCategoryRepository eventCategoryRepository;
+    private final EventCategoryRepository eventCategoryRepository;
     @Autowired
-    private ModelMapper modelMapper;
+    private final ModelMapper modelMapper;
 
     @Override
     public EventCategoryDto findById(Long id) {
@@ -34,7 +35,7 @@ public class EventCategoryServiceImpl implements EventCategoryService {
 
     @Override
     public List<EventCategoryDto> findByActiveIsTrue() {
-        List<EventCategoryEntity> categoryEntities = eventCategoryRepository.findByActiveIsTrue(true);
+        List<EventCategoryEntity> categoryEntities = eventCategoryRepository.findByActiveIsTrue();
         return categoryEntities.stream()
                 .map(entity -> modelMapper.map(entity, EventCategoryDto.class))
                 .toList();
@@ -55,6 +56,7 @@ public class EventCategoryServiceImpl implements EventCategoryService {
             throw new RuntimeException("Event category ya existe");
         } else {
             EventCategoryEntity entity = modelMapper.map(createEventCategoryDto, EventCategoryEntity.class);
+            entity.setActive(true);
             return modelMapper.map(eventCategoryRepository.save(entity), EventCategoryDto.class);
         }
     }
@@ -94,4 +96,15 @@ public class EventCategoryServiceImpl implements EventCategoryService {
         }
 
     }
+
+    @Transactional
+    @Override
+    public EventCategoryDto updateStatus(Long id) {
+        EventCategoryEntity entity = eventCategoryRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Category not found with id: " + id));
+        entity.setActive(!entity.isActive());
+        EventCategoryEntity updatedEntity = eventCategoryRepository.save(entity);
+        return modelMapper.map(updatedEntity, EventCategoryDto.class);
+    }
+
 }

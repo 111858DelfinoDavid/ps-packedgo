@@ -9,7 +9,7 @@ import java.util.Optional;
 public interface EventCategoryRepository extends JpaRepository<EventCategoryEntity, Long> {
     Optional<EventCategoryEntity> findById(Long id);
 
-    List<EventCategoryEntity> findByActiveIsTrue(boolean active);
+    List<EventCategoryEntity> findByActiveIsTrue();
 
     Optional<EventCategoryEntity> findByName(String name);
 }

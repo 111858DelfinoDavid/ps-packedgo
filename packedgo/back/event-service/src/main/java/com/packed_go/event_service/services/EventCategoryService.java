@@ -22,4 +22,7 @@ public interface EventCategoryService {
 
     @Transactional
     EventCategoryDto deleteLogical(Long id);
+
+    @Transactional
+    EventCategoryDto updateStatus(Long id);
 }
