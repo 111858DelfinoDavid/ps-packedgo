@@ -43,49 +43,44 @@ public class EventServiceImpl implements EventService {
 
     }
 
+    @Override
+    public List<EventDto> findAll() {
+        List<EventEntity> eventEntities = eventRepository.findAll();
+        return eventEntities.stream().map(entity -> modelMapper.map(entity, EventDto.class)).toList();
+    }
+
 
     @Override
     public List<EventDto> findAllByStatus(String status) {
         List<EventEntity> eventEntities = eventRepository.findAll();
-        return eventEntities.stream()
-                .filter(entity -> entity.getStatus().equalsIgnoreCase(status)) // filtramos por status
-                .map(entity -> modelMapper.map(entity, EventDto.class))
-                .toList();
+        return eventEntities.stream().filter(entity -> entity.getStatus().equalsIgnoreCase(status)) // filtramos por status
+                .map(entity -> modelMapper.map(entity, EventDto.class)).toList();
     }
 
     @Override
     public List<EventDto> findAllByEventDate(LocalDateTime eventDate) {
         List<EventEntity> eventEntities = eventRepository.findAll();
-        return eventEntities.stream()
-                .filter(entity -> entity.getEventDate().equals(eventDate)) // filtramos por status
-                .map(entity -> modelMapper.map(entity, EventDto.class))
-                .toList();
+        return eventEntities.stream().filter(entity -> entity.getEventDate().equals(eventDate)) // filtramos por status
+                .map(entity -> modelMapper.map(entity, EventDto.class)).toList();
     }
 
     @Override
     public List<EventDto> findAllByEventDateAndStatus(LocalDateTime eventDate, String status) {
         List<EventEntity> eventEntities = eventRepository.findAll();
-        return eventEntities.stream()
-                .filter(entity -> entity.getStatus().equalsIgnoreCase(status) && entity.getEventDate().equals(eventDate)) // filtramos por status
-                .map(entity -> modelMapper.map(entity, EventDto.class))
-                .toList();
+        return eventEntities.stream().filter(entity -> entity.getStatus().equalsIgnoreCase(status) && entity.getEventDate().equals(eventDate)) // filtramos por status
+                .map(entity -> modelMapper.map(entity, EventDto.class)).toList();
     }
 
     @Override
     public List<EventDto> findByLocation(Point location) {
         List<EventEntity> eventEntities = eventRepository.findAll();
-        return eventEntities.stream()
-                .filter(entity -> entity.getLocation().equals(location)) // filtramos por status
-                .map(entity -> modelMapper.map(entity, EventDto.class))
-                .toList();
+        return eventEntities.stream().filter(entity -> entity.getLocation().equals(location)) // filtramos por status
+                .map(entity -> modelMapper.map(entity, EventDto.class)).toList();
     }
 
     @Override
     public EventDto createEvent(CreateEventDto createEventDto) {
-        EventCategoryEntity category = eventCategoryRepository.findById(createEventDto.getCategoryId())
-                .orElseThrow(() -> new RuntimeException(
-                        "Category with id " + createEventDto.getCategoryId() + " not found"
-                ));
+        EventCategoryEntity category = eventCategoryRepository.findById(createEventDto.getCategoryId()).orElseThrow(() -> new RuntimeException("Category with id " + createEventDto.getCategoryId() + " not found"));
 
         EventEntity eventEntity = modelMapper.map(createEventDto, EventEntity.class);
 

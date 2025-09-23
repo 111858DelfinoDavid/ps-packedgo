@@ -10,6 +10,7 @@ import java.util.List;
 
 public interface EventService {
     EventDto findById(Long id);
+    List<EventDto> findAll();
 
     List<EventDto> findAllByStatus(String status);
 
