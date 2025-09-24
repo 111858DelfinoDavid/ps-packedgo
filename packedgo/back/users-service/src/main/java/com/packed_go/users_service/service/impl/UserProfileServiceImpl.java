@@ -1,6 +1,7 @@
 package com.packed_go.users_service.service.impl;
 
 import com.packed_go.users_service.dto.request.CreateProfileFromAuthRequest;
+import com.packed_go.users_service.dto.request.UpdateUserProfileRequest;
 import com.packed_go.users_service.entity.UserProfileEntity;
 import com.packed_go.users_service.model.UserProfile;
 import com.packed_go.users_service.model.Gender;
@@ -141,6 +142,37 @@ public class UserProfileServiceImpl implements UserProfileService {
         } else {
 
             throw new RuntimeException("UserProfile activo con id " + id + " no encontrado");
+        }
+    }
+
+    @Override
+    public UserProfile updateByAuthUserId(Long authUserId, UpdateUserProfileRequest request) {
+        Optional<UserProfileEntity> userExist = userProfileRepository.findByAuthUserIdAndIsActiveTrue(authUserId);
+
+        if (userExist.isPresent()) {
+            UserProfileEntity entity = userExist.get();
+            
+            // Validar que el documento no esté en uso por otro usuario (si cambió)
+            if (!entity.getDocument().equals(request.getDocument())) {
+                Optional<UserProfileEntity> documentExists = userProfileRepository.findByDocument(request.getDocument());
+                if (documentExists.isPresent() && !documentExists.get().getAuthUserId().equals(authUserId)) {
+                    throw new RuntimeException("El documento " + request.getDocument() + " ya está en uso por otro usuario");
+                }
+            }
+            
+            // Actualizar los campos
+            entity.setName(request.getName());
+            entity.setLastName(request.getLastName());
+            entity.setGender(Gender.valueOf(request.getGender()));
+            entity.setDocument(request.getDocument());
+            entity.setBornDate(request.getBornDate());
+            entity.setTelephone(request.getTelephone());
+            entity.setProfileImageUrl(request.getProfileImageUrl());
+            
+            UserProfileEntity updatedEntity = userProfileRepository.save(entity);
+            return modelMapper.map(updatedEntity, UserProfile.class);
+        } else {
+            throw new RuntimeException("UserProfile activo con authUserId " + authUserId + " no encontrado");
         }
     }
 

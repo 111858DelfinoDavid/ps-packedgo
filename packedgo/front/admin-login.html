@@ -286,7 +286,7 @@
     <!-- Admin Alert -->
     <div class="admin-alert">
         <i class="bi bi-shield-exclamation me-2"></i>
-        <strong>¡REA ADMINISTRATIVA</strong> - Acceso restringido solo para administradores autorizados
+        <strong>√ÅREA ADMINISTRATIVA</strong> - Acceso restringido solo para administradores autorizados
     </div>
 
     <div class="login-container">
@@ -300,10 +300,10 @@
                 <i class="bi bi-shield-check"></i>
             </div>
             <div class="brand-name">Admin Panel</div>
-            <div class="brand-subtitle">Panel de administraciÛn</div>
+            <div class="brand-subtitle">Panel de administraci√≥n</div>
         </div>
 
-        <h2 class="form-title">Inicio de SesiÛn</h2>
+        <h2 class="form-title">Inicio de Sesi√≥n</h2>
 
         <div class="admin-warning">
             <i class="bi bi-exclamation-triangle me-2"></i>
@@ -327,24 +327,24 @@
                     <i class="bi bi-envelope me-2"></i>Email Administrativo
                 </label>
                 <div class="invalid-feedback">
-                    Por favor, ingrese un email v·lido.
+                    Por favor, ingrese un email v√°lido.
                 </div>
             </div>
 
             <div class="form-floating">
-                <input type="password" class="form-control" id="password" name="password" placeholder="ContraseÒa" required minlength="8">
+                <input type="password" class="form-control" id="password" name="password" placeholder="Contrase√±a" required minlength="8">
                 <label for="password">
-                    <i class="bi bi-lock me-2"></i>ContraseÒa
+                    <i class="bi bi-lock me-2"></i>Contrase√±a
                 </label>
                 <div class="invalid-feedback">
-                    Por favor, ingrese su contraseÒa (mÌnimo 8 caracteres).
+                    Por favor, ingrese su contrase√±a (m√≠nimo 8 caracteres).
                 </div>
             </div>
 
             <div class="form-check mb-3">
                 <input class="form-check-input" type="checkbox" id="rememberMe">
                 <label class="form-check-label" for="rememberMe">
-                    Recordar sesiÛn administrativa
+                    Recordar sesi√≥n administrativa
                 </label>
             </div>
 
@@ -356,7 +356,7 @@
         </form>
 
         <div class="divider">
-            <span>øNo eres administrador?</span>
+            <span>¬øNo eres administrador?</span>
         </div>
 
         <div class="consumer-link">
@@ -378,7 +378,7 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     
     <script>
-        // Estado de la aplicaciÛn
+        // Estado de la aplicaci√≥n
         let isLoading = false;
 
         // Referencias DOM
@@ -425,7 +425,7 @@
             }
         }
 
-        // ValidaciÛn del formulario
+        // Validaci√≥n del formulario
         function validateForm() {
             let isValid = true;
             
@@ -440,7 +440,7 @@
                 emailInput.classList.add('is-valid');
             }
 
-            // Validar contraseÒa
+            // Validar contrase√±a
             if (!passwordInput.value.trim() || passwordInput.value.length < 8) {
                 passwordInput.classList.add('is-invalid');
                 isValid = false;
@@ -452,10 +452,10 @@
             return isValid;
         }
 
-        // FunciÛn de login para administradores
+        // Funci√≥n de login para administradores
         async function performAdminLogin(credentials) {
             try {
-                // URL especÌfica para login de administradores
+                // URL espec√≠fica para login de administradores
                 const response = await fetch('http://localhost:8081/auth/admin/login', {
                     method: 'POST',
                     headers: {
@@ -471,9 +471,9 @@
                     const data = await response.json();
                     
                     // Login exitoso
-                    showSuccess('°Acceso autorizado! Cargando panel administrativo...');
+                    showSuccess('¬°Acceso autorizado! Cargando panel administrativo...');
                     
-                    // Guardar datos de sesiÛn administrativa
+                    // Guardar datos de sesi√≥n administrativa
                     localStorage.setItem('userToken', data.token || 'admin-token-' + Date.now());
                     localStorage.setItem('userRole', 'ADMIN');
                     localStorage.setItem('userName', data.name || 'Administrador');
@@ -487,7 +487,7 @@
                         localStorage.removeItem('savedAdminEmail');
                     }
 
-                    // Redirigir despuÈs de 1.5 segundos
+                    // Redirigir despu√©s de 1.5 segundos
                     setTimeout(() => {
                         window.location.href = 'admin-dashboard.html';
                     }, 1500);
@@ -495,15 +495,15 @@
                 } else {
                     // Error de login
                     const errorData = await response.json().catch(() => ({}));
-                    throw new Error(errorData.message || 'Email o contraseÒa de administrador incorrectos');
+                    throw new Error(errorData.message || 'Email o contrase√±a de administrador incorrectos');
                 }
             } catch (error) {
                 console.error('Admin login error:', error);
                 
                 if (error.name === 'TypeError' && error.message.includes('fetch')) {
-                    showError('Error de conexiÛn. Verifique que el servidor estÈ funcionando en el puerto 8081.');
+                    showError('Error de conexi√≥n. Verifique que el servidor est√© funcionando en el puerto 8081.');
                 } else {
-                    showError(error.message || 'Error de autenticaciÛn administrativa. Verifique sus credenciales.');
+                    showError(error.message || 'Error de autenticaci√≥n administrativa. Verifique sus credenciales.');
                 }
             }
         }
@@ -533,7 +533,7 @@
             setLoading(false);
         });
 
-        // Limpiar validaciÛn en tiempo real
+        // Limpiar validaci√≥n en tiempo real
         [emailInput, passwordInput].forEach(input => {
             input.addEventListener('input', function() {
                 if (this.classList.contains('is-invalid')) {
@@ -565,7 +565,7 @@
             }
         });
 
-        // Verificar si ya est· logueado como admin
+        // Verificar si ya est√° logueado como admin
         if (localStorage.getItem('userToken') && localStorage.getItem('userRole') === 'ADMIN') {
             window.location.href = 'admin-dashboard.html';
         }

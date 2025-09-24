@@ -347,17 +347,17 @@
         <!-- Hero Dashboard -->
         <section class="hero-dashboard">
             <div class="user-info">
-                <span id="userWelcome">?? Hola, Usuario</span>
+                <span id="userWelcome">Hola, Usuario</span>
                 <button class="logout-btn" onclick="logout()">
-                    <i class="bi bi-box-arrow-right"></i> Cerrar Sesión
+                    <i class="bi bi-box-arrow-right"></i> Cerrar SesiÃ³n
                 </button>
             </div>
 
             <div class="container">
                 <div class="welcome-section">
-                    <h1 class="welcome-title">¡Bienvenido a PackedGo!</h1>
+                    <h1 class="welcome-title">Â¡Bienvenido a PackedGo!</h1>
                     <p class="welcome-subtitle">
-                        ¿Cómo te gustaría continuar hoy?
+                        Â¿CÃ³mo te gustarÃ­a continuar hoy?
                     </p>
 
                     <div class="role-selection">
@@ -374,7 +374,7 @@
                                     Descubre, compra y disfruta los mejores eventos
                                 </p>
                                 <ul class="role-features">
-                                    <li><i class="bi bi-check-circle"></i> Explorar eventos por categorías</li>
+                                    <li><i class="bi bi-check-circle"></i> Explorar eventos por categorÃ­as</li>
                                     <li><i class="bi bi-check-circle"></i> Comprar entradas de forma segura</li>
                                     <li><i class="bi bi-check-circle"></i> Gestionar tus reservas</li>
                                     <li><i class="bi bi-check-circle"></i> Recibir recomendaciones personalizadas</li>
@@ -429,7 +429,7 @@
                     </div>
                     <div class="stat-item">
                         <div class="stat-number" id="satisfactionRate">98%</div>
-                        <div class="stat-label">Satisfacción</div>
+                        <div class="stat-label">SatisfacciÃ³n</div>
                     </div>
                 </div>
             </div>
@@ -455,14 +455,14 @@
         let userName = 'Usuario';
         let userToken = null;
 
-        // Función para verificar autenticación
+        // FunciÃ³n para verificar autenticaciÃ³n
         function checkAuthentication() {
             userToken = localStorage.getItem('userToken');
             userRole = localStorage.getItem('userRole') || 'CUSTOMER';
             userName = localStorage.getItem('userName') || 'Usuario';
 
             if (!userToken) {
-                // No está autenticado, redirigir al login
+                // No estÃ¡ autenticado, redirigir al login
                 window.location.href = 'login.html';
                 return false;
             }
@@ -470,13 +470,13 @@
             return true;
         }
 
-        // Función para mostrar contenido basado en rol
+        // FunciÃ³n para mostrar contenido basado en rol
         function setupRoleBasedUI() {
             const adminCard = document.getElementById('adminCard');
             const userWelcome = document.getElementById('userWelcome');
 
             // Actualizar saludo
-            userWelcome.textContent = `?? Hola, ${userName}`;
+            userWelcome.textContent = `Hola, ${userName}`;
 
             // Mostrar carta de admin solo si es administrador
             if (userRole === 'ADMIN' || userRole === 'ADMINISTRATOR') {
@@ -484,21 +484,21 @@
             }
         }
 
-        // Función para simular carga de datos
+        // FunciÃ³n para simular carga de datos
         function loadDashboardData() {
             return new Promise((resolve) => {
-                // Simular carga de estadísticas
+                // Simular carga de estadÃ­sticas
                 setTimeout(() => {
-                    // Aquí podrías hacer llamadas reales a tu API
+                    // AquÃ­ podrÃ­as hacer llamadas reales a tu API
                     // updateStats();
                     resolve();
                 }, 2000);
             });
         }
 
-        // Función para actualizar estadísticas (placeholder)
+        // FunciÃ³n para actualizar estadÃ­sticas (placeholder)
         function updateStats() {
-            // Esto se conectaría con tu API real
+            // Esto se conectarÃ­a con tu API real
             const stats = {
                 events: Math.floor(Math.random() * 200) + 100,
                 users: Math.floor(Math.random() * 10000) + 20000,
@@ -512,9 +512,9 @@
             document.getElementById('satisfactionRate').textContent = stats.satisfaction + '%';
         }
 
-        // Función para ir al dashboard del consumer
+        // FunciÃ³n para ir al dashboard del consumer
         function goToConsumer() {
-            // Agregar animación de salida
+            // Agregar animaciÃ³n de salida
             document.body.style.opacity = '0.8';
             
             setTimeout(() => {
@@ -522,14 +522,14 @@
             }, 300);
         }
 
-        // Función para ir al dashboard del admin
+        // FunciÃ³n para ir al dashboard del admin
         function goToAdmin() {
             if (userRole !== 'ADMIN' && userRole !== 'ADMINISTRATOR') {
                 alert('No tienes permisos para acceder al panel administrativo.');
                 return;
             }
 
-            // Agregar animación de salida
+            // Agregar animaciÃ³n de salida
             document.body.style.opacity = '0.8';
             
             setTimeout(() => {
@@ -537,10 +537,10 @@
             }, 300);
         }
 
-        // Función para cerrar sesión
+        // FunciÃ³n para cerrar sesiÃ³n
         function logout() {
-            if (confirm('¿Estás seguro que deseas cerrar sesión?')) {
-                // Limpiar datos de sesión
+            if (confirm('Â¿EstÃ¡s seguro que deseas cerrar sesiÃ³n?')) {
+                // Limpiar datos de sesiÃ³n
                 localStorage.removeItem('userToken');
                 localStorage.removeItem('userRole');
                 localStorage.removeItem('userName');
@@ -555,9 +555,9 @@
             }
         }
 
-        // Función principal de inicialización
+        // FunciÃ³n principal de inicializaciÃ³n
         async function initDashboard() {
-            // Verificar autenticación
+            // Verificar autenticaciÃ³n
             if (!checkAuthentication()) {
                 return;
             }
@@ -578,13 +578,13 @@
             }, 1000);
         }
 
-        // Evento al cargar la página
+        // Evento al cargar la pÃ¡gina
         document.addEventListener('DOMContentLoaded', initDashboard);
 
-        // Prevenir acceso directo sin autenticación
+        // Prevenir acceso directo sin autenticaciÃ³n
         window.addEventListener('beforeunload', function() {
             if (!localStorage.getItem('userToken')) {
-                event.returnValue = 'Sesión expirada';
+                event.returnValue = 'SesiÃ³n expirada';
             }
         });
 

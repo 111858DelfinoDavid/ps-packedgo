@@ -2,6 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PackedGo - Iniciar Sesión</title>
     
@@ -179,7 +180,7 @@
         .divider::before {
             content: '';
             position: absolute;
-            top: 50%;
+            top: 0%;
             left: 0;
             right: 0;
             height: 1px;
@@ -319,11 +320,11 @@
         </form>
 
         <div class="forgot-password">
-            <a href="forgot-password.html" id="forgotPasswordLink">�Olvidaste tu contrase�aaaa?</a>
+            <a href="forgot-password.html" id="forgotPasswordLink">¿Olvidaste tu contraseña?</a>
         </div>
 
         <div class="divider">
-            <span>�No tienes cuenta?</span>
+            <span>¿No tienes cuenta?</span>
         </div>
 
         <div class="register-link">
@@ -421,6 +422,8 @@
         // Función de login
         async function performLogin(credentials) {
             try {
+                console.log('Attempting login with:', credentials); // Debug
+                
                 const response = await fetch('http://localhost:8081/auth/customer/login', {
                     method: 'POST',
                     headers: {
@@ -429,16 +432,30 @@
                     body: JSON.stringify(credentials)
                 });
 
+                console.log('Login response status:', response.status); // Debug
                 const data = await response.json();
+                console.log('Login response data:', data); // Debug
 
-                if (response.ok) {
-                    // Login exitoso
+                if (response.ok && data.success) {
+                    // Login exitoso - DATOS REALES DEL SERVIDOR
                     showSuccess('¡Inicio de sesión exitoso! Redirigiendo...');
                     
-                    // Guardar datos de sesión
-                    localStorage.setItem('userToken', data.token || 'mock-token');
-                    localStorage.setItem('userRole', data.role || 'CUSTOMER');
-                    localStorage.setItem('userName', data.name || credentials.document);
+                    // Guardar datos de sesión REALES
+                    const userData = data.data.user || data.data; // Manejar diferentes estructuras
+                    
+                    localStorage.setItem('userToken', data.data.token);
+                    localStorage.setItem('userId', userData.id);
+                    localStorage.setItem('userRole', userData.role);
+                    localStorage.setItem('userName', userData.username || userData.name);
+                    localStorage.setItem('userEmail', userData.email || '');
+                    localStorage.setItem('userDocument', userData.document || '');
+                    
+                    console.log('Saved to localStorage:', {
+                        userId: userData.id,
+                        token: data.data.token ? 'Present' : 'Missing',
+                        role: userData.role,
+                        name: userData.username || userData.name
+                    }); // Debug
                     
                     if (rememberMeCheckbox.checked) {
                         localStorage.setItem('rememberMe', 'true');
@@ -450,18 +467,20 @@
 
                     // Redirigir después de 1 segundo
                     setTimeout(() => {
-                        window.location.href = 'dashboard.html';
+                        window.location.href = 'consumer-dashboard.html';
                     }, 1000);
                     
                 } else {
-                    // Error de login
+                    // Error de login del servidor
+                    console.error('Login failed - Server response:', data);
                     throw new Error(data.message || 'Credenciales inválidas');
                 }
             } catch (error) {
                 console.error('Login error:', error);
                 
                 if (error.name === 'TypeError' && error.message.includes('fetch')) {
-                    showError('Error de conexión. Verifique que el servidor esté funcionando.');
+                    showError('❌ Error de conexión. Los microservicios no están corriendo.');
+                    console.error('🚨 SOLUCIÓN: Ejecute en el directorio back/: docker-compose up --build');
                 } else {
                     showError(error.message || 'Error al iniciar sesión. Verifique sus credenciales.');
                 }

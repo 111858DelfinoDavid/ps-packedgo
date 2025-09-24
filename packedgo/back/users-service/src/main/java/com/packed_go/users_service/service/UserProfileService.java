@@ -1,6 +1,7 @@
 package com.packed_go.users_service.service;
 
 import com.packed_go.users_service.dto.request.CreateProfileFromAuthRequest;
+import com.packed_go.users_service.dto.request.UpdateUserProfileRequest;
 import com.packed_go.users_service.dto.UserProfileDTO;
 import com.packed_go.users_service.model.UserProfile;
 import jakarta.transaction.Transactional;
@@ -26,6 +27,8 @@ public interface UserProfileService {
     List<UserProfile> getAll();
 
     UserProfile update(Long id, UserProfile model);
+    
+    UserProfile updateByAuthUserId(Long authUserId, UpdateUserProfileRequest request);
 
     void delete(Long id);
 

@@ -284,7 +284,7 @@
             <div class="brand-subtitle">Tu portal de eventos favorito</div>
         </div>
 
-        <h2 class="form-title">Iniciar Sesión</h2>
+        <h2 class="form-title">Iniciar SesiÃ³n</h2>
 
         <div class="dni-info">
             <i class="bi bi-info-circle me-2"></i>
@@ -308,17 +308,17 @@
                     <i class="bi bi-card-text me-2"></i>Documento (DNI)
                 </label>
                 <div class="invalid-feedback">
-                    Por favor, ingrese un DNI válido (7-8 dígitos).
+                    Por favor, ingrese un DNI vÃ¡lido (7-8 dÃ­gitos).
                 </div>
             </div>
 
             <div class="form-floating">
-                <input type="password" class="form-control" id="password" name="password" placeholder="Contraseña" required minlength="6">
+                <input type="password" class="form-control" id="password" name="password" placeholder="ContraseÃ±a" required minlength="6">
                 <label for="password">
-                    <i class="bi bi-lock me-2"></i>Contraseña
+                    <i class="bi bi-lock me-2"></i>ContraseÃ±a
                 </label>
                 <div class="invalid-feedback">
-                    Por favor, ingrese su contraseña.
+                    Por favor, ingrese su contraseÃ±a.
                 </div>
             </div>
 
@@ -332,12 +332,12 @@
             <button type="submit" class="btn btn-login">
                 <span class="loading-spinner spinner-border spinner-border-sm" role="status"></span>
                 <i class="bi bi-box-arrow-in-right me-2"></i>
-                <span id="loginButtonText">Iniciar Sesión</span>
+                <span id="loginButtonText">Iniciar SesiÃ³n</span>
             </button>
         </form>
 
         <div class="divider">
-            <span>¿No tienes cuenta?</span>
+            <span>Â¿No tienes cuenta?</span>
         </div>
 
         <div class="register-link">
@@ -350,7 +350,7 @@
         <div class="admin-link">
             <a href="admin-login.html">
                 <i class="bi bi-shield me-1"></i>
-                ¿Eres administrador? Entra aquí
+                Â¿Eres administrador? Entra aquÃ­
             </a>
         </div>
 
@@ -366,7 +366,7 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     
     <script>
-        // Estado de la aplicación
+        // Estado de la aplicaciÃ³n
         let isLoading = false;
 
         // Referencias DOM
@@ -405,15 +405,15 @@
             if (loading) {
                 loginButton.disabled = true;
                 loadingSpinner.style.display = 'inline-block';
-                loginButtonText.textContent = 'Iniciando sesión...';
+                loginButtonText.textContent = 'Iniciando sesiÃ³n...';
             } else {
                 loginButton.disabled = false;
                 loadingSpinner.style.display = 'none';
-                loginButtonText.textContent = 'Iniciar Sesión';
+                loginButtonText.textContent = 'Iniciar SesiÃ³n';
             }
         }
 
-        // Validación del formulario
+        // ValidaciÃ³n del formulario
         function validateForm() {
             let isValid = true;
             
@@ -427,7 +427,7 @@
                 dniInput.classList.add('is-valid');
             }
 
-            // Validar contraseña
+            // Validar contraseÃ±a
             if (!passwordInput.value.trim() || passwordInput.value.length < 6) {
                 passwordInput.classList.add('is-invalid');
                 isValid = false;
@@ -439,17 +439,17 @@
             return isValid;
         }
 
-        // Función de login para consumidores
+        // FunciÃ³n de login para consumidores
         async function performConsumerLogin(credentials) {
             try {
-                // URL específica para login de consumidores
+                // URL especÃ­fica para login de consumidores
                 const response = await fetch('http://localhost:8081/auth/customer/login', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                     },
                     body: JSON.stringify({
-                        document: parseInt(credentials.dni),  // Enviar como número
+                        document: parseInt(credentials.dni),  // Enviar como nÃºmero
                         password: credentials.password
                     })
                 });
@@ -458,9 +458,9 @@
                     const data = await response.json();
                     
                     // Login exitoso
-                    showSuccess('¡Inicio de sesión exitoso! Redirigiendo...');
+                    showSuccess('Â¡Inicio de sesiÃ³n exitoso! Redirigiendo...');
                     
-                    // Guardar datos de sesión
+                    // Guardar datos de sesiÃ³n
                     localStorage.setItem('userToken', data.token || 'consumer-token-' + Date.now());
                     localStorage.setItem('userRole', 'CUSTOMER');
                     localStorage.setItem('userName', data.name || 'Cliente');
@@ -474,7 +474,7 @@
                         localStorage.removeItem('savedDocument');
                     }
 
-                    // Redirigir después de 1 segundo
+                    // Redirigir despuÃ©s de 1 segundo
                     setTimeout(() => {
                         window.location.href = 'consumer-dashboard.html';
                     }, 1000);
@@ -482,15 +482,15 @@
                 } else {
                     // Error de login
                     const errorData = await response.json().catch(() => ({}));
-                    throw new Error(errorData.message || 'DNI o contraseña incorrectos');
+                    throw new Error(errorData.message || 'DNI o contraseÃ±a incorrectos');
                 }
             } catch (error) {
                 console.error('Consumer login error:', error);
                 
                 if (error.name === 'TypeError' && error.message.includes('fetch')) {
-                    showError('Error de conexión. Verifique que el servidor esté funcionando en el puerto 8081.');
+                    showError('Error de conexiÃ³n. Verifique que el servidor estÃ© funcionando en el puerto 8081.');
                 } else {
-                    showError(error.message || 'Error al iniciar sesión. Verifique su DNI y contraseña.');
+                    showError(error.message || 'Error al iniciar sesiÃ³n. Verifique su DNI y contraseÃ±a.');
                 }
             }
         }
@@ -522,7 +522,7 @@
 
         // Validar DNI en tiempo real
         dniInput.addEventListener('input', function() {
-            // Solo permitir números
+            // Solo permitir nÃºmeros
             this.value = this.value.replace(/[^0-9]/g, '');
             
             if (this.classList.contains('is-invalid') && this.value.trim() && /^[0-9]{7,8}$/.test(this.value)) {
@@ -532,7 +532,7 @@
             hideMessages();
         });
 
-        // Limpiar validación en tiempo real para contraseña
+        // Limpiar validaciÃ³n en tiempo real para contraseÃ±a
         passwordInput.addEventListener('input', function() {
             if (this.classList.contains('is-invalid') && this.value.trim() && this.value.length >= 6) {
                 this.classList.remove('is-invalid');
@@ -552,7 +552,7 @@
             }
         });
 
-        // Verificar si ya está logueado
+        // Verificar si ya estÃ¡ logueado
         if (localStorage.getItem('userToken') && localStorage.getItem('userRole') === 'CUSTOMER') {
             window.location.href = 'consumer-dashboard.html';
         }

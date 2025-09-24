@@ -2,6 +2,7 @@ package com.packed_go.users_service.controller;
 
 import com.packed_go.users_service.dto.UserProfileDTO;
 import com.packed_go.users_service.dto.request.CreateProfileFromAuthRequest;
+import com.packed_go.users_service.dto.request.UpdateUserProfileRequest;
 import com.packed_go.users_service.model.UserProfile;
 import com.packed_go.users_service.service.UserProfileService;
 import lombok.RequiredArgsConstructor;
@@ -10,6 +11,7 @@ import org.modelmapper.ModelMapper;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import jakarta.validation.Valid;
 import java.util.List;
 
 @RestController
@@ -106,5 +108,35 @@ public class UserProfileController {
     @GetMapping("/active/document/{document}")
     public ResponseEntity<UserProfile> getByDocumentActive(@PathVariable Long document) {
         return ResponseEntity.ok(service.getByDocumentActive(document));
+    }
+
+    @GetMapping("/by-auth-user/{authUserId}")
+    public ResponseEntity<UserProfileDTO> getByAuthUserId(@PathVariable Long authUserId) {
+        log.info("Getting user profile by authUserId: {}", authUserId);
+        UserProfile profile = service.getByAuthUserId(authUserId);
+        return ResponseEntity.ok(modelMapper.map(profile, UserProfileDTO.class));
+    }
+
+    @GetMapping("/active/by-auth-user/{authUserId}")
+    public ResponseEntity<UserProfileDTO> getByAuthUserIdActive(@PathVariable Long authUserId) {
+        log.info("Getting active user profile by authUserId: {}", authUserId);
+        UserProfile profile = service.getByAuthUserIdActive(authUserId);
+        return ResponseEntity.ok(modelMapper.map(profile, UserProfileDTO.class));
+    }
+
+    @PutMapping("/by-auth-user/{authUserId}")
+    public ResponseEntity<UserProfileDTO> updateByAuthUserId(
+            @PathVariable Long authUserId, 
+            @Valid @RequestBody UpdateUserProfileRequest request) {
+        
+        log.info("Updating user profile by authUserId: {}", authUserId);
+        
+        try {
+            UserProfile updated = service.updateByAuthUserId(authUserId, request);
+            return ResponseEntity.ok(modelMapper.map(updated, UserProfileDTO.class));
+        } catch (RuntimeException e) {
+            log.warn("Failed to update profile for authUserId {}: {}", authUserId, e.getMessage());
+            return ResponseEntity.badRequest().build();
+        }
     }
 }

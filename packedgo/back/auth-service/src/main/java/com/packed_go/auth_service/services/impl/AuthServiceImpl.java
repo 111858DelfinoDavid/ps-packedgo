@@ -2,11 +2,14 @@ package com.packed_go.auth_service.services.impl;
 
 import com.packed_go.auth_service.dto.request.AdminLoginRequest;
 import com.packed_go.auth_service.dto.request.AdminRegistrationRequest;
+import com.packed_go.auth_service.dto.request.ChangePasswordLoggedUserRequest;
 import com.packed_go.auth_service.dto.request.ChangePasswordRequest;
 import com.packed_go.auth_service.dto.request.CreateProfileFromAuthRequest;
 import com.packed_go.auth_service.dto.request.CustomerLoginRequest;
 import com.packed_go.auth_service.dto.request.CustomerRegistrationRequest;
 import com.packed_go.auth_service.dto.request.PasswordResetRequest;
+import com.packed_go.auth_service.dto.request.UpdateAuthUserRequest;
+import com.packed_go.auth_service.dto.response.AuthUserProfileResponse;
 import com.packed_go.auth_service.dto.response.LoginResponse;
 import com.packed_go.auth_service.dto.response.TokenValidationResponse;
 import com.packed_go.auth_service.entities.*;
@@ -69,13 +72,13 @@ public class AuthServiceImpl implements AuthService {
             throw new UnauthorizedException("Access denied");
         }
 
-        // Verificar si la cuenta est� bloqueada
+        // Verificar si la cuenta está bloqueada
         if (user.getLockedUntil() != null && user.getLockedUntil().isAfter(LocalDateTime.now())) {
             recordFailedLogin(request.getEmail(), "EMAIL", ipAddress, userAgent, "Account locked");
             throw new UnauthorizedException("Account is locked until " + user.getLockedUntil());
         }
 
-        // Verificar contrase�a
+        // Verificar contraseña
         if (!passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
             handleFailedLogin(user, request.getEmail(), "EMAIL", ipAddress, userAgent);
             throw new UnauthorizedException("Invalid credentials");
@@ -102,13 +105,13 @@ public class AuthServiceImpl implements AuthService {
             throw new UnauthorizedException("Access denied");
         }
 
-        // Verificar si la cuenta est� bloqueada
+        // Verificar si la cuenta está bloqueada
         if (user.getLockedUntil() != null && user.getLockedUntil().isAfter(LocalDateTime.now())) {
             recordFailedLogin(String.valueOf(request.getDocument()), "DOCUMENT", ipAddress, userAgent, "Account locked");
             throw new UnauthorizedException("Account is locked until " + user.getLockedUntil());
         }
 
-        // Verificar contrase�a
+        // Verificar contraseña
         if (!passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
             handleFailedLogin(user, String.valueOf(request.getDocument()), "DOCUMENT", ipAddress, userAgent);
             throw new UnauthorizedException("Invalid credentials");
@@ -151,7 +154,7 @@ public class AuthServiceImpl implements AuthService {
                 .failedLoginAttempts(0)
                 .createdAt(LocalDateTime.now())
                 .updatedAt(LocalDateTime.now())
-                .userProfileId(0L) // Se actualizar� cuando se cree el perfil en USER-SERVICE
+                .userProfileId(0L) // Se actualizará cuando se cree el perfil en USER-SERVICE
                 .build();
 
         AuthUser savedUser = authUserRepository.save(newUser);
@@ -286,7 +289,6 @@ public boolean verifyEmail(String token) {
         AuthUser savedAdmin = authUserRepository.save(newAdmin);
         log.info("Admin registered successfully with ID: {}", savedAdmin.getId());
         
-        // TODO: Enviar email de verificaci�n
         // Generar y enviar email de verificación
         try {
             sendVerificationEmail(savedAdmin);
@@ -479,7 +481,89 @@ public boolean verifyEmail(String token) {
         return true;
     }
 
-    // M�todos privados de ayuda
+    @Override
+    public AuthUserProfileResponse getUserProfile(Long userId) {
+        log.info("Getting user profile for userId: {}", userId);
+        
+        AuthUser user = authUserRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
+        
+        return AuthUserProfileResponse.builder()
+                .id(user.getId())
+                .username(user.getUsername())
+                .email(user.getEmail())
+                .document(user.getDocument())
+                .role(user.getRole())
+                .loginType(user.getLoginType())
+                .isActive(user.getIsActive())
+                .isEmailVerified(user.getIsEmailVerified())
+                .isDocumentVerified(user.getIsDocumentVerified())
+                .createdAt(user.getCreatedAt())
+                .lastLogin(user.getLastLogin())
+                .build();
+    }
+
+    @Override
+    public AuthUser updateUserProfile(Long userId, UpdateAuthUserRequest request) {
+        log.info("Updating user profile for userId: {}", userId);
+        
+        AuthUser user = authUserRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
+        
+        // Verificar si el nuevo username ya existe (y no es el mismo usuario)
+        if (!user.getUsername().equals(request.getUsername()) && 
+            authUserRepository.existsByUsername(request.getUsername())) {
+            throw new BadRequestException("Username already exists");
+        }
+        
+        // Verificar si el nuevo email ya existe (y no es el mismo usuario)
+        if (!user.getEmail().equals(request.getEmail()) && 
+            authUserRepository.existsByEmail(request.getEmail())) {
+            throw new BadRequestException("Email already registered");
+        }
+        
+        // Actualizar los datos
+        user.setUsername(request.getUsername());
+        user.setEmail(request.getEmail());
+        user.setUpdatedAt(LocalDateTime.now());
+        
+        // Si cambió el email, marcar como no verificado
+        if (!user.getEmail().equals(request.getEmail())) {
+            user.setIsEmailVerified(false);
+            // TODO: Enviar nuevo email de verificación
+        }
+        
+        AuthUser updatedUser = authUserRepository.save(user);
+        log.info("User profile updated successfully for userId: {}", userId);
+        
+        return updatedUser;
+    }
+
+    @Override
+    public boolean changePasswordLoggedUser(Long userId, ChangePasswordLoggedUserRequest request) {
+        log.info("Changing password for logged user: {}", userId);
+        
+        AuthUser user = authUserRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
+        
+        // Verificar contraseña actual
+        if (!passwordEncoder.matches(request.getCurrentPassword(), user.getPasswordHash())) {
+            throw new BadRequestException("Current password is incorrect");
+        }
+        
+        // Cambiar la contraseña
+        user.setPasswordHash(passwordEncoder.encode(request.getNewPassword()));
+        user.setUpdatedAt(LocalDateTime.now());
+        authUserRepository.save(user);
+        
+        // Invalidar todas las sesiones activas del usuario por seguridad (excepto la actual)
+        logoutAllSessions(user.getId());
+        
+        log.info("Password changed successfully for user: {} - All sessions invalidated", userId);
+        return true;
+    }
+
+    // Métodos privados de ayuda
     
     private LoginResponse processSuccessfulLogin(AuthUser user, String ipAddress, String userAgent) {
         // Resetear intentos fallidos
@@ -499,7 +583,7 @@ public boolean verifyEmail(String token) {
                 user.getId(), user.getUsername(), user.getRole(), permissions);
         String refreshToken = jwtTokenProvider.generateRefreshToken(user.getId(), user.getUsername());
 
-        // Crear sesi�n
+        // Crear sesión
         UserSession session = UserSession.builder()
                 .authUserId(user.getId())
                 .sessionToken(token)
@@ -581,7 +665,7 @@ public boolean verifyEmail(String token) {
     private String extractDeviceInfo(String userAgent) {
         if (userAgent == null) return "Unknown";
         
-        // Extraer informaci�n b�sica del dispositivo del User-Agent
+        // Extraer información bsica del dispositivo del User-Agent
         if (userAgent.contains("Mobile")) return "Mobile Device";
         if (userAgent.contains("Tablet")) return "Tablet";
         if (userAgent.contains("Windows")) return "Windows Desktop";
