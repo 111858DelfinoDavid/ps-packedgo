@@ -2,8 +2,8 @@ package com.packed_go.event_service.services.impl;
 
 import com.packed_go.event_service.dtos.eventCategory.CreateEventCategoryDto;
 import com.packed_go.event_service.dtos.eventCategory.EventCategoryDto;
-import com.packed_go.event_service.entities.eventCategory.EventCategoryEntity;
-import com.packed_go.event_service.repositories.eventCategory.EventCategoryRepository;
+import com.packed_go.event_service.entities.EventCategoryEntity;
+import com.packed_go.event_service.repositories.EventCategoryRepository;
 import com.packed_go.event_service.services.EventCategoryService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;

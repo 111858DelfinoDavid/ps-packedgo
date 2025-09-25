@@ -1,6 +1,5 @@
-package com.packed_go.event_service.entities.event;
+package com.packed_go.event_service.entities;
 
-import com.packed_go.event_service.entities.eventCategory.EventCategoryEntity;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
