@@ -2,7 +2,9 @@ package com.packed_go.event_service.services.impl;
 
 import com.packed_go.event_service.dtos.consumption.ConsumptionDto;
 import com.packed_go.event_service.dtos.consumption.CreateConsumptionDto;
+import com.packed_go.event_service.entities.ConsumptionCategoryEntity;
 import com.packed_go.event_service.entities.ConsumptionEntity;
+import com.packed_go.event_service.repositories.ConsumptionCategoryRepository;
 import com.packed_go.event_service.repositories.ConsumptionRepository;
 import com.packed_go.event_service.services.ConsumptionService;
 import jakarta.transaction.Transactional;
@@ -10,8 +12,6 @@ import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-
-import javax.swing.text.html.Option;
 import java.util.List;
 import java.util.Optional;
 
@@ -23,6 +23,8 @@ public class ConsumptionServiceImpl implements ConsumptionService {
     public ConsumptionRepository consumptionRepository;
     @Autowired
     public ModelMapper modelMapper;
+    @Autowired
+    public ConsumptionCategoryRepository consumptionCategoryRepository;
 
 
     @Override
@@ -53,14 +55,15 @@ public class ConsumptionServiceImpl implements ConsumptionService {
 
     @Override
     public ConsumptionDto createConsumption(CreateConsumptionDto createConsumptionDto) {
-        Optional<ConsumptionEntity> consumptionExist = consumptionRepository.findByName(createConsumptionDto.getName());
-        if (consumptionExist.isPresent()) {
-            throw new RuntimeException("Consumption con nombre " + consumptionExist.get().getName() + " ya existe");
-        } else {
-            ConsumptionEntity consumptionEntity = modelMapper.map(createConsumptionDto, ConsumptionEntity.class);
-            consumptionEntity.setActive(true);
-            return modelMapper.map(consumptionRepository.save(consumptionEntity), ConsumptionDto.class);
-        }
+        ConsumptionCategoryEntity category = consumptionCategoryRepository.findById(createConsumptionDto.getCategoryId()).orElseThrow(() -> new RuntimeException("Category with id " + createConsumptionDto.getCategoryId() + " not found"));
+
+
+        createConsumptionDto.setActive(true);
+        createConsumptionDto.setCategoryId(category.getId());
+        ConsumptionEntity consumptionEntity = modelMapper.map(createConsumptionDto, ConsumptionEntity.class);
+
+        ConsumptionEntity savedConsumption = consumptionRepository.save(consumptionEntity);
+        return modelMapper.map(savedConsumption, ConsumptionDto.class);
     }
 
     @Override

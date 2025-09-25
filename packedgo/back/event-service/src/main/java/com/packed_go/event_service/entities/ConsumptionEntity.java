@@ -20,7 +20,7 @@ public class ConsumptionEntity {
 
     @ManyToOne
     @JoinColumn(name="category_id")
-    private EventCategoryEntity category;
+    private ConsumptionCategoryEntity category;
 
     private String name;
     private String description;
