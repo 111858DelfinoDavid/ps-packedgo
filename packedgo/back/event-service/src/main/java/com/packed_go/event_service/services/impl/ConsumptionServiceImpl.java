@@ -59,9 +59,8 @@ public class ConsumptionServiceImpl implements ConsumptionService {
 
 
         createConsumptionDto.setActive(true);
-        createConsumptionDto.setCategoryId(category.getId());
         ConsumptionEntity consumptionEntity = modelMapper.map(createConsumptionDto, ConsumptionEntity.class);
-
+        consumptionEntity.setCategory(category);
         ConsumptionEntity savedConsumption = consumptionRepository.save(consumptionEntity);
         return modelMapper.map(savedConsumption, ConsumptionDto.class);
     }
