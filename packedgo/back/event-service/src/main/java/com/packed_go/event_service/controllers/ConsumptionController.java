@@ -1,9 +1,8 @@
 package com.packed_go.event_service.controllers;
 
-import com.packed_go.event_service.dtos.event.CreateEventDto;
-import com.packed_go.event_service.dtos.event.EventDto;
-import com.packed_go.event_service.dtos.eventCategory.EventCategoryDto;
-import com.packed_go.event_service.services.EventService;
+import com.packed_go.event_service.dtos.consumption.ConsumptionDto;
+import com.packed_go.event_service.dtos.consumption.CreateConsumptionDto;
+import com.packed_go.event_service.services.ConsumptionService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
@@ -17,24 +16,24 @@ import java.util.List;
 @RequiredArgsConstructor
 @Slf4j
 public class ConsumptionController {
-    private final EventService service;
+    private final ConsumptionService service;
     private final ModelMapper modelMapper;
 
 
     @GetMapping("/{id}")
-    public ResponseEntity<EventDto> getById(@PathVariable Long id) {
+    public ResponseEntity<ConsumptionDto> getById(@PathVariable Long id) {
         return ResponseEntity.ok(service.findById(id));
     }
 
 
     @GetMapping
-    public ResponseEntity<List<EventDto>> getAll() {
+    public ResponseEntity<List<ConsumptionDto>> getAll() {
         return ResponseEntity.ok(service.findAll());
     }
 
     @PostMapping
-    public ResponseEntity<EventDto> create(@RequestBody CreateEventDto dto) {
-        EventDto created = service.createEvent(dto);
+    public ResponseEntity<ConsumptionDto> create(@RequestBody CreateConsumptionDto dto) {
+        ConsumptionDto created = service.createConsumption(dto);
         if (created != null) {
             return ResponseEntity.ok(created);
         } else {
@@ -44,8 +43,8 @@ public class ConsumptionController {
 
 
     @PutMapping("/{id}")
-    public ResponseEntity<EventDto> update(@PathVariable Long id, @RequestBody EventDto dto) {
-        return ResponseEntity.ok(service.updateEvent(id, dto));
+    public ResponseEntity<ConsumptionDto> update(@PathVariable Long id, @RequestBody CreateConsumptionDto dto) {
+        return ResponseEntity.ok(service.updateConsumption(id, dto));
     }
 
 
@@ -56,7 +55,7 @@ public class ConsumptionController {
     }
 
     @DeleteMapping("/logical/{id}")
-    public ResponseEntity<EventCategoryDto> deleteLogical(@PathVariable Long id) {
-        return ResponseEntity.ok(modelMapper.map(service.deleteLogical(id), EventCategoryDto.class));
+    public ResponseEntity<ConsumptionDto> deleteLogical(@PathVariable Long id) {
+        return ResponseEntity.ok(modelMapper.map(service.deleteLogical(id), ConsumptionDto.class));
     }
 }
