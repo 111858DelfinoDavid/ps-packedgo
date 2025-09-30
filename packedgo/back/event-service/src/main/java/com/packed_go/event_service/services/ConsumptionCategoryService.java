@@ -1,30 +1,28 @@
 package com.packed_go.event_service.services;
 
-import com.packed_go.event_service.dtos.consumption.ConsumptionDto;
-import com.packed_go.event_service.dtos.consumption.CreateConsumptionDto;
-import com.packed_go.event_service.dtos.consumptionCategory.ConsumptionCategoryDto;
-import com.packed_go.event_service.dtos.consumptionCategory.CreateConsumptionCategoryDto;
+import com.packed_go.event_service.dtos.consumptionCategory.ConsumptionCategoryDTO;
+import com.packed_go.event_service.dtos.consumptionCategory.CreateConsumptionCategoryDTO;
 import jakarta.transaction.Transactional;
 
 import java.util.List;
 
 public interface ConsumptionCategoryService {
-    ConsumptionCategoryDto findById(Long id);
+    ConsumptionCategoryDTO findById(Long id);
 
-    List<ConsumptionCategoryDto> findByActiveIsTrue();
+    List<ConsumptionCategoryDTO> findByActiveIsTrue();
 
-    List<ConsumptionCategoryDto> findAll();
+    List<ConsumptionCategoryDTO> findAll();
 
-    ConsumptionCategoryDto create(CreateConsumptionCategoryDto createConsumptionCategoryDto);
+    ConsumptionCategoryDTO create(CreateConsumptionCategoryDTO createConsumptionCategoryDto);
 
-    ConsumptionCategoryDto update(Long id, CreateConsumptionCategoryDto createConsumptionCategoryDto);
+    ConsumptionCategoryDTO update(Long id, CreateConsumptionCategoryDTO createConsumptionCategoryDto);
 
     void delete(Long id);
 
     @Transactional
-    ConsumptionCategoryDto deleteLogical(Long id);
+    ConsumptionCategoryDTO deleteLogical(Long id);
 
     @Transactional
-    ConsumptionCategoryDto updateStatus(Long id);
+    ConsumptionCategoryDTO updateStatus(Long id);
 }
 

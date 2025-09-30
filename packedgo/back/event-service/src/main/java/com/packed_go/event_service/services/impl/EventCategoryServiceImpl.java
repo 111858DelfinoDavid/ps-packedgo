@@ -1,8 +1,8 @@
 package com.packed_go.event_service.services.impl;
 
-import com.packed_go.event_service.dtos.eventCategory.CreateEventCategoryDto;
-import com.packed_go.event_service.dtos.eventCategory.EventCategoryDto;
-import com.packed_go.event_service.entities.EventCategoryEntity;
+import com.packed_go.event_service.dtos.eventCategory.CreateEventCategoryDTO;
+import com.packed_go.event_service.dtos.eventCategory.EventCategoryDTO;
+import com.packed_go.event_service.entities.EventCategory;
 import com.packed_go.event_service.repositories.EventCategoryRepository;
 import com.packed_go.event_service.services.EventCategoryService;
 import jakarta.transaction.Transactional;
@@ -24,50 +24,50 @@ public class EventCategoryServiceImpl implements EventCategoryService {
     private final ModelMapper modelMapper;
 
     @Override
-    public EventCategoryDto findById(Long id) {
-        Optional<EventCategoryEntity> categoryExist = eventCategoryRepository.findById(id);
+    public EventCategoryDTO findById(Long id) {
+        Optional<EventCategory> categoryExist = eventCategoryRepository.findById(id);
         if (categoryExist.isPresent()) {
-            return modelMapper.map(categoryExist, EventCategoryDto.class);
+            return modelMapper.map(categoryExist, EventCategoryDTO.class);
         } else {
             throw new RuntimeException("Event con id " + id + " no encontrado");
         }
     }
 
     @Override
-    public List<EventCategoryDto> findByActiveIsTrue() {
-        List<EventCategoryEntity> categoryEntities = eventCategoryRepository.findByActiveIsTrue();
+    public List<EventCategoryDTO> findByActiveIsTrue() {
+        List<EventCategory> categoryEntities = eventCategoryRepository.findByActiveIsTrue();
         return categoryEntities.stream()
-                .map(entity -> modelMapper.map(entity, EventCategoryDto.class))
+                .map(entity -> modelMapper.map(entity, EventCategoryDTO.class))
                 .toList();
     }
 
     @Override
-    public List<EventCategoryDto> findAll() {
-        List<EventCategoryEntity> categoryEntities = eventCategoryRepository.findAll();
+    public List<EventCategoryDTO> findAll() {
+        List<EventCategory> categoryEntities = eventCategoryRepository.findAll();
         return categoryEntities.stream()
-                .map(entity -> modelMapper.map(entity, EventCategoryDto.class))
+                .map(entity -> modelMapper.map(entity, EventCategoryDTO.class))
                 .toList();
     }
 
     @Override
-    public EventCategoryDto create(CreateEventCategoryDto createEventCategoryDto) {
-        Optional<EventCategoryEntity> categoryExist = eventCategoryRepository.findByName(createEventCategoryDto.getName());
+    public EventCategoryDTO create(CreateEventCategoryDTO createEventCategoryDto) {
+        Optional<EventCategory> categoryExist = eventCategoryRepository.findByName(createEventCategoryDto.getName());
         if (categoryExist.isPresent()) {
             throw new RuntimeException("Event category ya existe");
         } else {
-            EventCategoryEntity entity = modelMapper.map(createEventCategoryDto, EventCategoryEntity.class);
+            EventCategory entity = modelMapper.map(createEventCategoryDto, EventCategory.class);
             entity.setActive(true);
-            return modelMapper.map(eventCategoryRepository.save(entity), EventCategoryDto.class);
+            return modelMapper.map(eventCategoryRepository.save(entity), EventCategoryDTO.class);
         }
     }
 
     @Override
-    public EventCategoryDto update(Long id, CreateEventCategoryDto createEventCategoryDto) {
-        Optional<EventCategoryEntity> categoryExist = eventCategoryRepository.findById(id);
+    public EventCategoryDTO update(Long id, CreateEventCategoryDTO createEventCategoryDto) {
+        Optional<EventCategory> categoryExist = eventCategoryRepository.findById(id);
         if (categoryExist.isPresent()) {
-            EventCategoryEntity entity = modelMapper.map(createEventCategoryDto, EventCategoryEntity.class);
+            EventCategory entity = modelMapper.map(createEventCategoryDto, EventCategory.class);
             entity.setId(id);
-            return modelMapper.map(eventCategoryRepository.save(entity), EventCategoryDto.class);
+            return modelMapper.map(eventCategoryRepository.save(entity), EventCategoryDTO.class);
         } else {
             throw new RuntimeException("Event category con id " + id + " no encontrado");
         }
@@ -84,12 +84,12 @@ public class EventCategoryServiceImpl implements EventCategoryService {
 
     @Override
     @Transactional
-    public EventCategoryDto deleteLogical(Long id) {
-        Optional<EventCategoryEntity> categoryExist = eventCategoryRepository.findById(id);
+    public EventCategoryDTO deleteLogical(Long id) {
+        Optional<EventCategory> categoryExist = eventCategoryRepository.findById(id);
         if (categoryExist.isPresent()) {
-            EventCategoryEntity entity = categoryExist.get();
+            EventCategory entity = categoryExist.get();
             entity.setActive(false);
-            return modelMapper.map(eventCategoryRepository.save(entity), EventCategoryDto.class);
+            return modelMapper.map(eventCategoryRepository.save(entity), EventCategoryDTO.class);
 
         } else {
             throw new RuntimeException("Event category con id " + id + " no encontrado");
@@ -99,12 +99,12 @@ public class EventCategoryServiceImpl implements EventCategoryService {
 
     @Transactional
     @Override
-    public EventCategoryDto updateStatus(Long id) {
-        EventCategoryEntity entity = eventCategoryRepository.findById(id)
+    public EventCategoryDTO updateStatus(Long id) {
+        EventCategory entity = eventCategoryRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Category not found with id: " + id));
         entity.setActive(!entity.isActive());
-        EventCategoryEntity updatedEntity = eventCategoryRepository.save(entity);
-        return modelMapper.map(updatedEntity, EventCategoryDto.class);
+        EventCategory updatedEntity = eventCategoryRepository.save(entity);
+        return modelMapper.map(updatedEntity, EventCategoryDTO.class);
     }
 
 }

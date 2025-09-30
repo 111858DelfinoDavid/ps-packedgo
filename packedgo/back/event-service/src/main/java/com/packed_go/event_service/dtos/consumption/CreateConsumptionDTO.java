@@ -8,7 +8,7 @@ import java.time.LocalDateTime;
 
 @Getter
 @Setter
-public class CreateConsumptionDto {
+public class CreateConsumptionDTO {
 
 
     private Long categoryId;

@@ -4,11 +4,10 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
 
 @Getter
 @Setter
-public class ConsumptionDto {
+public class ConsumptionDTO {
 
     private Long id;
     private Long categoryId;
@@ -16,7 +15,6 @@ public class ConsumptionDto {
     private String description;
     private BigDecimal price;
     private String imageUrl;
-    private LocalDateTime createdAt = LocalDateTime.now();
-    private LocalDateTime updatedAt = LocalDateTime.now();
+
 
 }

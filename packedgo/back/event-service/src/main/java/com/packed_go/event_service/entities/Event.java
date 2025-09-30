@@ -11,14 +11,14 @@ import java.time.LocalDateTime;
 @Table(name = "events")
 @Getter
 @Setter
-public class EventEntity {
+public class Event {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @ManyToOne
     @JoinColumn(name="category_id")
-    private EventCategoryEntity category;
+    private EventCategory category;
 
     private String name;
     private String description;

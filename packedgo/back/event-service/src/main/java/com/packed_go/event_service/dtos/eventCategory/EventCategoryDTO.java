@@ -5,6 +5,7 @@ import lombok.Setter;
 
 @Getter
 @Setter
-public class CreateEventCategoryDto {
+public class EventCategoryDTO {
+    private Long id;
     private String name;
 }

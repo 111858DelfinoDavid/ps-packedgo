@@ -1,8 +1,8 @@
 package com.packed_go.event_service.controllers;
 
-import com.packed_go.event_service.dtos.event.CreateEventDto;
-import com.packed_go.event_service.dtos.event.EventDto;
-import com.packed_go.event_service.dtos.eventCategory.EventCategoryDto;
+import com.packed_go.event_service.dtos.event.CreateEventDTO;
+import com.packed_go.event_service.dtos.event.EventDTO;
+import com.packed_go.event_service.dtos.eventCategory.EventCategoryDTO;
 import com.packed_go.event_service.services.EventService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -22,19 +22,19 @@ public class EventController {
 
 
     @GetMapping("/{id}")
-    public ResponseEntity<EventDto> getById(@PathVariable Long id) {
+    public ResponseEntity<EventDTO> getById(@PathVariable Long id) {
         return ResponseEntity.ok(service.findById(id));
     }
 
 
     @GetMapping
-    public ResponseEntity<List<EventDto>> getAll() {
+    public ResponseEntity<List<EventDTO>> getAll() {
         return ResponseEntity.ok(service.findAll());
     }
 
     @PostMapping
-    public ResponseEntity<EventDto> create(@RequestBody CreateEventDto dto) {
-        EventDto created = service.createEvent(dto);
+    public ResponseEntity<EventDTO> create(@RequestBody CreateEventDTO dto) {
+        EventDTO created = service.createEvent(dto);
         if (created != null) {
             return ResponseEntity.ok(created);
         } else {
@@ -44,7 +44,7 @@ public class EventController {
 
 
     @PutMapping("/{id}")
-    public ResponseEntity<EventDto> update(@PathVariable Long id, @RequestBody EventDto dto) {
+    public ResponseEntity<EventDTO> update(@PathVariable Long id, @RequestBody EventDTO dto) {
         return ResponseEntity.ok(service.updateEvent(id, dto));
     }
 
@@ -56,7 +56,7 @@ public class EventController {
     }
 
     @DeleteMapping("/logical/{id}")
-    public ResponseEntity<EventCategoryDto> deleteLogical(@PathVariable Long id) {
-        return ResponseEntity.ok(modelMapper.map(service.deleteLogical(id), EventCategoryDto.class));
+    public ResponseEntity<EventCategoryDTO> deleteLogical(@PathVariable Long id) {
+        return ResponseEntity.ok(modelMapper.map(service.deleteLogical(id), EventCategoryDTO.class));
     }
 }

@@ -1,102 +1,99 @@
 package com.packed_go.event_service.services.impl;
 
-import com.packed_go.event_service.dtos.consumption.ConsumptionDto;
-import com.packed_go.event_service.dtos.consumption.CreateConsumptionDto;
-import com.packed_go.event_service.entities.ConsumptionCategoryEntity;
-import com.packed_go.event_service.entities.ConsumptionEntity;
+import com.packed_go.event_service.dtos.consumption.ConsumptionDTO;
+import com.packed_go.event_service.dtos.consumption.CreateConsumptionDTO;
+import com.packed_go.event_service.entities.Consumption;
+import com.packed_go.event_service.entities.ConsumptionCategory;
 import com.packed_go.event_service.repositories.ConsumptionCategoryRepository;
 import com.packed_go.event_service.repositories.ConsumptionRepository;
 import com.packed_go.event_service.services.ConsumptionService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+
 import java.util.List;
-import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
 public class ConsumptionServiceImpl implements ConsumptionService {
 
-    @Autowired
-    public ConsumptionRepository consumptionRepository;
-    @Autowired
-    public ModelMapper modelMapper;
-    @Autowired
-    public ConsumptionCategoryRepository consumptionCategoryRepository;
-
+    private final ConsumptionRepository consumptionRepository;
+    private final ConsumptionCategoryRepository consumptionCategoryRepository;
+    private final ModelMapper modelMapper;
 
     @Override
-    public ConsumptionDto findById(Long id) {
-        Optional<ConsumptionEntity> consumptionExist = consumptionRepository.findById(id);
-        if (consumptionExist.isPresent()) {
-            return modelMapper.map(consumptionExist.get(), ConsumptionDto.class);
-        } else {
-            throw new RuntimeException("Consumption with id " + id + " not found");
-        }
+    public ConsumptionDTO findById(Long id) {
+        Consumption consumption = consumptionRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Consumption with id " + id + " not found"));
+        return modelMapper.map(consumption, ConsumptionDTO.class);
     }
 
     @Override
-    public List<ConsumptionDto> findAll() {
-        List<ConsumptionEntity> consumptionEntities = consumptionRepository.findAll();
-        return consumptionEntities.stream()
-                .map(entity -> modelMapper.map(entity, ConsumptionDto.class))
+    public List<ConsumptionDTO> findAll() {
+        return consumptionRepository.findAll().stream()
+                .map(entity -> modelMapper.map(entity, ConsumptionDTO.class))
                 .toList();
     }
 
     @Override
-    public List<ConsumptionDto> findAllByIsActive() {
-        List<ConsumptionEntity> consumptionEntities = consumptionRepository.findByActiveIsTrue();
-        return consumptionEntities.stream()
-                .map(entity -> modelMapper.map(entity, ConsumptionDto.class))
+    public List<ConsumptionDTO> findAllByIsActive() {
+        return consumptionRepository.findByActiveIsTrue().stream()
+                .map(entity -> modelMapper.map(entity, ConsumptionDTO.class))
                 .toList();
     }
 
     @Override
-    public ConsumptionDto createConsumption(CreateConsumptionDto createConsumptionDto) {
-        ConsumptionCategoryEntity category = consumptionCategoryRepository.findById(createConsumptionDto.getCategoryId()).orElseThrow(() -> new RuntimeException("Category with id " + createConsumptionDto.getCategoryId() + " not found"));
+    public ConsumptionDTO createConsumption(CreateConsumptionDTO createConsumptionDto) {
+        // Validar categoría
+        ConsumptionCategory category = consumptionCategoryRepository.findById(createConsumptionDto.getCategoryId())
+                .orElseThrow(() -> new RuntimeException("Category with id " + createConsumptionDto.getCategoryId() + " not found"));
 
+        // Mapear DTO a entidad
+        Consumption consumption = modelMapper.map(createConsumptionDto, Consumption.class);
+        consumption.setCategory(category);
+        consumption.setActive(true); // siempre activo al crear
+        Consumption savedConsumption = consumptionRepository.save(consumption);
 
-        createConsumptionDto.setActive(true);
-        ConsumptionEntity consumptionEntity = modelMapper.map(createConsumptionDto, ConsumptionEntity.class);
-        consumptionEntity.setCategory(category);
-        ConsumptionEntity savedConsumption = consumptionRepository.save(consumptionEntity);
-        return modelMapper.map(savedConsumption, ConsumptionDto.class);
+        return modelMapper.map(savedConsumption, ConsumptionDTO.class);
     }
 
     @Override
-    public ConsumptionDto updateConsumption(Long id, CreateConsumptionDto dto) {
-        Optional<ConsumptionEntity> consumptionExist = consumptionRepository.findById(id);
-        if (consumptionExist.isPresent()) {
-            ConsumptionEntity entity = modelMapper.map(dto, ConsumptionEntity.class);
-            entity.setId(id);
-            return modelMapper.map(consumptionRepository.save(entity), ConsumptionDto.class);
-        }else{
-            throw new RuntimeException("Consumption con id "+id+" no existe");
+    public ConsumptionDTO updateConsumption(Long id, CreateConsumptionDTO dto) {
+        Consumption existingConsumption = consumptionRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Consumption with id " + id + " not found"));
+
+        // Validar categoría si se proporciona
+        if (dto.getCategoryId() != null) {
+            ConsumptionCategory category = consumptionCategoryRepository.findById(dto.getCategoryId())
+                    .orElseThrow(() -> new RuntimeException("Category with id " + dto.getCategoryId() + " not found"));
+            existingConsumption.setCategory(category);
         }
+
+        // Mapear campos actualizables del DTO a la entidad existente
+        modelMapper.map(dto, existingConsumption);
+
+        Consumption updatedConsumption = consumptionRepository.save(existingConsumption);
+        return modelMapper.map(updatedConsumption, ConsumptionDTO.class);
     }
 
     @Override
     public void delete(Long id) {
-        if(consumptionRepository.existsById(id)){
-            consumptionRepository.deleteById(id);
-        }else{
-            throw new RuntimeException("Consumption con id "+id+" no encontrado");
+        if (!consumptionRepository.existsById(id)) {
+            throw new RuntimeException("Consumption with id " + id + " not found");
         }
+        consumptionRepository.deleteById(id);
     }
 
     @Transactional
     @Override
-    public ConsumptionDto deleteLogical(Long id) {
-        Optional<ConsumptionEntity> consumptionExist = consumptionRepository.findById(id);
-        if (consumptionExist.isPresent()) {
-            ConsumptionEntity entity = consumptionExist.get();
-            entity.setActive(false);
-            ConsumptionEntity updatedEntity = consumptionRepository.save(entity);
-            return modelMapper.map(updatedEntity, ConsumptionDto.class);
-        } else {
-            throw new RuntimeException("Consumption con id " + id + " no encontrado");
-        }
+    public ConsumptionDTO deleteLogical(Long id) {
+        Consumption existingConsumption = consumptionRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Consumption with id " + id + " not found"));
+
+        existingConsumption.setActive(false);
+        Consumption updatedConsumption = consumptionRepository.save(existingConsumption);
+
+        return modelMapper.map(updatedConsumption, ConsumptionDTO.class);
     }
 }

@@ -1,8 +1,8 @@
 package com.packed_go.event_service.services.impl;
 
-import com.packed_go.event_service.dtos.consumptionCategory.ConsumptionCategoryDto;
-import com.packed_go.event_service.dtos.consumptionCategory.CreateConsumptionCategoryDto;
-import com.packed_go.event_service.entities.ConsumptionCategoryEntity;
+import com.packed_go.event_service.dtos.consumptionCategory.ConsumptionCategoryDTO;
+import com.packed_go.event_service.dtos.consumptionCategory.CreateConsumptionCategoryDTO;
+import com.packed_go.event_service.entities.ConsumptionCategory;
 import com.packed_go.event_service.repositories.ConsumptionCategoryRepository;
 import com.packed_go.event_service.services.ConsumptionCategoryService;
 import lombok.RequiredArgsConstructor;
@@ -24,50 +24,50 @@ public class ConsumptionCategoryServiceImpl implements ConsumptionCategoryServic
     private final ModelMapper modelMapper;
 
     @Override
-    public ConsumptionCategoryDto findById(Long id) {
-        Optional<ConsumptionCategoryEntity> consumptionExist = consumptionCategoryRepository.findById(id);
+    public ConsumptionCategoryDTO findById(Long id) {
+        Optional<ConsumptionCategory> consumptionExist = consumptionCategoryRepository.findById(id);
         if (consumptionExist.isPresent()) {
-            return modelMapper.map(consumptionExist.get(), ConsumptionCategoryDto.class);
+            return modelMapper.map(consumptionExist.get(), ConsumptionCategoryDTO.class);
         } else {
             throw new RuntimeException("ConsumptionCategory with id " + id + " not found");
         }
     }
 
     @Override
-    public List<ConsumptionCategoryDto> findByActiveIsTrue() {
-        List<ConsumptionCategoryEntity> categoryEntities = consumptionCategoryRepository.findByActiveIsTrue();
+    public List<ConsumptionCategoryDTO> findByActiveIsTrue() {
+        List<ConsumptionCategory> categoryEntities = consumptionCategoryRepository.findByActiveIsTrue();
         return categoryEntities.stream()
-                .map(entity -> modelMapper.map(entity, ConsumptionCategoryDto.class))
+                .map(entity -> modelMapper.map(entity, ConsumptionCategoryDTO.class))
                 .toList();
     }
 
     @Override
-    public List<ConsumptionCategoryDto> findAll() {
-        List<ConsumptionCategoryEntity> categoryEntities = consumptionCategoryRepository.findAll();
+    public List<ConsumptionCategoryDTO> findAll() {
+        List<ConsumptionCategory> categoryEntities = consumptionCategoryRepository.findAll();
         return categoryEntities.stream()
-                .map(entity -> modelMapper.map(entity, ConsumptionCategoryDto.class))
+                .map(entity -> modelMapper.map(entity, ConsumptionCategoryDTO.class))
                 .toList();
     }
 
     @Override
-    public ConsumptionCategoryDto create(CreateConsumptionCategoryDto createConsumptionCategoryDto) {
-        Optional<ConsumptionCategoryEntity> categoryExist = consumptionCategoryRepository.findByName(createConsumptionCategoryDto.getName());
+    public ConsumptionCategoryDTO create(CreateConsumptionCategoryDTO createConsumptionCategoryDto) {
+        Optional<ConsumptionCategory> categoryExist = consumptionCategoryRepository.findByName(createConsumptionCategoryDto.getName());
         if (categoryExist.isPresent()) {
             throw new RuntimeException("Consumption category ya existe");
         } else {
-            ConsumptionCategoryEntity entity = modelMapper.map(createConsumptionCategoryDto, ConsumptionCategoryEntity.class);
+            ConsumptionCategory entity = modelMapper.map(createConsumptionCategoryDto, ConsumptionCategory.class);
             entity.setActive(true);
-            return modelMapper.map(consumptionCategoryRepository.save(entity), ConsumptionCategoryDto.class);
+            return modelMapper.map(consumptionCategoryRepository.save(entity), ConsumptionCategoryDTO.class);
         }
     }
 
     @Override
-    public ConsumptionCategoryDto update(Long id, CreateConsumptionCategoryDto createConsumptionCategoryDto) {
-        Optional<ConsumptionCategoryEntity> categoryExist = consumptionCategoryRepository.findById(id);
+    public ConsumptionCategoryDTO update(Long id, CreateConsumptionCategoryDTO createConsumptionCategoryDto) {
+        Optional<ConsumptionCategory> categoryExist = consumptionCategoryRepository.findById(id);
         if (categoryExist.isPresent()) {
-            ConsumptionCategoryEntity entity = modelMapper.map(createConsumptionCategoryDto, ConsumptionCategoryEntity.class);
+            ConsumptionCategory entity = modelMapper.map(createConsumptionCategoryDto, ConsumptionCategory.class);
             entity.setId(id);
-            return modelMapper.map(consumptionCategoryRepository.save(entity), ConsumptionCategoryDto.class);
+            return modelMapper.map(consumptionCategoryRepository.save(entity), ConsumptionCategoryDTO.class);
         } else {
             throw new RuntimeException("Consumption category con id " + id + " no encontrado");
         }
@@ -83,12 +83,12 @@ public class ConsumptionCategoryServiceImpl implements ConsumptionCategoryServic
     }
 
     @Override
-    public ConsumptionCategoryDto deleteLogical(Long id) {
-        Optional<ConsumptionCategoryEntity> categoryExist = consumptionCategoryRepository.findById(id);
+    public ConsumptionCategoryDTO deleteLogical(Long id) {
+        Optional<ConsumptionCategory> categoryExist = consumptionCategoryRepository.findById(id);
         if (categoryExist.isPresent()) {
-            ConsumptionCategoryEntity entity = categoryExist.get();
+            ConsumptionCategory entity = categoryExist.get();
             entity.setActive(false);
-            return modelMapper.map(consumptionCategoryRepository.save(entity), ConsumptionCategoryDto.class);
+            return modelMapper.map(consumptionCategoryRepository.save(entity), ConsumptionCategoryDTO.class);
 
         } else {
             throw new RuntimeException("Event category con id " + id + " no encontrado");
@@ -96,11 +96,11 @@ public class ConsumptionCategoryServiceImpl implements ConsumptionCategoryServic
     }
 
     @Override
-    public ConsumptionCategoryDto updateStatus(Long id) {
-        ConsumptionCategoryEntity entity = consumptionCategoryRepository.findById(id)
+    public ConsumptionCategoryDTO updateStatus(Long id) {
+        ConsumptionCategory entity = consumptionCategoryRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Consumption category not found with id: " + id));
         entity.setActive(!entity.isActive());
-        ConsumptionCategoryEntity updatedEntity = consumptionCategoryRepository.save(entity);
-        return modelMapper.map(updatedEntity, ConsumptionCategoryDto.class);
+        ConsumptionCategory updatedEntity = consumptionCategoryRepository.save(entity);
+        return modelMapper.map(updatedEntity, ConsumptionCategoryDTO.class);
     }
 }

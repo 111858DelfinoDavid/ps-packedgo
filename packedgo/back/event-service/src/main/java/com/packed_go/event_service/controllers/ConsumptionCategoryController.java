@@ -1,7 +1,7 @@
 package com.packed_go.event_service.controllers;
 
-import com.packed_go.event_service.dtos.consumptionCategory.ConsumptionCategoryDto;
-import com.packed_go.event_service.dtos.consumptionCategory.CreateConsumptionCategoryDto;
+import com.packed_go.event_service.dtos.consumptionCategory.ConsumptionCategoryDTO;
+import com.packed_go.event_service.dtos.consumptionCategory.CreateConsumptionCategoryDTO;
 import com.packed_go.event_service.services.ConsumptionCategoryService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -20,8 +20,8 @@ public class ConsumptionCategoryController {
     private final ModelMapper modelMapper;
 
     @PostMapping
-    public ResponseEntity<ConsumptionCategoryDto> create(@RequestBody CreateConsumptionCategoryDto dto) {
-        ConsumptionCategoryDto created = consumptionCategoryService.create(dto);
+    public ResponseEntity<ConsumptionCategoryDTO> create(@RequestBody CreateConsumptionCategoryDTO dto) {
+        ConsumptionCategoryDTO created = consumptionCategoryService.create(dto);
         if (created != null) {
             return ResponseEntity.ok(created);
         } else {
@@ -30,22 +30,22 @@ public class ConsumptionCategoryController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<ConsumptionCategoryDto> getById(@PathVariable Long id) {
+    public ResponseEntity<ConsumptionCategoryDTO> getById(@PathVariable Long id) {
         return ResponseEntity.ok(consumptionCategoryService.findById(id));
     }
 
     @GetMapping
-    public ResponseEntity<List<ConsumptionCategoryDto>> getAll() {
+    public ResponseEntity<List<ConsumptionCategoryDTO>> getAll() {
         return ResponseEntity.ok(consumptionCategoryService.findAll());
     }
 
     @GetMapping("/active")
-    public ResponseEntity<List<ConsumptionCategoryDto>> getAllActive() {
+    public ResponseEntity<List<ConsumptionCategoryDTO>> getAllActive() {
         return ResponseEntity.ok(consumptionCategoryService.findByActiveIsTrue());
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<ConsumptionCategoryDto> update(@PathVariable Long id, @RequestBody CreateConsumptionCategoryDto dto) {
+    public ResponseEntity<ConsumptionCategoryDTO> update(@PathVariable Long id, @RequestBody CreateConsumptionCategoryDTO dto) {
         return ResponseEntity.ok(consumptionCategoryService.update(id, dto));
     }
 
@@ -56,12 +56,12 @@ public class ConsumptionCategoryController {
     }
 
     @DeleteMapping("/logical/{id}")
-    public ResponseEntity<ConsumptionCategoryDto> deleteLogical(@PathVariable Long id) {
-        return ResponseEntity.ok(modelMapper.map(consumptionCategoryService.deleteLogical(id), ConsumptionCategoryDto.class));
+    public ResponseEntity<ConsumptionCategoryDTO> deleteLogical(@PathVariable Long id) {
+        return ResponseEntity.ok(modelMapper.map(consumptionCategoryService.deleteLogical(id), ConsumptionCategoryDTO.class));
     }
 
     @PutMapping("/status/{id}")
-    public ResponseEntity<ConsumptionCategoryDto> updateStatus(@PathVariable Long id) {
+    public ResponseEntity<ConsumptionCategoryDTO> updateStatus(@PathVariable Long id) {
         return ResponseEntity.ok(consumptionCategoryService.updateStatus(id));
     }
 }

@@ -1,30 +1,25 @@
 package com.packed_go.event_service.services;
 
-import com.packed_go.event_service.dtos.consumption.ConsumptionDto;
-import com.packed_go.event_service.dtos.consumption.CreateConsumptionDto;
-import com.packed_go.event_service.dtos.event.CreateEventDto;
-import com.packed_go.event_service.dtos.event.EventDto;
+import com.packed_go.event_service.dtos.consumption.ConsumptionDTO;
+import com.packed_go.event_service.dtos.consumption.CreateConsumptionDTO;
 import jakarta.transaction.Transactional;
-import org.springframework.beans.factory.annotation.Autowired;
 
-import java.awt.*;
-import java.time.LocalDateTime;
 import java.util.List;
 
 public interface ConsumptionService {
-    ConsumptionDto findById(Long id);
+    ConsumptionDTO findById(Long id);
 
-    List<ConsumptionDto> findAll();
+    List<ConsumptionDTO> findAll();
 
-    List<ConsumptionDto> findAllByIsActive();
+    List<ConsumptionDTO> findAllByIsActive();
 
-    ConsumptionDto createConsumption(CreateConsumptionDto createEventDto);
+    ConsumptionDTO createConsumption(CreateConsumptionDTO createEventDto);
 
-    ConsumptionDto updateConsumption(Long id, CreateConsumptionDto eventDto);
+    ConsumptionDTO updateConsumption(Long id, CreateConsumptionDTO eventDto);
 
     void delete(Long id);
 
     @Transactional
-    ConsumptionDto deleteLogical(Long id);
+    ConsumptionDTO deleteLogical(Long id);
 
 }
