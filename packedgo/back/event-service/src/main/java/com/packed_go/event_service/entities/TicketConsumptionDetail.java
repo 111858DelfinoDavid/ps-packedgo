@@ -33,4 +33,6 @@ public class TicketConsumptionDetail {
     @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal priceAtPurchase;
 
+    private boolean active = true;
+
 }

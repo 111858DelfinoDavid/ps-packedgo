@@ -54,8 +54,9 @@ public class ConsumptionServiceImpl implements ConsumptionService {
         consumption.setCategory(category);
         consumption.setActive(true); // siempre activo al crear
         Consumption savedConsumption = consumptionRepository.save(consumption);
-
-        return modelMapper.map(savedConsumption, ConsumptionDTO.class);
+        ConsumptionDTO consumptionDTO=modelMapper.map(savedConsumption,ConsumptionDTO.class);
+        consumptionDTO.setCategoryId(savedConsumption.getCategory().getId());
+        return consumptionDTO;
     }
 
     @Override

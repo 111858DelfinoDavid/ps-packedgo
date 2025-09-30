@@ -18,8 +18,7 @@ public class TicketConsumption {
     private Long id;
     private LocalDateTime createdAt= LocalDateTime.now();
     private boolean active=true;
-    @OneToMany(mappedBy = "ticket", cascade = {CascadeType.PERSIST, CascadeType.MERGE}, orphanRemoval = true)
+    @OneToMany(mappedBy = "ticketConsumption", cascade = {CascadeType.PERSIST, CascadeType.MERGE}, orphanRemoval = true)
     private List<TicketConsumptionDetail> consumptionDetails = new ArrayList<>();
-
 
 }

@@ -16,4 +16,7 @@ public interface TicketConsumptionDetailService {
     List<TicketConsumptionDetailDTO> findAllByTicketId(Long id);
     List<TicketConsumptionDetailDTO> findAllByConsumptionName(String name);
 
+    @Transactional
+    TicketConsumptionDetail deleteLogical(Long id);
+
 }

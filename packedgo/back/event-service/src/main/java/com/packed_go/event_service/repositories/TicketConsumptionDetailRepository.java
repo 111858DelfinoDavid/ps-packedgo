@@ -7,8 +7,14 @@ import org.springframework.stereotype.Repository;
 import java.util.List;
 
 @Repository
-public interface TicketConsumptionDetailRepository extends JpaRepository<TicketConsumptionDetail,Long> {
-    List<TicketConsumptionDetail> findByTicketId(Long ticketId);
-    List<TicketConsumptionDetail> findByConsumptionId(Long consumptionId);
-    List<TicketConsumptionDetail> findByConsumptionName(String name);
+public interface TicketConsumptionDetailRepository extends JpaRepository<TicketConsumptionDetail, Long> {
+
+    // Buscar por el id del ticket padre
+    List<TicketConsumptionDetail> findByTicketConsumption_Id(Long ticketId);
+
+    // Buscar por el id del consumo
+    List<TicketConsumptionDetail> findByConsumption_Id(Long consumptionId);
+
+    // Buscar por el nombre del consumo
+    List<TicketConsumptionDetail> findByConsumption_Name(String name);
 }
