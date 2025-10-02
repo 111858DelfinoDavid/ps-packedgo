@@ -6,6 +6,8 @@ import lombok.Setter;
 import org.locationtech.jts.geom.Point;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "events")
@@ -34,5 +36,37 @@ public class Event {
     private LocalDateTime createdAt=LocalDateTime.now();
     private LocalDateTime updatedAt=LocalDateTime.now();
     private boolean active;
+
+    // Nueva funcionalidad: Gestión de Pass
+    @Column(nullable = false)
+    private Integer totalPasses = 0;
+
+    @Column(nullable = false)
+    private Integer availablePasses = 0;
+
+    @Column(nullable = false)
+    private Integer soldPasses = 0;
+
+    @OneToMany(mappedBy = "event", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private List<Pass> passes = new ArrayList<>();
+
+    @Version
+    private Long version;
+
+    // Métodos de utilidad para gestión de Pass
+    public void addPass(Pass pass) {
+        this.passes.add(pass);
+        this.totalPasses++;
+        this.availablePasses++;
+    }
+
+    public void markPassAsSold() {
+        this.soldPasses++;
+        this.availablePasses--;
+    }
+
+    public boolean hasAvailablePasses() {
+        return this.availablePasses > 0;
+    }
 
 }

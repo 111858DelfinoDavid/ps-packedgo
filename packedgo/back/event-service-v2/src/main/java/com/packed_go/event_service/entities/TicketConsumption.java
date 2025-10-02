@@ -9,7 +9,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Entity
-@Table(name = "tickets")
+@Table(name = "consumption_tickets")
 @Getter
 @Setter
 public class TicketConsumption {
@@ -18,6 +18,11 @@ public class TicketConsumption {
     private Long id;
     private LocalDateTime createdAt= LocalDateTime.now();
     private boolean active=true;
+    private boolean redeem=false;
+    
+    @Version
+    private Long version;
+    
     @OneToMany(mappedBy = "ticketConsumption", cascade = {CascadeType.PERSIST, CascadeType.MERGE}, orphanRemoval = true)
     private List<TicketConsumptionDetail> consumptionDetails = new ArrayList<>();
 

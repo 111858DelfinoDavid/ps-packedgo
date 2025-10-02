@@ -36,6 +36,8 @@ public interface TicketConsumptionService {
 
     List<TicketConsumptionDetailDTO> getTicketConsumptionDetails(Long id);
 
+    TicketConsumptionDTO findById(Long id);
+
 
 
 

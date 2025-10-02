@@ -218,4 +218,11 @@ public class TicketConsumptionServiceImpl implements TicketConsumptionService {
     public List<TicketConsumptionDetailDTO> getTicketConsumptionDetails(Long id) {
         return List.of();
     }
+
+    @Override
+    public TicketConsumptionDTO findById(Long id) {
+        TicketConsumption ticket = ticketConsumptionRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("TicketConsumption with id " + id + " not found"));
+        return modelMapper.map(ticket, TicketConsumptionDTO.class);
+    }
 }

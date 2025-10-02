@@ -26,4 +26,9 @@ public class EventDTO {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private boolean active;
+
+    // Información de Pass
+    private Integer totalPasses;
+    private Integer availablePasses;
+    private Integer soldPasses;
 }
