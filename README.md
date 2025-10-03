@@ -9,7 +9,7 @@ PackedGo es una plataforma web integral desarrollada bajo una arquitectura de mi
 ## 🏗️ Arquitectura del Sistema
 
 ### Stack Tecnológico
-- **Backend:** Java 21 + Spring Boot 3.2
+- **Backend:** Java 17 + Spring Boot 3.2
 - **Frontend:** Angular 17 + TypeScript
 - **Base de Datos:** PostgreSQL 15 (Database per Service)
 - **Containerización:** Docker + Docker Compose

@@ -440,22 +440,19 @@
                     // Login exitoso - DATOS REALES DEL SERVIDOR
                     showSuccess('¡Inicio de sesión exitoso! Redirigiendo...');
                     
-                    // Guardar datos de sesión REALES
-                    const userData = data.data.user || data.data; // Manejar diferentes estructuras
-                    
+                    // Guardar SOLO el token - Los datos se extraen del JWT por seguridad
                     localStorage.setItem('userToken', data.data.token);
-                    localStorage.setItem('userId', userData.id);
-                    localStorage.setItem('userRole', userData.role);
+                    
+                    // Solo guardamos datos NO sensibles para UI
+                    const userData = data.data.user || data.data;
                     localStorage.setItem('userName', userData.username || userData.name);
                     localStorage.setItem('userEmail', userData.email || '');
-                    localStorage.setItem('userDocument', userData.document || '');
                     
                     console.log('Saved to localStorage:', {
-                        userId: userData.id,
                         token: data.data.token ? 'Present' : 'Missing',
-                        role: userData.role,
-                        name: userData.username || userData.name
-                    }); // Debug
+                        name: userData.username || userData.name,
+                        email: userData.email
+                    }); // Debug - NO MOSTRAMOS DATOS SENSIBLES
                     
                     if (rememberMeCheckbox.checked) {
                         localStorage.setItem('rememberMe', 'true');

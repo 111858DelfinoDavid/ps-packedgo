@@ -819,6 +819,62 @@
             token: null
         };
 
+        // 🔐 JWT Utilities - Extraer datos del token de forma segura
+        const JWTUtils = {
+            // Decodificar JWT (solo payload, sin verificar firma - eso lo hace el backend)
+            parseJWT: function(token) {
+                try {
+                    const base64Url = token.split('.')[1];
+                    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+                    const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+                        return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+                    }).join(''));
+                    
+                    return JSON.parse(jsonPayload);
+                } catch (error) {
+                    console.error('Error parsing JWT:', error);
+                    return null;
+                }
+            },
+
+            // Obtener userId del token
+            getUserId: function() {
+                const token = localStorage.getItem('userToken');
+                if (!token) return null;
+                
+                const payload = this.parseJWT(token);
+                return payload ? payload.userId : null;
+            },
+
+            // Obtener datos del usuario del token
+            getUserData: function() {
+                const token = localStorage.getItem('userToken');
+                if (!token) return null;
+                
+                const payload = this.parseJWT(token);
+                if (!payload) return null;
+                
+                return {
+                    userId: payload.userId,
+                    username: payload.sub, // subject del JWT
+                    role: payload.role,
+                    authorities: payload.authorities || []
+                };
+            },
+
+            // Verificar si el token está expirado (básico, el backend también verifica)
+            isTokenExpired: function() {
+                const token = localStorage.getItem('userToken');
+                if (!token) return true;
+                
+                const payload = this.parseJWT(token);
+                if (!payload || !payload.exp) return true;
+                
+                const now = Math.floor(Date.now() / 1000);
+                return payload.exp < now;
+            }
+        };
+
         // Verificar autenticación al cargar
         document.addEventListener('DOMContentLoaded', function() {
             checkAuthentication();
@@ -832,9 +888,33 @@
                 return false;
             }
             
+            // Verificar si el token está expirado
+            if (JWTUtils.isTokenExpired()) {
+                console.warn('Token expired, redirecting to login');
+                localStorage.clear(); // Limpiar datos
+                window.location.href = 'login.html';
+                return false;
+            }
+            
+            // Obtener datos del JWT (no del localStorage por seguridad)
+            const userData = JWTUtils.getUserData();
+            if (!userData) {
+                console.error('Invalid token format');
+                localStorage.clear();
+                window.location.href = 'login.html';
+                return false;
+            }
+            
             currentUser.token = token;
-            currentUser.name = localStorage.getItem('userName') || 'Usuario';
-            currentUser.role = localStorage.getItem('userRole') || 'CUSTOMER';
+            currentUser.userId = userData.userId; // Del JWT, no localStorage
+            currentUser.name = localStorage.getItem('userName') || userData.username || 'Usuario';
+            currentUser.role = userData.role;
+            
+            console.log('🔐 User authenticated from JWT:', {
+                userId: userData.userId,
+                username: userData.username,
+                role: userData.role
+            });
             
             return true;
         }
@@ -854,22 +934,11 @@
         // Función para cargar los datos del perfil del usuario
         async function loadProfileData() {
             try {
-                const userId = localStorage.getItem('userId');
                 const token = localStorage.getItem('userToken');
                 
                 console.log('=== LOADING PROFILE DATA ===');
-                console.log('UserId:', userId);
                 console.log('Token:', token ? 'Present' : 'Missing');
                 
-                if (!userId) {
-                    console.error('No userId found in localStorage');
-                    showAlert('Error: No se encontró ID de usuario. Por favor, inicia sesión nuevamente.', 'danger');
-                    setTimeout(() => {
-                        window.location.href = 'login.html';
-                    }, 2000);
-                    return;
-                }
-
                 if (!token) {
                     console.error('No token found in localStorage');
                     showAlert('Error: Token de sesión no encontrado. Por favor, inicia sesión nuevamente.', 'danger');
@@ -879,7 +948,20 @@
                     return;
                 }
 
-                // Realizar peticiones a los microservicios
+                // Obtener userId del JWT de forma segura
+                const userId = JWTUtils.getUserId();
+                if (!userId) {
+                    console.error('Cannot extract userId from JWT token');
+                    showAlert('Error: Token inválido. Por favor, inicia sesión nuevamente.', 'danger');
+                    setTimeout(() => {
+                        window.location.href = 'login.html';
+                    }, 2000);
+                    return;
+                }
+                
+                console.log('UserId from JWT:', userId);
+
+                // Realizar peticiones a los microservicios con userId del JWT
                 await loadAuthData(userId, token);
                 await loadPersonalData(userId, token);
 
@@ -1150,7 +1232,12 @@
         // Función para actualizar información de acceso
         async function updateAuthProfile() {
             try {
-                const userId = localStorage.getItem('userId');
+                const userId = JWTUtils.getUserId();
+                if (!userId) {
+                    showAlert('Error: No se pudo obtener el ID de usuario del token.', 'danger');
+                    return;
+                }
+                
                 const formData = new FormData(document.getElementById('auth-profile-form'));
                 
                 const requestData = {
@@ -1191,7 +1278,12 @@
         // Función para actualizar información personal
         async function updatePersonalProfile() {
             try {
-                const userId = localStorage.getItem('userId');
+                const userId = JWTUtils.getUserId();
+                if (!userId) {
+                    showAlert('Error: No se pudo obtener el ID de usuario del token.', 'danger');
+                    return;
+                }
+                
                 const formData = new FormData(document.getElementById('personal-profile-form'));
                 
                 const requestData = {
@@ -1232,7 +1324,12 @@
         // Función para cambiar contraseña
         async function changePassword() {
             try {
-                const userId = localStorage.getItem('userId');
+                const userId = JWTUtils.getUserId();
+                if (!userId) {
+                    showAlert('Error: No se pudo obtener el ID de usuario del token.', 'danger');
+                    return;
+                }
+                
                 const formData = new FormData(document.getElementById('change-password-form'));
                 
                 const newPassword = formData.get('newPassword');
@@ -1404,7 +1501,7 @@
         // Función de debugging para verificar conexión
         window.debugAuth = async function() {
             console.log('🔍 DEBUGGING AUTH CONNECTION');
-            const userId = localStorage.getItem('userId');
+            const userId = JWTUtils.getUserId();
             const token = localStorage.getItem('userToken');
             
             console.log('UserId:', userId);
@@ -1456,7 +1553,7 @@
         // Función de debugging para users-service
         window.debugUsers = async function() {
             console.log('🔍 DEBUGGING USERS CONNECTION');
-            const userId = localStorage.getItem('userId');
+            const userId = JWTUtils.getUserId();
             const token = localStorage.getItem('userToken');
             
             console.log('UserId:', userId);

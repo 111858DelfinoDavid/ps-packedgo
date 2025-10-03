@@ -4,6 +4,7 @@ import com.packed_go.users_service.dto.UserProfileDTO;
 import com.packed_go.users_service.dto.request.CreateProfileFromAuthRequest;
 import com.packed_go.users_service.dto.request.UpdateUserProfileRequest;
 import com.packed_go.users_service.model.UserProfile;
+import com.packed_go.users_service.security.JwtTokenValidator;
 import com.packed_go.users_service.service.UserProfileService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -22,6 +23,31 @@ public class UserProfileController {
 
     private final UserProfileService service;
     private final ModelMapper modelMapper;
+    private final JwtTokenValidator jwtValidator;
+
+    /**
+     * 🔐 Método helper para validar JWT y permisos de acceso
+     * Valida que el userId del JWT coincida con el solicitado
+     */
+    private Long validateAndExtractUserId(String authHeader, Long requestedUserId) {
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            throw new RuntimeException("Missing or invalid Authorization header");
+        }
+        
+        String token = authHeader.substring(7);
+        
+        if (!jwtValidator.validateToken(token)) {
+            throw new RuntimeException("Invalid JWT token");
+        }
+        
+        Long tokenUserId = jwtValidator.getUserIdFromToken(token);
+        
+        if (!tokenUserId.equals(requestedUserId)) {
+            throw new RuntimeException("Cannot access other user's resources");
+        }
+        
+        return tokenUserId;
+    }
 
 
     @PostMapping
@@ -111,15 +137,29 @@ public class UserProfileController {
     }
 
     @GetMapping("/by-auth-user/{authUserId}")
-    public ResponseEntity<UserProfileDTO> getByAuthUserId(@PathVariable Long authUserId) {
+    public ResponseEntity<UserProfileDTO> getByAuthUserId(
+            @PathVariable Long authUserId,
+            @RequestHeader("Authorization") String authHeader) {
+        
         log.info("Getting user profile by authUserId: {}", authUserId);
+        
+        // 🔐 Validación JWT simple
+        validateAndExtractUserId(authHeader, authUserId);
+        
         UserProfile profile = service.getByAuthUserId(authUserId);
         return ResponseEntity.ok(modelMapper.map(profile, UserProfileDTO.class));
     }
 
     @GetMapping("/active/by-auth-user/{authUserId}")
-    public ResponseEntity<UserProfileDTO> getByAuthUserIdActive(@PathVariable Long authUserId) {
+    public ResponseEntity<UserProfileDTO> getByAuthUserIdActive(
+            @PathVariable Long authUserId,
+            @RequestHeader("Authorization") String authHeader) {
+        
         log.info("Getting active user profile by authUserId: {}", authUserId);
+        
+        // 🔐 Validación JWT simple
+        validateAndExtractUserId(authHeader, authUserId);
+        
         UserProfile profile = service.getByAuthUserIdActive(authUserId);
         return ResponseEntity.ok(modelMapper.map(profile, UserProfileDTO.class));
     }
@@ -127,9 +167,13 @@ public class UserProfileController {
     @PutMapping("/by-auth-user/{authUserId}")
     public ResponseEntity<UserProfileDTO> updateByAuthUserId(
             @PathVariable Long authUserId, 
-            @Valid @RequestBody UpdateUserProfileRequest request) {
+            @Valid @RequestBody UpdateUserProfileRequest request,
+            @RequestHeader("Authorization") String authHeader) {
         
         log.info("Updating user profile by authUserId: {}", authUserId);
+        
+        // 🔐 Validación JWT simple
+        validateAndExtractUserId(authHeader, authUserId);
         
         try {
             UserProfile updated = service.updateByAuthUserId(authUserId, request);
