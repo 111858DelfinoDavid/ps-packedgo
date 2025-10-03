@@ -1,5 +1,8 @@
 package com.packed_go.event_service.services;
 
+import com.packed_go.event_service.dtos.ticketConsumption.CreateTicketConsumptionDTO;
+import com.packed_go.event_service.dtos.ticketConsumption.CreateTicketConsumptionWithDetailsDTO;
+import com.packed_go.event_service.dtos.ticketConsumption.CreateTicketConsumptionWithSimpleDetailsDTO;
 import com.packed_go.event_service.dtos.ticketConsumption.TicketConsumptionDTO;
 import com.packed_go.event_service.dtos.ticketConsumptionDetail.TicketConsumptionDetailDTO;
 import com.packed_go.event_service.entities.TicketConsumption;
@@ -14,6 +17,15 @@ public interface TicketConsumptionService {
     TicketConsumptionDTO create(TicketConsumptionDTO ticketConsumptionDTO);
 
     @Transactional
+    TicketConsumptionDTO createFromConsumptions(CreateTicketConsumptionDTO createTicketConsumptionDTO);
+
+    @Transactional
+    TicketConsumptionDTO createWithDetails(CreateTicketConsumptionWithDetailsDTO createTicketConsumptionWithDetailsDTO);
+
+    @Transactional
+    TicketConsumptionDTO createWithSimpleDetails(CreateTicketConsumptionWithSimpleDetailsDTO createTicketConsumptionWithSimpleDetailsDTO);
+
+    @Transactional
     TicketConsumption update(Long id, TicketConsumptionDTO ticketConsumptionDTO);
 
     @Transactional
@@ -23,6 +35,8 @@ public interface TicketConsumptionService {
 
 
     List<TicketConsumptionDetailDTO> getTicketConsumptionDetails(Long id);
+
+    TicketConsumptionDTO findById(Long id);
 
 
 

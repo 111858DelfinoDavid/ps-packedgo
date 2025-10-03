@@ -9,6 +9,8 @@ import java.util.List;
 @Getter
 @Setter
 public class TicketConsumptionDTO {
-    List<TicketConsumptionDetailDTO> ticketDetails;
+    private Long id;
+    private boolean redeem;
+    private List<TicketConsumptionDetailDTO> ticketDetails;
 
 }

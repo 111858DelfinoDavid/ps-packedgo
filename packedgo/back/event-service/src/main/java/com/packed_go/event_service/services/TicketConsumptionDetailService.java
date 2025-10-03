@@ -1,5 +1,6 @@
 package com.packed_go.event_service.services;
 
+import com.packed_go.event_service.dtos.ticketConsumptionDetail.RedeemTicketDetailDTO;
 import com.packed_go.event_service.dtos.ticketConsumptionDetail.TicketConsumptionDetailDTO;
 import com.packed_go.event_service.entities.TicketConsumptionDetail;
 import jakarta.transaction.Transactional;
@@ -18,5 +19,8 @@ public interface TicketConsumptionDetailService {
 
     @Transactional
     TicketConsumptionDetail deleteLogical(Long id);
+
+    @Transactional
+    RedeemTicketDetailDTO redeemDetail(Long detailId);
 
 }

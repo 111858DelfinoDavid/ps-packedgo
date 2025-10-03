@@ -24,7 +24,7 @@ public class TicketConsumptionDetail {
 
     // Un detalle pertenece a un ticketConsumption
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "ticket_id", nullable = false)
+    @JoinColumn(name = "consumption_ticket_id", nullable = false)
     private TicketConsumption ticketConsumption;
 
     private Integer quantity;
@@ -34,5 +34,9 @@ public class TicketConsumptionDetail {
     private BigDecimal priceAtPurchase;
 
     private boolean active = true;
+    private boolean redeem = false;
+
+    @Version
+    private Long version;
 
 }
