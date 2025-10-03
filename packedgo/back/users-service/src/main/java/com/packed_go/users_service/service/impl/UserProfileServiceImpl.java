@@ -141,7 +141,7 @@ public class UserProfileServiceImpl implements UserProfileService {
             return modelMapper.map(updatedEntity, UserProfile.class);
         } else {
 
-            throw new RuntimeException("UserProfile activo con id " + id + " no encontrado");
+            throw new RuntimeException("UserProfile activo con id " + id + " no existe");
         }
     }
 
