@@ -78,6 +78,44 @@ services:
     networks:
       - packedgo-network
 
+  # Event Service
+  event-service:
+    build:
+      context: ./event-service
+      dockerfile: Dockerfile
+    ports:
+      - "8086:8086"
+      - "5007:5007"  # Debug port for event-service
+    env_file:
+      - ./event-service/.env
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - JAVA_TOOL_OPTIONS=-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5007
+    depends_on:
+      event-db:
+        condition: service_healthy
+    networks:
+      - packedgo-network
+
+  # Event Database
+  event-db:
+    image: postgis/postgis:15-3.4-alpine
+    environment:
+      POSTGRES_DB: event_db
+      POSTGRES_USER: event_user
+      POSTGRES_PASSWORD: event_password
+    ports:
+      - "5435:5432"
+    volumes:
+      - event_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U event_user -d event_db"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - packedgo-network
+
 networks:
   packedgo-network:
     driver: bridge
@@ -85,3 +123,4 @@ networks:
 volumes:
   auth_db_data:
   users_db_data:
+  event_db_data:

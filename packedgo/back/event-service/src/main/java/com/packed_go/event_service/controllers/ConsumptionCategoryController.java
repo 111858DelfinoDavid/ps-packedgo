@@ -20,12 +20,12 @@ public class ConsumptionCategoryController {
     private final ModelMapper modelMapper;
 
     @PostMapping
-    public ResponseEntity<ConsumptionCategoryDTO> create(@RequestBody CreateConsumptionCategoryDTO dto) {
-        ConsumptionCategoryDTO created = consumptionCategoryService.create(dto);
-        if (created != null) {
+    public ResponseEntity<?> create(@RequestBody CreateConsumptionCategoryDTO dto) {
+        try {
+            ConsumptionCategoryDTO created = consumptionCategoryService.create(dto);
             return ResponseEntity.ok(created);
-        } else {
-            return ResponseEntity.status(409).build();
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(409).body(java.util.Map.of("message", e.getMessage()));
         }
     }
 

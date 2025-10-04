@@ -473,11 +473,17 @@
                     // Login exitoso
                     showSuccess('¡Acceso autorizado! Cargando panel administrativo...');
                     
-                    // Guardar datos de sesión administrativa
-                    localStorage.setItem('userToken', data.token || 'admin-token-' + Date.now());
-                    localStorage.setItem('userRole', 'ADMIN');
-                    localStorage.setItem('userName', data.name || 'Administrador');
-                    localStorage.setItem('userEmail', credentials.email);
+                    // Extraer información del response
+                    const responseData = data.data || data; // Manejar ApiResponse wrapper
+                    const token = responseData.token;
+                    const userInfo = responseData.user || {};
+                    
+                    // Guardar datos de sesión administrativa con JWT real
+                    localStorage.setItem('userToken', token);
+                    localStorage.setItem('userRole', userInfo.role || 'ADMIN');
+                    localStorage.setItem('userName', userInfo.username || userInfo.email || 'Administrador');
+                    localStorage.setItem('userId', userInfo.id || '');
+                    localStorage.setItem('userEmail', userInfo.email || credentials.email);
                     
                     if (rememberMeCheckbox.checked) {
                         localStorage.setItem('rememberMe', 'true');
@@ -489,7 +495,7 @@
 
                     // Redirigir después de 1.5 segundos
                     setTimeout(() => {
-                        window.location.href = 'admin-dashboard.html';
+                        window.location.href = 'admin-events-management.html';
                     }, 1500);
                     
                 } else {
@@ -567,7 +573,7 @@
 
         // Verificar si ya está logueado como admin
         if (localStorage.getItem('userToken') && localStorage.getItem('userRole') === 'ADMIN') {
-            window.location.href = 'admin-dashboard.html';
+            window.location.href = 'admin-events-management.html';
         }
     </script>
 </body>

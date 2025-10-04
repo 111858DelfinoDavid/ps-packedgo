@@ -864,7 +864,7 @@
                             <i class="bi bi-calendar-event"></i>
                             Gestión de Eventos
                         </h3>
-                        <button class="btn btn-admin-primary">
+                        <button id="createEventButton" class="btn btn-admin-primary">
                             <i class="bi bi-plus me-2"></i>Crear Evento
                         </button>
                     </div>
@@ -928,6 +928,13 @@
         document.addEventListener('DOMContentLoaded', function() {
             checkAdminAuthentication();
             loadAdminData();
+
+            const createEventButton = document.getElementById('createEventButton');
+            if (createEventButton) {
+                createEventButton.addEventListener('click', () => {
+                    window.location.href = 'admin-events-management.html';
+                });
+            }
         });
 
         function checkAdminAuthentication() {
@@ -935,13 +942,13 @@
             const role = localStorage.getItem('userRole');
             
             if (!token) {
-                window.location.href = 'login.html';
+                window.location.href = 'admin-login.html';
                 return false;
             }
 
-            if (role !== 'ADMIN' && role !== 'ADMINISTRATOR') {
+            if (role !== 'ADMIN' && role !== 'SUPER_ADMIN' && role !== 'ADMINISTRATOR') {
                 alert('Acceso denegado. No tienes permisos de administrador.');
-                window.location.href = 'dashboard.html';
+                window.location.href = 'login.html';
                 return false;
             }
             

@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PackedGo - Gestión de Eventos (Admin)</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Custom CSS -->
+    <link href="css/admin-events.css" rel="stylesheet">
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar navbar-custom navbar-expand-lg navbar-light">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#"><i class="bi bi-box-seam"></i> PackedGo</a>
+            <div class="d-flex align-items-center gap-2">
+                <span class="admin-badge me-2"><i class="bi bi-shield-check"></i> Administrador</span>
+                <button class="btn btn-outline-primary btn-sm" onclick="window.location.href='admin-dashboard.html'" title="Volver al Dashboard">
+                    <i class="bi bi-speedometer2"></i> Dashboard
+                </button>
+                <button class="btn btn-outline-danger btn-sm" onclick="logout()">
+                    <i class="bi bi-box-arrow-right"></i> Cerrar Sesión
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Container -->
+    <div class="container-custom">
+        <!-- Page Header -->
+        <div class="page-header">
+            <h1 class="page-title"><i class="bi bi-calendar-event"></i> Gestión de Eventos</h1>
+            <p class="page-subtitle">Administra eventos, categorías y consumiciones desde este panel</p>
+        </div>
+
+        <!-- Tabs Container -->
+        <div class="tabs-container">
+            <ul class="nav nav-tabs" id="managementTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="events-tab" data-bs-toggle="tab" data-bs-target="#events" type="button">
+                        <i class="bi bi-calendar-event"></i> Eventos
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="event-categories-tab" data-bs-toggle="tab" data-bs-target="#event-categories" type="button">
+                        <i class="bi bi-tags"></i> Categorías de Eventos
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="consumptions-tab" data-bs-toggle="tab" data-bs-target="#consumptions" type="button">
+                        <i class="bi bi-cup-straw"></i> Consumiciones
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="consumption-categories-tab" data-bs-toggle="tab" data-bs-target="#consumption-categories" type="button">
+                        <i class="bi bi-grid-3x3"></i> Categorías de Consumiciones
+                    </button>
+                </li>
+            </ul>
+
+            <div class="tab-content" id="managementTabsContent">
+                <!-- EVENTOS TAB -->
+                <div class="tab-pane fade show active" id="events" role="tabpanel">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h3><i class="bi bi-calendar-event"></i> Lista de Eventos</h3>
+                        <button class="btn btn-primary-custom" onclick="openCreateEventModal()">
+                            <i class="bi bi-plus-circle"></i> Crear Nuevo Evento
+                        </button>
+                    </div>
+
+                    <div id="eventsAlert"></div>
+
+                    <div class="table-responsive">
+                        <table class="table table-custom">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Imagen</th>
+                                    <th>Nombre</th>
+                                    <th>Categoría</th>
+                                    <th>Fecha</th>
+                                    <th>Capacidad</th>
+                                    <th>Precio Base</th>
+                                    <th>Estado</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="eventsTableBody">
+                                <tr>
+                                    <td colspan="9" class="text-center">
+                                        <div class="spinner-border text-primary" role="status">
+                                            <span class="visually-hidden">Cargando...</span>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- CATEGORÍAS DE EVENTOS TAB -->
+                <div class="tab-pane fade" id="event-categories" role="tabpanel">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h3><i class="bi bi-tags"></i> Categorías de Eventos</h3>
+                        <button class="btn btn-primary-custom" onclick="openCreateEventCategoryModal()">
+                            <i class="bi bi-plus-circle"></i> Crear Nueva Categoría
+                        </button>
+                    </div>
+
+                    <div id="eventCategoriesAlert"></div>
+
+                    <div class="row" id="eventCategoriesContainer">
+                        <div class="col-12 text-center">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Cargando...</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- CONSUMICIONES TAB -->
+                <div class="tab-pane fade" id="consumptions" role="tabpanel">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h3><i class="bi bi-cup-straw"></i> Lista de Consumiciones</h3>
+                        <button class="btn btn-primary-custom" onclick="openCreateConsumptionModal()">
+                            <i class="bi bi-plus-circle"></i> Crear Nueva Consumición
+                        </button>
+                    </div>
+
+                    <div id="consumptionsAlert"></div>
+
+                    <div class="table-responsive">
+                        <table class="table table-custom">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Imagen</th>
+                                    <th>Nombre</th>
+                                    <th>Categoría</th>
+                                    <th>Descripción</th>
+                                    <th>Precio</th>
+                                    <th>Estado</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="consumptionsTableBody">
+                                <tr>
+                                    <td colspan="8" class="text-center">
+                                        <div class="spinner-border text-primary" role="status">
+                                            <span class="visually-hidden">Cargando...</span>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- CATEGORÍAS DE CONSUMICIONES TAB -->
+                <div class="tab-pane fade" id="consumption-categories" role="tabpanel">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h3><i class="bi bi-grid-3x3"></i> Categorías de Consumiciones</h3>
+                        <button class="btn btn-primary-custom" onclick="openCreateConsumptionCategoryModal()">
+                            <i class="bi bi-plus-circle"></i> Crear Nueva Categoría
+                        </button>
+                    </div>
+
+                    <div id="consumptionCategoriesAlert"></div>
+
+                    <div class="row" id="consumptionCategoriesContainer">
+                        <div class="col-12 text-center">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Cargando...</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Crear/Editar Evento -->
+    <div class="modal fade modal-custom" id="eventModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="eventModalTitle">
+                        <i class="bi bi-calendar-event"></i> Crear Nuevo Evento
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="eventForm">
+                        <input type="hidden" id="eventId">
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label-custom">Nombre del Evento</label>
+                                <input type="text" class="form-control form-control-custom" id="eventName" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label-custom">Categoría</label>
+                                <select class="form-control form-control-custom" id="eventCategoryId" required>
+                                    <option value="">Cargando...</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label-custom">Descripción</label>
+                            <textarea class="form-control form-control-custom" id="eventDescription" rows="3" required></textarea>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label-custom">Fecha y Hora del Evento</label>
+                                <input type="datetime-local" class="form-control form-control-custom" id="eventDate" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label-custom">Precio Base</label>
+                                <input type="number" step="0.01" class="form-control form-control-custom" id="eventBasePrice" required>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label-custom">Capacidad Máxima</label>
+                                <input type="number" class="form-control form-control-custom" id="eventMaxCapacity" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label-custom">Estado</label>
+                                <select class="form-control form-control-custom" id="eventStatus" required>
+                                    <option value="SCHEDULED">Programado</option>
+                                    <option value="ACTIVE">Activo</option>
+                                    <option value="COMPLETED">Completado</option>
+                                    <option value="CANCELLED">Cancelado</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label-custom">Latitud</label>
+                                <input type="number" step="any" class="form-control form-control-custom" id="eventLat" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label-custom">Longitud</label>
+                                <input type="number" step="any" class="form-control form-control-custom" id="eventLng" required>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label-custom">URL de la Imagen</label>
+                            <input type="url" class="form-control form-control-custom" id="eventImageUrl" placeholder="https://ejemplo.com/imagen.jpg">
+                            <small class="text-muted">Ingrese la URL de la imagen del evento</small>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-success-custom" onclick="saveEvent()">
+                        <i class="bi bi-check-circle"></i> Guardar Evento
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Crear/Editar Categoría de Evento -->
+    <div class="modal fade modal-custom" id="eventCategoryModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="eventCategoryModalTitle">
+                        <i class="bi bi-tags"></i> Crear Categoría de Evento
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="eventCategoryForm">
+                        <input type="hidden" id="eventCategoryEditId">
+                        <div class="mb-3">
+                            <label class="form-label-custom">Nombre de la Categoría</label>
+                            <input type="text" class="form-control form-control-custom" id="eventCategoryName" required placeholder="Ej: Conciertos, Deportes, Teatro">
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-success-custom" onclick="saveEventCategory()">
+                        <i class="bi bi-check-circle"></i> Guardar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Crear/Editar Consumición -->
+    <div class="modal fade modal-custom" id="consumptionModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="consumptionModalTitle">
+                        <i class="bi bi-cup-straw"></i> Crear Nueva Consumición
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="consumptionForm">
+                        <input type="hidden" id="consumptionId">
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label-custom">Nombre</label>
+                                <input type="text" class="form-control form-control-custom" id="consumptionName" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label-custom">Categoría</label>
+                                <select class="form-control form-control-custom" id="consumptionCategoryId" required>
+                                    <option value="">Cargando...</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label-custom">Descripción</label>
+                            <textarea class="form-control form-control-custom" id="consumptionDescription" rows="3" required></textarea>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label-custom">Precio</label>
+                            <input type="number" step="0.01" class="form-control form-control-custom" id="consumptionPrice" required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label-custom">URL de la Imagen</label>
+                            <input type="url" class="form-control form-control-custom" id="consumptionImageUrl" placeholder="https://ejemplo.com/imagen.jpg">
+                            <small class="text-muted">Ingrese la URL de la imagen de la consumición</small>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-success-custom" onclick="saveConsumption()">
+                        <i class="bi bi-check-circle"></i> Guardar Consumición
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Crear/Editar Categoría de Consumición -->
+    <div class="modal fade modal-custom" id="consumptionCategoryModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="consumptionCategoryModalTitle">
+                        <i class="bi bi-grid-3x3"></i> Crear Categoría de Consumición
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="consumptionCategoryForm">
+                        <input type="hidden" id="consumptionCategoryEditId">
+                        <div class="mb-3">
+                            <label class="form-label-custom">Nombre de la Categoría</label>
+                            <input type="text" class="form-control form-control-custom" id="consumptionCategoryName" required placeholder="Ej: Bebidas, Comidas, Snacks">
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-success-custom" onclick="saveConsumptionCategory()">
+                        <i class="bi bi-check-circle"></i> Guardar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Custom JavaScript -->
+    <script src="js/admin-events.js"></script>
+</body>
+</html>

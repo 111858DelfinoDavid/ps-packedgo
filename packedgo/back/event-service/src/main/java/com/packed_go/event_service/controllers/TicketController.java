@@ -2,6 +2,7 @@ package com.packed_go.event_service.controllers;
 
 import com.packed_go.event_service.dtos.ticket.CreateTicketDTO;
 import com.packed_go.event_service.dtos.ticket.TicketDTO;
+import com.packed_go.event_service.security.JwtTokenValidator;
 import com.packed_go.event_service.services.TicketService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -17,6 +18,7 @@ import java.util.List;
 public class TicketController {
 
     private final TicketService ticketService;
+    private final JwtTokenValidator jwtTokenValidator;
 
     @PostMapping
     public ResponseEntity<TicketDTO> createTicket(@RequestBody CreateTicketDTO createTicketDTO) {
@@ -54,29 +56,41 @@ public class TicketController {
     }
 
     @GetMapping("/user/{userId}")
-    public ResponseEntity<List<TicketDTO>> getTicketsByUser(@PathVariable Long userId) {
+    public ResponseEntity<List<TicketDTO>> getTicketsByUser(
+            @RequestHeader("Authorization") String authHeader,
+            @PathVariable Long userId) {
         log.info("Obteniendo tickets para usuario: {}", userId);
+        validateAndExtractUserId(authHeader, userId);
         List<TicketDTO> tickets = ticketService.findByUserId(userId);
         return ResponseEntity.ok(tickets);
     }
 
     @GetMapping("/user/{userId}/active")
-    public ResponseEntity<List<TicketDTO>> getActiveTicketsByUser(@PathVariable Long userId) {
+    public ResponseEntity<List<TicketDTO>> getActiveTicketsByUser(
+            @RequestHeader("Authorization") String authHeader,
+            @PathVariable Long userId) {
         log.info("Obteniendo tickets activos para usuario: {}", userId);
+        validateAndExtractUserId(authHeader, userId);
         List<TicketDTO> tickets = ticketService.findByUserIdAndActive(userId, true);
         return ResponseEntity.ok(tickets);
     }
 
     @GetMapping("/user/{userId}/redeemed")
-    public ResponseEntity<List<TicketDTO>> getRedeemedTicketsByUser(@PathVariable Long userId) {
+    public ResponseEntity<List<TicketDTO>> getRedeemedTicketsByUser(
+            @RequestHeader("Authorization") String authHeader,
+            @PathVariable Long userId) {
         log.info("Obteniendo tickets canjeados para usuario: {}", userId);
+        validateAndExtractUserId(authHeader, userId);
         List<TicketDTO> tickets = ticketService.findByUserIdAndRedeemed(userId, true);
         return ResponseEntity.ok(tickets);
     }
 
     @GetMapping("/user/{userId}/not-redeemed")
-    public ResponseEntity<List<TicketDTO>> getNotRedeemedTicketsByUser(@PathVariable Long userId) {
+    public ResponseEntity<List<TicketDTO>> getNotRedeemedTicketsByUser(
+            @RequestHeader("Authorization") String authHeader,
+            @PathVariable Long userId) {
         log.info("Obteniendo tickets no canjeados para usuario: {}", userId);
+        validateAndExtractUserId(authHeader, userId);
         List<TicketDTO> tickets = ticketService.findByUserIdAndRedeemed(userId, false);
         return ResponseEntity.ok(tickets);
     }
@@ -107,5 +121,24 @@ public class TicketController {
         log.info("Verificando si el ticket está canjeado: {}", ticketId);
         boolean isRedeemed = ticketService.isTicketRedeemed(ticketId);
         return ResponseEntity.ok(isRedeemed);
+    }
+
+    // Helper method para validar JWT y verificar que el usuario solo acceda a sus propios recursos
+    private Long validateAndExtractUserId(String authHeader, Long requestedUserId) {
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            throw new RuntimeException("Missing or invalid Authorization header");
+        }
+        
+        String token = authHeader.substring(7);
+        if (!jwtTokenValidator.validateToken(token)) {
+            throw new RuntimeException("Invalid JWT token");
+        }
+        
+        Long tokenUserId = jwtTokenValidator.getUserIdFromToken(token);
+        if (!tokenUserId.equals(requestedUserId)) {
+            throw new RuntimeException("Cannot access other user's resources");
+        }
+        
+        return tokenUserId;
     }
 }
