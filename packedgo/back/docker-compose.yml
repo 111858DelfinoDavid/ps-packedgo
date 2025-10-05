@@ -99,7 +99,7 @@ services:
 
   # Event Database
   event-db:
-    image: postgis/postgis:15-3.4-alpine
+    image: postgres:15-alpine
     environment:
       POSTGRES_DB: event_db
       POSTGRES_USER: event_user

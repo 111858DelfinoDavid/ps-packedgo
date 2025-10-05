@@ -9,7 +9,6 @@ import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.Optional;
 
@@ -25,7 +24,6 @@ public class ConsumptionCategoryServiceImpl implements ConsumptionCategoryServic
     private final ModelMapper modelMapper;
 
     @Override
-    @Transactional(readOnly = true)
     public ConsumptionCategoryDTO findById(Long id) {
         Optional<ConsumptionCategory> consumptionExist = consumptionCategoryRepository.findById(id);
         if (consumptionExist.isPresent()) {
@@ -36,7 +34,6 @@ public class ConsumptionCategoryServiceImpl implements ConsumptionCategoryServic
     }
 
     @Override
-    @Transactional(readOnly = true)
     public List<ConsumptionCategoryDTO> findByActiveIsTrue() {
         List<ConsumptionCategory> categoryEntities = consumptionCategoryRepository.findByActiveIsTrue();
         return categoryEntities.stream()
@@ -45,7 +42,6 @@ public class ConsumptionCategoryServiceImpl implements ConsumptionCategoryServic
     }
 
     @Override
-    @Transactional(readOnly = true)
     public List<ConsumptionCategoryDTO> findAll() {
         List<ConsumptionCategory> categoryEntities = consumptionCategoryRepository.findAll();
         return categoryEntities.stream()
@@ -58,14 +54,11 @@ public class ConsumptionCategoryServiceImpl implements ConsumptionCategoryServic
         Optional<ConsumptionCategory> categoryExist = consumptionCategoryRepository.findByName(createConsumptionCategoryDto.getName());
         if (categoryExist.isPresent()) {
             throw new RuntimeException("Consumption category ya existe");
+        } else {
+            ConsumptionCategory entity = modelMapper.map(createConsumptionCategoryDto, ConsumptionCategory.class);
+            entity.setActive(true);
+            return modelMapper.map(consumptionCategoryRepository.save(entity), ConsumptionCategoryDTO.class);
         }
-        
-        ConsumptionCategory entity = new ConsumptionCategory();
-        entity.setName(createConsumptionCategoryDto.getName());
-        entity.setActive(true);
-        
-        ConsumptionCategory saved = consumptionCategoryRepository.save(entity);
-        return modelMapper.map(saved, ConsumptionCategoryDTO.class);
     }
 
     @Override

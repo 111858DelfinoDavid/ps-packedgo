@@ -13,7 +13,6 @@ import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.awt.*;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -71,12 +70,14 @@ public class EventServiceImpl implements EventService {
                 .map(entity -> modelMapper.map(entity, EventDTO.class)).toList();
     }
 
+    /*
     @Override
     public List<EventDTO> findByLocation(Point location) {
         List<Event> eventEntities = eventRepository.findAll();
         return eventEntities.stream().filter(entity -> entity.getLocation().equals(location)) // filtramos por status
                 .map(entity -> modelMapper.map(entity, EventDTO.class)).toList();
     }
+    */
 
     @Override
     public EventDTO createEvent(CreateEventDTO createEventDto) {

@@ -4,7 +4,6 @@ import com.packed_go.event_service.dtos.event.CreateEventDTO;
 import com.packed_go.event_service.dtos.event.EventDTO;
 import jakarta.transaction.Transactional;
 
-import java.awt.*;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -18,7 +17,7 @@ public interface EventService {
 
     List<EventDTO> findAllByEventDateAndStatus(LocalDateTime eventDate, String status);
 
-    List<EventDTO> findByLocation(Point location);
+    // List<EventDTO> findByLocation(Point location); // Comentado - usar lat/lng en su lugar
 
 
     EventDTO createEvent(CreateEventDTO createEventDto);

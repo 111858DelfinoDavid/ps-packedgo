@@ -259,9 +259,7 @@ async function saveEvent() {
         basePrice: parseFloat(document.getElementById('eventBasePrice').value),
         imageUrl: document.getElementById('eventImageUrl').value || null,
         status: document.getElementById('eventStatus').value,
-        createdBy: userId,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
+        createdBy: userId
     };
 
     try {
@@ -278,14 +276,18 @@ async function saveEvent() {
             body: JSON.stringify(eventData)
         });
 
-        if (!response.ok) throw new Error('Error al guardar evento');
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => null);
+            const errorMessage = errorData?.message || 'Error al guardar evento';
+            throw new Error(errorMessage);
+        }
 
         bootstrap.Modal.getInstance(document.getElementById('eventModal')).hide();
         showAlert(`Evento ${currentEventId ? 'actualizado' : 'creado'} exitosamente`, 'success', 'eventsAlert');
         loadEvents();
     } catch (error) {
         console.error('Error:', error);
-        showAlert('Error al guardar el evento', 'danger', 'eventsAlert');
+        showAlert(error.message || 'Error al guardar el evento', 'danger', 'eventsAlert');
     }
 }
 

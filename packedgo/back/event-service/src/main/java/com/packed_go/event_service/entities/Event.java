@@ -25,8 +25,8 @@ public class Event {
     private String name;
     private String description;
     private LocalDateTime eventDate;
-    @Column(columnDefinition = "geometry(Point,4326)")
-    private Point location;
+    private Double lat;
+    private Double lng;
     private Integer maxCapacity;
     private Integer currentCapacity;
     private BigDecimal basePrice;
