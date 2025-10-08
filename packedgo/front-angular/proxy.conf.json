@@ -1,0 +1,26 @@
+{
+  "/api": {
+    "target": "http://localhost:8081",
+    "secure": false,
+    "changeOrigin": true,
+    "logLevel": "debug"
+  },
+  "/api/users": {
+    "target": "http://localhost:8082",
+    "secure": false,
+    "changeOrigin": true,
+    "logLevel": "debug"
+  },
+  "/api/events": {
+    "target": "http://localhost:8086",
+    "secure": false,
+    "changeOrigin": true,
+    "logLevel": "debug"
+  },
+  "/api/consumption-categories": {
+    "target": "http://localhost:8086",
+    "secure": false,
+    "changeOrigin": true,
+    "logLevel": "debug"
+  }
+}

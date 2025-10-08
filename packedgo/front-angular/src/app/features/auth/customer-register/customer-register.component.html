@@ -1,0 +1,249 @@
+<div class="register-container">
+  <div class="register-card">
+    <div class="register-header">
+      <i class="bi bi-person-plus-fill"></i>
+      <h2>Registro de Cliente</h2>
+      <p>Únete a PackedGo</p>
+    </div>
+
+    <!-- Success Alert -->
+    <div *ngIf="successMessage" class="alert alert-success alert-dismissible fade show" role="alert">
+      <i class="bi bi-check-circle-fill me-2"></i>
+      {{ successMessage }}
+      <button type="button" class="btn-close" (click)="successMessage = ''"></button>
+    </div>
+
+    <!-- Error Alert -->
+    <div *ngIf="errorMessage" class="alert alert-danger alert-dismissible fade show" role="alert">
+      <i class="bi bi-exclamation-triangle-fill me-2"></i>
+      {{ errorMessage }}
+      <button type="button" class="btn-close" (click)="errorMessage = ''"></button>
+    </div>
+
+    <form [formGroup]="registerForm" (ngSubmit)="onSubmit()" class="register-form">
+      
+      <!-- Username -->
+      <div class="form-group">
+        <label for="username">
+          <i class="bi bi-person"></i>
+          Nombre de Usuario
+        </label>
+        <input 
+          type="text" 
+          id="username"
+          formControlName="username"
+          class="form-control"
+          [class.is-invalid]="username?.invalid && username?.touched"
+          [class.is-valid]="username?.valid && username?.touched"
+          placeholder="Ingresa tu nombre de usuario"
+        />
+        <div class="invalid-feedback" *ngIf="username?.touched">
+          <span *ngIf="username?.errors?.['required']">El nombre de usuario es requerido</span>
+          <span *ngIf="username?.errors?.['minlength']">Mínimo 3 caracteres</span>
+          <span *ngIf="username?.errors?.['maxlength']">Máximo 50 caracteres</span>
+        </div>
+      </div>
+
+      <!-- Email -->
+      <div class="form-group">
+        <label for="email">
+          <i class="bi bi-envelope"></i>
+          Correo Electrónico
+        </label>
+        <input 
+          type="email" 
+          id="email"
+          formControlName="email"
+          class="form-control"
+          [class.is-invalid]="email?.invalid && email?.touched"
+          [class.is-valid]="email?.valid && email?.touched"
+          placeholder="ejemplo@correo.com"
+        />
+        <div class="invalid-feedback" *ngIf="email?.touched">
+          <span *ngIf="email?.errors?.['required']">El correo es requerido</span>
+          <span *ngIf="email?.errors?.['email']">Ingresa un correo válido</span>
+        </div>
+      </div>
+
+      <!-- Document -->
+      <div class="form-group">
+        <label for="document">
+          <i class="bi bi-card-text"></i>
+          Documento de Identidad
+        </label>
+        <input 
+          type="text" 
+          id="document"
+          formControlName="document"
+          class="form-control"
+          [class.is-invalid]="document?.invalid && document?.touched"
+          [class.is-valid]="document?.valid && document?.touched"
+          placeholder="Ingresa tu documento"
+        />
+        <div class="invalid-feedback" *ngIf="document?.touched">
+          <span *ngIf="document?.errors?.['required']">El documento es requerido</span>
+          <span *ngIf="document?.errors?.['pattern']">Solo números sin puntos ni guiones</span>
+        </div>
+      </div>
+
+      <!-- Password -->
+      <div class="form-group">
+        <label for="password">
+          <i class="bi bi-lock"></i>
+          Contraseña
+        </label>
+        <div class="password-wrapper">
+          <input 
+            [type]="showPassword ? 'text' : 'password'"
+            id="password"
+            formControlName="password"
+            class="form-control"
+            [class.is-invalid]="password?.invalid && password?.touched"
+            [class.is-valid]="password?.valid && password?.touched"
+            placeholder="Ingresa tu contraseña"
+          />
+          <button 
+            type="button" 
+            class="password-toggle" 
+            (click)="togglePasswordVisibility()"
+            [attr.aria-label]="showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'"
+          >
+            <i [class]="showPassword ? 'bi bi-eye-slash' : 'bi bi-eye'"></i>
+          </button>
+        </div>
+        <div class="invalid-feedback d-block" *ngIf="password?.touched && password?.invalid">
+          <span *ngIf="password?.errors?.['required']">La contraseña es requerida</span>
+          <span *ngIf="password?.errors?.['minlength']">Mínimo 6 caracteres</span>
+        </div>
+      </div>
+
+      <!-- Name -->
+      <div class="form-group">
+        <label for="name">
+          <i class="bi bi-person-badge"></i>
+          Nombre
+        </label>
+        <input 
+          type="text" 
+          id="name"
+          formControlName="name"
+          class="form-control"
+          [class.is-invalid]="name?.invalid && name?.touched"
+          [class.is-valid]="name?.valid && name?.touched"
+          placeholder="Ingresa tu nombre"
+        />
+        <div class="invalid-feedback" *ngIf="name?.touched">
+          <span *ngIf="name?.errors?.['required']">El nombre es requerido</span>
+          <span *ngIf="name?.errors?.['minlength']">Mínimo 1 caracter</span>
+          <span *ngIf="name?.errors?.['maxlength']">Máximo 100 caracteres</span>
+        </div>
+      </div>
+
+      <!-- Last Name -->
+      <div class="form-group">
+        <label for="lastName">
+          <i class="bi bi-person-badge-fill"></i>
+          Apellido
+        </label>
+        <input 
+          type="text" 
+          id="lastName"
+          formControlName="lastName"
+          class="form-control"
+          [class.is-invalid]="lastName?.invalid && lastName?.touched"
+          [class.is-valid]="lastName?.valid && lastName?.touched"
+          placeholder="Ingresa tu apellido"
+        />
+        <div class="invalid-feedback" *ngIf="lastName?.touched">
+          <span *ngIf="lastName?.errors?.['required']">El apellido es requerido</span>
+          <span *ngIf="lastName?.errors?.['minlength']">Mínimo 1 caracter</span>
+          <span *ngIf="lastName?.errors?.['maxlength']">Máximo 100 caracteres</span>
+        </div>
+      </div>
+
+      <!-- Born Date -->
+      <div class="form-group">
+        <label for="bornDate">
+          <i class="bi bi-calendar-event"></i>
+          Fecha de Nacimiento
+        </label>
+        <input 
+          type="date" 
+          id="bornDate"
+          formControlName="bornDate"
+          class="form-control"
+          [class.is-invalid]="bornDate?.invalid && bornDate?.touched"
+          [class.is-valid]="bornDate?.valid && bornDate?.touched"
+        />
+        <div class="invalid-feedback" *ngIf="bornDate?.touched">
+          <span *ngIf="bornDate?.errors?.['required']">La fecha de nacimiento es requerida</span>
+        </div>
+      </div>
+
+      <!-- Telephone -->
+      <div class="form-group">
+        <label for="telephone">
+          <i class="bi bi-telephone"></i>
+          Teléfono
+        </label>
+        <input 
+          type="text" 
+          id="telephone"
+          formControlName="telephone"
+          class="form-control"
+          [class.is-invalid]="telephone?.invalid && telephone?.touched"
+          [class.is-valid]="telephone?.valid && telephone?.touched"
+          placeholder="Ingresa tu teléfono"
+        />
+        <div class="invalid-feedback" *ngIf="telephone?.touched">
+          <span *ngIf="telephone?.errors?.['required']">El teléfono es requerido</span>
+          <span *ngIf="telephone?.errors?.['pattern']">Solo números sin espacios</span>
+        </div>
+      </div>
+
+      <!-- Gender -->
+      <div class="form-group">
+        <label for="gender">
+          <i class="bi bi-gender-ambiguous"></i>
+          Género
+        </label>
+        <select 
+          id="gender"
+          formControlName="gender"
+          class="form-select"
+          [class.is-invalid]="gender?.invalid && gender?.touched"
+          [class.is-valid]="gender?.valid && gender?.touched"
+        >
+          <option value="" disabled>Selecciona tu género</option>
+          <option value="MALE">Masculino</option>
+          <option value="FEMALE">Femenino</option>
+          <option value="OTHER">Otro</option>
+          <option value="PREFER_NOT_TO_SAY">Prefiero no decir</option>
+        </select>
+        <div class="invalid-feedback" *ngIf="gender?.touched">
+          <span *ngIf="gender?.errors?.['required']">El género es requerido</span>
+        </div>
+      </div>
+
+      <!-- Submit Button -->
+      <button 
+        type="submit" 
+        class="btn btn-primary btn-register"
+        [disabled]="isLoading"
+      >
+        <span *ngIf="!isLoading">
+          <i class="bi bi-person-check"></i> Registrarse
+        </span>
+        <span *ngIf="isLoading">
+          <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+          Registrando...
+        </span>
+      </button>
+
+      <!-- Login Link -->
+      <div class="register-footer">
+        <p>¿Ya tienes una cuenta? <a routerLink="/customer/login">Inicia Sesión</a></p>
+      </div>
+    </form>
+  </div>
+</div>

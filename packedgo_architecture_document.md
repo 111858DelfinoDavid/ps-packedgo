@@ -283,7 +283,7 @@ La arquitectura de microservicios se justifica por:
 - POST /auth/logout - Cierre de sesión
 - GET /auth/permissions/{userId} - Obtener permisos de usuario
 
-### 4.2 USER-SERVICE (Puerto 8082)
+### 4.2 USERS-SERVICE (Puerto 8082)
 
 **Responsabilidades Principales:**
 - Gestión de perfiles de usuario
