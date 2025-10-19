@@ -50,8 +50,31 @@ public class Event {
     @OneToMany(mappedBy = "event", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<Pass> passes = new ArrayList<>();
 
+    // Relación Many-to-Many con Consumption
+    @ManyToMany(cascade = {CascadeType.PERSIST, CascadeType.MERGE}, fetch = FetchType.LAZY)
+    @JoinTable(
+        name = "event_consumptions",
+        joinColumns = @JoinColumn(name = "event_id"),
+        inverseJoinColumns = @JoinColumn(name = "consumption_id")
+    )
+    private List<Consumption> availableConsumptions;
+
     @Version
     private Long version;
+
+    // Constructor por defecto
+    public Event() {
+        this.status = "ACTIVE";
+        this.active = true;
+        this.createdAt = LocalDateTime.now();
+        this.updatedAt = LocalDateTime.now();
+        this.totalPasses = 0;
+        this.availablePasses = 0;
+        this.soldPasses = 0;
+        this.currentCapacity = 0;
+        this.passes = new ArrayList<>();
+        this.availableConsumptions = new ArrayList<>();
+    }
 
     // Métodos de utilidad para gestión de Pass
     public void addPass(Pass pass) {
@@ -67,6 +90,32 @@ public class Event {
 
     public boolean hasAvailablePasses() {
         return this.availablePasses > 0;
+    }
+
+    // Métodos de utilidad para gestión de Consumption
+    public void addAvailableConsumption(Consumption consumption) {
+        if (!this.availableConsumptions.contains(consumption)) {
+            this.availableConsumptions.add(consumption);
+        }
+    }
+
+    public void removeAvailableConsumption(Consumption consumption) {
+        this.availableConsumptions.remove(consumption);
+    }
+
+    public List<Consumption> getActiveConsumptions() {
+        return this.availableConsumptions.stream()
+            .filter(Consumption::isActive)
+            .toList();
+    }
+
+    // Getters y Setters manuales para availableConsumptions (workaround para Lombok en Docker)
+    public List<Consumption> getAvailableConsumptions() {
+        return availableConsumptions;
+    }
+
+    public void setAvailableConsumptions(List<Consumption> availableConsumptions) {
+        this.availableConsumptions = availableConsumptions;
     }
 
 }

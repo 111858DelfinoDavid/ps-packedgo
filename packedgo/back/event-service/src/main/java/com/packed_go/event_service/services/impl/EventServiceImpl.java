@@ -2,10 +2,14 @@ package com.packed_go.event_service.services.impl;
 
 import com.packed_go.event_service.dtos.event.CreateEventDTO;
 import com.packed_go.event_service.dtos.event.EventDTO;
+import com.packed_go.event_service.dtos.consumption.ConsumptionDTO;
 import com.packed_go.event_service.entities.Event;
 import com.packed_go.event_service.entities.EventCategory;
-import com.packed_go.event_service.repositories.EventRepository;
+import com.packed_go.event_service.entities.Consumption;
+import com.packed_go.event_service.exceptions.ResourceNotFoundException;
 import com.packed_go.event_service.repositories.EventCategoryRepository;
+import com.packed_go.event_service.repositories.EventRepository;
+import com.packed_go.event_service.repositories.ConsumptionRepository;
 import com.packed_go.event_service.services.EventService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -30,12 +34,29 @@ public class EventServiceImpl implements EventService {
     @Autowired
     private final EventCategoryRepository eventCategoryRepository;
 
+    @Autowired
+    private final ConsumptionRepository consumptionRepository;
+
     @Override
     public EventDTO findById(Long id) {
         Optional<Event> eventExist = eventRepository.findById(id);
         if (eventExist.isPresent()) {
-            EventDTO event = modelMapper.map(eventExist.get(), EventDTO.class);
-            return modelMapper.map(eventExist.get(), EventDTO.class);
+            Event event = eventExist.get();
+            EventDTO eventDTO = modelMapper.map(event, EventDTO.class);
+            
+            // Mapear los consumos disponibles si existen
+            if (!event.getAvailableConsumptions().isEmpty()) {
+                List<ConsumptionDTO> consumptionDTOs = event.getAvailableConsumptions().stream()
+                    .map(consumption -> {
+                        ConsumptionDTO dto = modelMapper.map(consumption, ConsumptionDTO.class);
+                        dto.setCategoryId(consumption.getCategory().getId());
+                        return dto;
+                    })
+                    .toList();
+                eventDTO.setAvailableConsumptions(consumptionDTOs);
+            }
+            
+            return eventDTO;
         } else {
             throw new RuntimeException("Event with id" + id + " not found");
         }
@@ -81,7 +102,8 @@ public class EventServiceImpl implements EventService {
 
     @Override
     public EventDTO createEvent(CreateEventDTO createEventDto) {
-        EventCategory category = eventCategoryRepository.findById(createEventDto.getCategoryId()).orElseThrow(() -> new RuntimeException("Category with id " + createEventDto.getCategoryId() + " not found"));
+        EventCategory category = eventCategoryRepository.findById(createEventDto.getCategoryId())
+                .orElseThrow(() -> new ResourceNotFoundException("Category with id " + createEventDto.getCategoryId() + " not found"));
 
         Event event = modelMapper.map(createEventDto, Event.class);
 
@@ -93,10 +115,34 @@ public class EventServiceImpl implements EventService {
             event.setTotalPasses(event.getMaxCapacity());
             event.setAvailablePasses(event.getMaxCapacity());
         }
+        
+        // Procesamos los consumptionIds si vienen en el DTO
+        if (createEventDto.getConsumptionIds() != null && !createEventDto.getConsumptionIds().isEmpty()) {
+            List<Consumption> consumptions = consumptionRepository.findAllById(createEventDto.getConsumptionIds());
+            if (consumptions.size() != createEventDto.getConsumptionIds().size()) {
+                throw new ResourceNotFoundException("Some consumption IDs were not found");
+            }
+            consumptions.forEach(event::addAvailableConsumption);
+        }
 
         Event savedEvent = eventRepository.save(event);
 
-        return modelMapper.map(savedEvent, EventDTO.class);
+        // Mapear el evento a DTO
+        EventDTO eventDTO = modelMapper.map(savedEvent, EventDTO.class);
+        
+        // Mapear los consumos disponibles si existen
+        if (!savedEvent.getAvailableConsumptions().isEmpty()) {
+            List<ConsumptionDTO> consumptionDTOs = savedEvent.getAvailableConsumptions().stream()
+                .map(consumption -> {
+                    ConsumptionDTO dto = modelMapper.map(consumption, ConsumptionDTO.class);
+                    dto.setCategoryId(consumption.getCategory().getId());
+                    return dto;
+                })
+                .toList();
+            eventDTO.setAvailableConsumptions(consumptionDTOs);
+        }
+
+        return eventDTO;
     }
 
 
