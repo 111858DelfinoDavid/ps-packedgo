@@ -53,6 +53,11 @@ export const routes: Routes = [
     loadComponent: () => import('./features/admin/categories-management/categories-management.component').then(m => m.CategoriesManagementComponent),
     canActivate: [adminGuard]
   },
+  {
+    path: 'admin/consumptions',
+    loadComponent: () => import('./features/admin/consumptions-management/consumptions-management.component').then(m => m.ConsumptionsManagementComponent),
+    canActivate: [adminGuard]
+  },
   
   // Customer routes (protected)
   {

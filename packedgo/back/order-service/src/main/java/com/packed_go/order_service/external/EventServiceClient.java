@@ -63,7 +63,7 @@ public class EventServiceClient {
             log.info("Fetching consumptions for eventId: {}", eventId);
             
             List<ConsumptionDTO> consumptions = webClient.get()
-                    .uri("/event-service/events/{eventId}/consumptions", eventId)
+                    .uri("/event-service/event/{eventId}/consumptions", eventId)
                     .retrieve()
                     .bodyToFlux(ConsumptionDTO.class)
                     .collectList()

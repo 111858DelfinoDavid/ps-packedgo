@@ -9,6 +9,7 @@ import com.packed_go.users_service.repository.UserProfileRepository;
 import com.packed_go.users_service.service.UserProfileService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -18,6 +19,7 @@ import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class UserProfileServiceImpl implements UserProfileService {
 
     @Autowired
@@ -95,8 +97,12 @@ public class UserProfileServiceImpl implements UserProfileService {
 
     @Override
     public UserProfile createFromAuthService(CreateProfileFromAuthRequest request) {
-        // Verificar si ya existe un perfil para este authUserId
-        if (existsByAuthUserId(request.getAuthUserId())) {
+        // Verificar si ya existe un perfil para este authUserId usando find
+        Optional<UserProfileEntity> existingProfile = userProfileRepository.findByAuthUserId(request.getAuthUserId());
+        log.info("Checking for existing profile with authUserId {}: {}", 
+                request.getAuthUserId(), existingProfile.isPresent() ? "FOUND" : "NOT FOUND");
+        
+        if (existingProfile.isPresent()) {
             throw new RuntimeException("Ya existe un perfil para el usuario con authUserId: " + request.getAuthUserId());
         }
 
@@ -105,7 +111,7 @@ public class UserProfileServiceImpl implements UserProfileService {
         userProfile.setAuthUserId(request.getAuthUserId());
         userProfile.setDocument(request.getDocument());
         
-        // ? Usar datos reales en lugar de placeholders
+        // Usar datos reales en lugar de placeholders
         userProfile.setName(request.getName());
         userProfile.setLastName(request.getLastName());
         userProfile.setBornDate(request.getBornDate());

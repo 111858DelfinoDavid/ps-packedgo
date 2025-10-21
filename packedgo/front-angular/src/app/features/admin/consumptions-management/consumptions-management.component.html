@@ -1,0 +1,278 @@
+<div class="consumptions-management">
+  <div class="header">
+    <h1>Gestión de Consumos</h1>
+    <p class="subtitle">Administra los consumos y sus categorías disponibles para los eventos</p>
+  </div>
+
+  <!-- Messages -->
+  <div *ngIf="successMessage" class="alert alert-success">
+    {{ successMessage }}
+  </div>
+  <div *ngIf="errorMessage" class="alert alert-error">
+    {{ errorMessage }}
+  </div>
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <button 
+      class="tab-button" 
+      [class.active]="activeTab === 'consumptions'"
+      (click)="switchTab('consumptions')">
+      <span class="icon">🍔</span>
+      Consumos
+    </button>
+    <button 
+      class="tab-button" 
+      [class.active]="activeTab === 'categories'"
+      (click)="switchTab('categories')">
+      <span class="icon">📁</span>
+      Categorías
+    </button>
+  </div>
+
+  <!-- CONSUMPTIONS TAB -->
+  <div *ngIf="activeTab === 'consumptions'" class="tab-content">
+    <div class="toolbar">
+      <div class="search-box">
+        <input 
+          type="text" 
+          [(ngModel)]="searchTerm" 
+          (input)="filterConsumptions()"
+          placeholder="Buscar consumos..."
+          class="search-input">
+        <span class="search-icon">🔍</span>
+      </div>
+      <button class="btn btn-primary" (click)="openConsumptionModal()">
+        <span class="icon">➕</span>
+        Nuevo Consumo
+      </button>
+    </div>
+
+    <div *ngIf="isLoading" class="loading">Cargando...</div>
+
+    <div *ngIf="!isLoading && filteredConsumptions.length === 0" class="empty-state">
+      <p>No hay consumos disponibles</p>
+      <button class="btn btn-primary" (click)="openConsumptionModal()">Crear primer consumo</button>
+    </div>
+
+    <div *ngIf="!isLoading && filteredConsumptions.length > 0" class="consumptions-grid">
+      <div *ngFor="let consumption of filteredConsumptions" class="consumption-card">
+        <div class="card-image">
+          <img 
+            *ngIf="consumption.imageUrl"
+            [src]="consumption.imageUrl" 
+            [alt]="consumption.name"
+            (error)="handleImageError($event)">
+          <div *ngIf="!consumption.imageUrl" class="placeholder-icon">
+            🍔
+          </div>
+          <span class="status-badge" [class.inactive]="!consumption.active">
+            {{ consumption.active ? 'Activo' : 'Inactivo' }}
+          </span>
+        </div>
+        <div class="card-body">
+          <h3 class="consumption-name">{{ consumption.name }}</h3>
+          <p class="consumption-category">{{ getCategoryName(consumption.categoryId) }}</p>
+          <p class="consumption-description">{{ consumption.description || 'Sin descripción' }}</p>
+          <div class="consumption-price">${{ consumption.price }}</div>
+        </div>
+        <div class="card-actions">
+          <button class="btn-icon btn-edit" (click)="openConsumptionModal(consumption)" title="Editar">
+            ✏️
+          </button>
+          <button class="btn-icon btn-delete" (click)="deleteConsumption(consumption.id!)" title="Eliminar">
+            🗑️
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CATEGORIES TAB -->
+  <div *ngIf="activeTab === 'categories'" class="tab-content">
+    <div class="toolbar">
+      <h2>Categorías de Consumos</h2>
+      <button class="btn btn-primary" (click)="openCategoryModal()">
+        <span class="icon">➕</span>
+        Nueva Categoría
+      </button>
+    </div>
+
+    <div *ngIf="isLoading" class="loading">Cargando...</div>
+
+    <div *ngIf="!isLoading && consumptionCategories.length === 0" class="empty-state">
+      <p>No hay categorías disponibles</p>
+      <button class="btn btn-primary" (click)="openCategoryModal()">Crear primera categoría</button>
+    </div>
+
+    <div *ngIf="!isLoading && consumptionCategories.length > 0" class="categories-list">
+      <div *ngFor="let category of consumptionCategories" class="category-item">
+        <div class="category-info">
+          <h3>{{ category.name }}</h3>
+          <p>{{ category.description || 'Sin descripción' }}</p>
+        </div>
+        <div class="category-status">
+          <span class="status-indicator" [class.active]="category.active">
+            {{ category.active ? '●' : '○' }}
+          </span>
+          <span>{{ category.active ? 'Activa' : 'Inactiva' }}</span>
+        </div>
+        <div class="category-actions">
+          <button class="btn-icon" (click)="toggleCategoryStatus(category.id!)" title="Cambiar estado">
+            {{ category.active ? '🔒' : '🔓' }}
+          </button>
+          <button class="btn-icon btn-edit" (click)="openCategoryModal(category)" title="Editar">
+            ✏️
+          </button>
+          <button class="btn-icon btn-delete" (click)="deleteCategory(category.id!)" title="Eliminar">
+            🗑️
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CONSUMPTION MODAL -->
+  <div *ngIf="showConsumptionModal" class="modal-overlay" (click)="closeConsumptionModal()">
+    <div class="modal-content" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h2>{{ isEditMode ? 'Editar Consumo' : 'Nuevo Consumo' }}</h2>
+        <button class="btn-close" (click)="closeConsumptionModal()">✖</button>
+      </div>
+      <div class="modal-body">
+        <form>
+          <div class="form-group">
+            <label for="consumption-name">Nombre *</label>
+            <input 
+              type="text" 
+              id="consumption-name"
+              [(ngModel)]="consumptionForm.name" 
+              name="name"
+              placeholder="Ej: Hamburguesa Clásica"
+              class="form-control"
+              required>
+          </div>
+
+          <div class="form-group">
+            <label for="consumption-category">Categoría *</label>
+            <select 
+              id="consumption-category"
+              [(ngModel)]="consumptionForm.categoryId" 
+              name="categoryId"
+              class="form-control"
+              required>
+              <option [value]="0">Seleccionar categoría</option>
+              <option *ngFor="let cat of activeConsumptionCategories" [value]="cat.id">
+                {{ cat.name }}
+              </option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="consumption-price">Precio *</label>
+            <input 
+              type="number" 
+              id="consumption-price"
+              [(ngModel)]="consumptionForm.price" 
+              name="price"
+              placeholder="0.00"
+              step="0.01"
+              min="0"
+              class="form-control"
+              required>
+          </div>
+
+          <div class="form-group">
+            <label for="consumption-description">Descripción</label>
+            <textarea 
+              id="consumption-description"
+              [(ngModel)]="consumptionForm.description" 
+              name="description"
+              placeholder="Descripción del consumo..."
+              class="form-control"
+              rows="3"></textarea>
+          </div>
+
+          <div class="form-group">
+            <label for="consumption-image">URL de Imagen</label>
+            <input 
+              type="url" 
+              id="consumption-image"
+              [(ngModel)]="consumptionForm.imageUrl" 
+              name="imageUrl"
+              placeholder="https://ejemplo.com/imagen.jpg"
+              class="form-control">
+          </div>
+
+          <div class="form-group checkbox-group">
+            <label>
+              <input 
+                type="checkbox" 
+                [(ngModel)]="consumptionForm.active" 
+                name="active">
+              <span>Activo</span>
+            </label>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" (click)="closeConsumptionModal()">Cancelar</button>
+        <button class="btn btn-primary" (click)="saveConsumption()" [disabled]="isLoading">
+          {{ isLoading ? 'Guardando...' : 'Guardar' }}
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- CATEGORY MODAL -->
+  <div *ngIf="showCategoryModal" class="modal-overlay" (click)="closeCategoryModal()">
+    <div class="modal-content" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h2>{{ isEditMode ? 'Editar Categoría' : 'Nueva Categoría' }}</h2>
+        <button class="btn-close" (click)="closeCategoryModal()">✖</button>
+      </div>
+      <div class="modal-body">
+        <form>
+          <div class="form-group">
+            <label for="category-name">Nombre *</label>
+            <input 
+              type="text" 
+              id="category-name"
+              [(ngModel)]="categoryForm.name" 
+              name="name"
+              placeholder="Ej: Bebidas"
+              class="form-control"
+              required>
+          </div>
+
+          <div class="form-group">
+            <label for="category-description">Descripción</label>
+            <textarea 
+              id="category-description"
+              [(ngModel)]="categoryForm.description" 
+              name="description"
+              placeholder="Descripción de la categoría..."
+              class="form-control"
+              rows="3"></textarea>
+          </div>
+
+          <div class="form-group checkbox-group">
+            <label>
+              <input 
+                type="checkbox" 
+                [(ngModel)]="categoryForm.active" 
+                name="active">
+              <span>Activa</span>
+            </label>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" (click)="closeCategoryModal()">Cancelar</button>
+        <button class="btn btn-primary" (click)="saveCategory()" [disabled]="isLoading">
+          {{ isLoading ? 'Guardando...' : 'Guardar' }}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

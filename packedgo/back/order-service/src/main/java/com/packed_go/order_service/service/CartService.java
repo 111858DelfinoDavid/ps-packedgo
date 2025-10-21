@@ -1,5 +1,6 @@
 package com.packed_go.order_service.service;
 
+import com.packed_go.order_service.dto.request.AddConsumptionToItemRequest;
 import com.packed_go.order_service.dto.request.AddToCartRequest;
 import com.packed_go.order_service.dto.request.UpdateCartItemRequest;
 import com.packed_go.order_service.dto.response.CartDTO;
@@ -64,4 +65,47 @@ public interface CartService {
      * @throws CartNotFoundException Si el usuario no tiene carrito activo
      */
     CartDTO updateCartItemQuantity(Long userId, Long itemId, UpdateCartItemRequest request);
+    
+    /**
+     * Actualizar la cantidad de una consumición dentro de un item del carrito
+     * Recalcula los subtotales automáticamente
+     * 
+     * @param userId ID del usuario
+     * @param itemId ID del item que contiene la consumición
+     * @param consumptionId ID de la consumición a actualizar
+     * @param newQuantity Nueva cantidad
+     * @return Carrito actualizado
+     * @throws CartNotFoundException Si el usuario no tiene carrito activo
+     */
+    CartDTO updateConsumptionQuantity(Long userId, Long itemId, Long consumptionId, Integer newQuantity);
+    
+    /**
+     * Agregar una nueva consumición a un item existente del carrito
+     * Si la consumición ya existe en el item, incrementa su cantidad
+     * Si no existe, la agrega con la cantidad especificada
+     * Recalcula el subtotal del item automáticamente
+     * 
+     * @param userId ID del usuario
+     * @param itemId ID del item al que se agregará la consumición
+     * @param request Datos de la consumición a agregar (consumptionId y quantity)
+     * @return Carrito actualizado
+     * @throws CartNotFoundException Si el usuario no tiene carrito activo
+     * @throws ItemNotFoundException Si el item no existe en el carrito
+     * @throws ConsumptionNotFoundException Si la consumición no existe en el evento
+     */
+    CartDTO addConsumptionToItem(Long userId, Long itemId, AddConsumptionToItemRequest request);
+    
+    /**
+     * Eliminar una consumición de un item del carrito
+     * Recalcula el subtotal del item automáticamente
+     * 
+     * @param userId ID del usuario
+     * @param itemId ID del item que contiene la consumición
+     * @param consumptionId ID de la consumición a eliminar
+     * @return Carrito actualizado
+     * @throws CartNotFoundException Si el usuario no tiene carrito activo
+     * @throws ItemNotFoundException Si el item no existe en el carrito
+     * @throws ConsumptionNotFoundException Si la consumición no existe en el item
+     */
+    CartDTO removeConsumptionFromItem(Long userId, Long itemId, Long consumptionId);
 }

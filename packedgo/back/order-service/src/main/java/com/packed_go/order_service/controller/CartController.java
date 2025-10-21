@@ -1,5 +1,6 @@
 package com.packed_go.order_service.controller;
 
+import com.packed_go.order_service.dto.request.AddConsumptionToItemRequest;
 import com.packed_go.order_service.dto.request.AddToCartRequest;
 import com.packed_go.order_service.dto.request.UpdateCartItemRequest;
 import com.packed_go.order_service.dto.response.CartDTO;
@@ -128,6 +129,77 @@ public class CartController {
         
         Long userId = extractUserId(authHeader);
         CartDTO cart = cartService.updateCartItemQuantity(userId, itemId, request);
+        
+        return ResponseEntity.ok(cart);
+    }
+    
+    /**
+     * Actualizar la cantidad de una consumición dentro de un item
+     * 
+     * PUT /api/cart/items/{itemId}/consumptions/{consumptionId}
+     * Headers: Authorization: Bearer {token}
+     * Body: { "quantity": 2 }
+     * 
+     * @return 200 OK con el carrito actualizado
+     */
+    @PutMapping("/items/{itemId}/consumptions/{consumptionId}")
+    public ResponseEntity<CartDTO> updateConsumptionQuantity(
+            @RequestHeader("Authorization") String authHeader,
+            @PathVariable Long itemId,
+            @PathVariable Long consumptionId,
+            @Valid @RequestBody UpdateCartItemRequest request) {
+        
+        log.info("PUT /api/cart/items/{}/consumptions/{} - Updating consumption quantity to {}", 
+                itemId, consumptionId, request.getQuantity());
+        
+        Long userId = extractUserId(authHeader);
+        CartDTO cart = cartService.updateConsumptionQuantity(userId, itemId, consumptionId, request.getQuantity());
+        
+        return ResponseEntity.ok(cart);
+    }
+    
+    /**
+     * Agregar una nueva consumición a un item existente del carrito
+     * 
+     * POST /api/cart/items/{itemId}/consumptions
+     * Headers: Authorization: Bearer {token}
+     * Body: { "consumptionId": 2, "quantity": 1 }
+     * 
+     * @return 200 OK con el carrito actualizado
+     */
+    @PostMapping("/items/{itemId}/consumptions")
+    public ResponseEntity<CartDTO> addConsumptionToItem(
+            @RequestHeader("Authorization") String authHeader,
+            @PathVariable Long itemId,
+            @Valid @RequestBody AddConsumptionToItemRequest request) {
+        
+        log.info("POST /api/cart/items/{}/consumptions - Adding consumption {} with quantity {}", 
+                itemId, request.getConsumptionId(), request.getQuantity());
+        
+        Long userId = extractUserId(authHeader);
+        CartDTO cart = cartService.addConsumptionToItem(userId, itemId, request);
+        
+        return ResponseEntity.ok(cart);
+    }
+    
+    /**
+     * Eliminar una consumición de un item del carrito
+     * 
+     * DELETE /api/cart/items/{itemId}/consumptions/{consumptionId}
+     * Headers: Authorization: Bearer {token}
+     * 
+     * @return 200 OK con el carrito actualizado
+     */
+    @DeleteMapping("/items/{itemId}/consumptions/{consumptionId}")
+    public ResponseEntity<CartDTO> removeConsumptionFromItem(
+            @RequestHeader("Authorization") String authHeader,
+            @PathVariable Long itemId,
+            @PathVariable Long consumptionId) {
+        
+        log.info("DELETE /api/cart/items/{}/consumptions/{} - Removing consumption", itemId, consumptionId);
+        
+        Long userId = extractUserId(authHeader);
+        CartDTO cart = cartService.removeConsumptionFromItem(userId, itemId, consumptionId);
         
         return ResponseEntity.ok(cart);
     }

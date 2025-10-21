@@ -15,6 +15,7 @@ export interface Event {
   totalPasses?: number;
   availablePasses?: number;
   soldPasses?: number;
+  availableConsumptions?: Consumption[];
   createdAt?: string;
   updatedAt?: string;
 }

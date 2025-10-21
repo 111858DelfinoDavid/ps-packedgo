@@ -1,15 +1,16 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { EventService } from '../../../core/services/event.service';
 import { CartService } from '../../../core/services/cart.service';
-import { Event } from '../../../shared/models/event.model';
-import { AddToCartRequest } from '../../../shared/models/cart.model';
+import { Event, Consumption } from '../../../shared/models/event.model';
+import { AddToCartRequest, ConsumptionRequest } from '../../../shared/models/cart.model';
 
 @Component({
   selector: 'app-event-detail',
   standalone: true,
-  imports: [CommonModule, RouterModule],
+  imports: [CommonModule, RouterModule, FormsModule],
   templateUrl: './event-detail.component.html',
   styleUrls: ['./event-detail.component.css']
 })
@@ -24,6 +25,9 @@ export class EventDetailComponent implements OnInit {
   errorMessage = '';
   quantity = 1;
   isAddingToCart = false;
+  
+  // Selected consumptions with quantities
+  selectedConsumptions: Map<number, number> = new Map();
 
   ngOnInit(): void {
     // Cargar el carrito primero para tener el estado actual
@@ -105,19 +109,30 @@ export class EventDetailComponent implements OnInit {
 
     this.isAddingToCart = true;
     
-    // Create request with eventId, quantity, and empty consumptions array
+    // Build consumptions array from selected items
+    const consumptions: ConsumptionRequest[] = Array.from(this.selectedConsumptions.entries())
+      .map(([consumptionId, quantity]) => ({
+        consumptionId,
+        quantity
+      }));
+    
+    // Create request with eventId, quantity, and selected consumptions
     const request: AddToCartRequest = {
       eventId: this.event.id!,
       quantity: this.quantity, // Enviar la cantidad seleccionada
-      consumptions: [] // No consumptions for now, just event ticket
+      consumptions: consumptions
     };
     
     this.cartService.addToCart(request).subscribe({
       next: (cart) => {
-        alert(`¡${this.quantity} entrada(s) agregada(s) al carrito!`);
+        const consumptionText = consumptions.length > 0 
+          ? ` con ${consumptions.length} consumo(s)` 
+          : '';
+        alert(`¡${this.quantity} entrada(s) agregada(s) al carrito${consumptionText}!`);
         this.isAddingToCart = false;
-        // Resetear la cantidad a 1 después de agregar
+        // Resetear la cantidad y consumptions seleccionadas
         this.quantity = 1;
+        this.selectedConsumptions.clear();
         this.router.navigate(['/customer/dashboard']);
       },
       error: (error) => {
@@ -138,6 +153,66 @@ export class EventDetailComponent implements OnInit {
         this.isAddingToCart = false;
       }
     });
+  }
+
+  // Consumption selection methods
+  toggleConsumption(consumptionId: number): void {
+    if (this.selectedConsumptions.has(consumptionId)) {
+      this.selectedConsumptions.delete(consumptionId);
+    } else {
+      this.selectedConsumptions.set(consumptionId, 1);
+    }
+  }
+
+  isConsumptionSelected(consumptionId: number): boolean {
+    return this.selectedConsumptions.has(consumptionId);
+  }
+
+  getConsumptionQuantity(consumptionId: number): number {
+    return this.selectedConsumptions.get(consumptionId) || 0;
+  }
+
+  updateConsumptionQuantity(consumptionId: number, quantity: number): void {
+    if (quantity > 0 && quantity <= 10) {
+      this.selectedConsumptions.set(consumptionId, quantity);
+    } else if (quantity <= 0) {
+      this.selectedConsumptions.delete(consumptionId);
+    }
+  }
+
+  incrementConsumption(consumptionId: number): void {
+    const current = this.getConsumptionQuantity(consumptionId);
+    if (current < 10) {
+      this.updateConsumptionQuantity(consumptionId, current + 1);
+    }
+  }
+
+  decrementConsumption(consumptionId: number): void {
+    const current = this.getConsumptionQuantity(consumptionId);
+    if (current > 1) {
+      this.updateConsumptionQuantity(consumptionId, current - 1);
+    } else {
+      this.selectedConsumptions.delete(consumptionId);
+    }
+  }
+
+  getSelectedConsumptionsTotal(): number {
+    if (!this.event?.availableConsumptions) return 0;
+    
+    let total = 0;
+    this.selectedConsumptions.forEach((quantity, consumptionId) => {
+      const consumption = this.event!.availableConsumptions!.find(c => c.id === consumptionId);
+      if (consumption) {
+        total += consumption.price * quantity;
+      }
+    });
+    return total;
+  }
+
+  getTotalPrice(): number {
+    const ticketsTotal = this.event ? this.event.basePrice * this.quantity : 0;
+    const consumptionsTotal = this.getSelectedConsumptionsTotal();
+    return ticketsTotal + consumptionsTotal;
   }
 
   goBack(): void {

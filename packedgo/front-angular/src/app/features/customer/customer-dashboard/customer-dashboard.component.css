@@ -264,3 +264,482 @@
 .btn-quantity:hover { background: #5568d3; transform: scale(1.1); }
 .btn-quantity:active { transform: scale(0.95); }
 .quantity-display { font-weight: 700; color: #333; min-width: 30px; text-align: center; font-size: 1.1rem; }
+
+/* Duplicate button specific styling */
+.btn-duplicate {
+  width: auto;
+  padding: 8px 16px;
+  gap: 6px;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+.btn-duplicate:hover {
+  background: #5568d3;
+  transform: scale(1.05);
+}
+.btn-duplicate:active {
+  transform: scale(0.95);
+}
+
+/* ==================== CONSUMPTION ITEMS STYLING ==================== */
+/* Style consumption rows differently from base entry */
+.item-details .detail-row:not(:first-child):not(.total) {
+  padding-left: 20px;
+  font-size: 0.95rem;
+  color: #667eea;
+  font-weight: 500;
+  background: linear-gradient(90deg, rgba(102, 126, 234, 0.05) 0%, transparent 100%);
+  padding: 8px 8px 8px 20px;
+  border-radius: 6px;
+  margin: 5px 0;
+  border-left: 3px solid #667eea;
+}
+
+.item-details .detail-row:not(:first-child):not(.total) span:first-child {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.item-details .detail-row:not(:first-child):not(.total) span:first-child::before {
+  content: "🍔";
+  font-size: 1.1rem;
+}
+
+/* ==================== CART SECTIONS STYLING ==================== */
+.detail-section {
+  margin-bottom: 15px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.detail-section:last-of-type {
+  border-bottom: none;
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+
+.section-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  color: #333;
+  font-size: 1rem;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid #667eea;
+}
+
+.section-title i {
+  color: #667eea;
+  font-size: 1.2rem;
+}
+
+.detail-section .detail-row {
+  padding: 6px 0;
+  margin: 4px 0;
+}
+
+.subtotal-row {
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px dashed #ddd;
+  font-weight: 600;
+  color: #555 !important;
+}
+
+.consumption-quantity {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.qty-badge {
+  background: #667eea;
+  color: white;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.consumption-price {
+  color: #666;
+  font-weight: 500;
+}
+
+/* Nuevos estilos para controles de consumiciones */
+.consumption-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px dashed #e0e0e0;
+}
+
+.consumption-row:last-of-type {
+  border-bottom: none;
+}
+
+.consumption-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.consumption-name {
+  font-weight: 600;
+  color: #333;
+}
+
+.consumption-controls {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.consumption-subtotal {
+  min-width: 100px;
+  text-align: right;
+  font-weight: 600;
+  color: #667eea;
+}
+
+.detail-row.total {
+  margin-top: 15px;
+  padding-top: 15px;
+  border-top: 2px solid #667eea;
+  color: #333;
+  font-size: 1.15rem;
+}
+
+/* Botón para agregar consumición */
+.btn-add-consumption {
+  margin-top: 15px;
+  padding: 10px 20px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.3s ease;
+  width: 100%;
+  justify-content: center;
+}
+
+.btn-add-consumption:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+}
+
+.btn-add-consumption i {
+  font-size: 1.1rem;
+}
+
+/* Modal Overlay */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 2000;
+  animation: fadeIn 0.3s ease-out;
+}
+
+.modal-content {
+  background: white;
+  border-radius: 16px;
+  width: 90%;
+  max-width: 600px;
+  max-height: 80vh;
+  overflow: hidden;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  animation: slideUp 0.3s ease-out;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(50px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.modal-header {
+  padding: 25px 30px;
+  border-bottom: 2px solid #f0f0f0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.modal-header h3 {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+}
+
+.btn-close {
+  background: transparent;
+  border: none;
+  color: white;
+  font-size: 2rem;
+  cursor: pointer;
+  line-height: 1;
+  padding: 0;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: all 0.3s ease;
+}
+
+.btn-close:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: rotate(90deg);
+}
+
+.modal-body {
+  padding: 30px;
+  max-height: calc(80vh - 100px);
+  overflow-y: auto;
+}
+
+/* Loader del modal */
+.modal-loader {
+  text-align: center;
+  padding: 40px 20px;
+}
+
+.spinner {
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid #667eea;
+  border-radius: 50%;
+  width: 50px;
+  height: 50px;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 20px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.modal-loader p {
+  color: #666;
+  font-size: 1rem;
+}
+
+/* Lista de consumiciones en el modal */
+.consumptions-list {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.consumption-option {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px;
+  border: 2px solid #e0e0e0;
+  border-radius: 12px;
+  transition: all 0.3s ease;
+  background: #fafafa;
+}
+
+.consumption-option:hover {
+  border-color: #667eea;
+  background: white;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.1);
+  transform: translateX(5px);
+}
+
+.consumption-info-modal h4 {
+  margin: 0 0 5px 0;
+  color: #333;
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.consumption-category {
+  color: #666;
+  font-size: 0.85rem;
+  margin: 5px 0;
+}
+
+.consumption-price-modal {
+  color: #667eea;
+  font-size: 1rem;
+  font-weight: 700;
+  margin: 5px 0 0 0;
+}
+
+.btn-add {
+  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+  border: none;
+  color: white;
+  padding: 10px 20px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.3s ease;
+  white-space: nowrap;
+}
+
+.btn-add:hover {
+  transform: scale(1.05);
+  box-shadow: 0 5px 15px rgba(79, 172, 254, 0.4);
+}
+
+.btn-add i {
+  font-size: 1.1rem;
+}
+
+/* Mensaje cuando no hay consumiciones */
+.no-consumptions {
+  text-align: center;
+  padding: 40px 20px;
+  color: #666;
+}
+
+.no-consumptions i {
+  font-size: 3rem;
+  color: #ccc;
+  margin-bottom: 15px;
+}
+
+.no-consumptions p {
+  font-size: 1.1rem;
+  margin: 0;
+}
+
+/* ==================== PROFILE SECTION - NEW STRUCTURE ==================== */
+.section-header .text-muted {
+  color: #666;
+  font-size: 1rem;
+  font-weight: 400;
+  margin-top: 5px;
+}
+
+.profile-content .row {
+  margin-bottom: 0;
+}
+
+.info-section {
+  background: #f8f9fa;
+  border-radius: 12px;
+  padding: 25px;
+  height: 100%;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+}
+
+.section-title-profile {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 2px solid #e0e0e0;
+}
+
+.section-title-profile h5 {
+  color: #333;
+  font-size: 1.2rem;
+  font-weight: 700;
+  margin: 0;
+  display: flex;
+  align-items: center;
+}
+
+.section-title-profile i {
+  color: #4facfe;
+  font-size: 1.3rem;
+}
+
+.btn-edit-small,
+.btn-cancel-small {
+  padding: 6px 15px;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  border: none;
+}
+
+.btn-edit-small {
+  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+  color: white;
+}
+
+.btn-edit-small:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(79, 172, 254, 0.4);
+}
+
+.btn-cancel-small {
+  background: #f5f5f5;
+  color: #666;
+  border: 2px solid #ddd;
+}
+
+.btn-cancel-small:hover {
+  background: #e0e0e0;
+}
+
+.form-control[readonly] {
+  background: #e9ecef;
+  border-color: #ced4da;
+  cursor: not-allowed;
+  color: #495057;
+}
+
+.btn-warning {
+  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  color: white;
+  border: none;
+  padding: 12px 30px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.btn-warning:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(245, 87, 108, 0.4);
+}
+
+.btn-warning:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+

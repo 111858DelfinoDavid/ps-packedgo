@@ -355,6 +355,70 @@
         </div>
       </div>
 
+      <!-- Consumptions Available -->
+      <div class="form-group" *ngIf="consumptions.length > 0">
+        <label>
+          <i class="bi bi-cup-straw"></i>
+          Consumos Disponibles (opcional)
+        </label>
+
+        <!-- Selected Consumptions -->
+        <div *ngIf="getSelectedConsumptionsList().length > 0" class="consumptions-section mb-3">
+          <h6 class="text-success mb-2">
+            <i class="bi bi-check-circle-fill"></i> Seleccionadas ({{ getSelectedConsumptionsList().length }})
+          </h6>
+          <div class="consumptions-selection">
+            <div 
+              *ngFor="let consumption of getSelectedConsumptionsList()" 
+              class="consumption-item selected"
+              (click)="toggleConsumptionSelection(consumption.id!)"
+            >
+              <div class="consumption-checkbox">
+                <input 
+                  type="checkbox" 
+                  [checked]="true"
+                  (change)="toggleConsumptionSelection(consumption.id!)"
+                >
+              </div>
+              <div class="consumption-info">
+                <div class="consumption-name">{{ consumption.name }}</div>
+                <div class="consumption-price">${{ consumption.price }}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Available Consumptions -->
+        <div *ngIf="getAvailableConsumptionsList().length > 0" class="consumptions-section">
+          <h6 class="text-muted mb-2">
+            <i class="bi bi-circle"></i> Disponibles ({{ getAvailableConsumptionsList().length }})
+          </h6>
+          <div class="consumptions-selection">
+            <div 
+              *ngFor="let consumption of getAvailableConsumptionsList()" 
+              class="consumption-item"
+              (click)="toggleConsumptionSelection(consumption.id!)"
+            >
+              <div class="consumption-checkbox">
+                <input 
+                  type="checkbox" 
+                  [checked]="false"
+                  (change)="toggleConsumptionSelection(consumption.id!)"
+                >
+              </div>
+              <div class="consumption-info">
+                <div class="consumption-name">{{ consumption.name }}</div>
+                <div class="consumption-price">${{ consumption.price }}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <small class="form-text text-muted">
+          Haz clic en las consumiciones para seleccionarlas o deseleccionarlas
+        </small>
+      </div>
+
       <!-- Image URL -->
       <div class="form-group">
         <label for="imageUrl">

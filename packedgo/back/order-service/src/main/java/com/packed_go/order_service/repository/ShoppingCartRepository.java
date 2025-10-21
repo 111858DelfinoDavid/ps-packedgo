@@ -17,6 +17,16 @@ public interface ShoppingCartRepository extends JpaRepository<ShoppingCart, Long
      * Busca el carrito activo de un usuario
      */
     Optional<ShoppingCart> findByUserIdAndStatus(Long userId, String status);
+    
+    /**
+     * Busca el carrito activo de un usuario con items cargados (EAGER)
+     * Nota: No se pueden hacer fetch de múltiples colecciones con ORDER BY en Hibernate
+     * El ordenamiento se debe hacer en la capa de servicio si es necesario
+     */
+    @Query("SELECT DISTINCT c FROM ShoppingCart c " +
+           "LEFT JOIN FETCH c.items " +
+           "WHERE c.userId = :userId AND c.status = :status")
+    Optional<ShoppingCart> findByUserIdAndStatusWithItems(@Param("userId") Long userId, @Param("status") String status);
 
     /**
      * Busca todos los carritos de un usuario

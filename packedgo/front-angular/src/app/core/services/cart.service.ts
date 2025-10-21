@@ -166,6 +166,63 @@ export class CartService {
   }
 
   /**
+   * Actualiza la cantidad de una consumición específica en un item del carrito
+   */
+  updateConsumptionQuantity(itemId: number, consumptionId: number, quantity: number): Observable<Cart> {
+    return this.http.put<Cart>(
+      `${this.apiUrl}/cart/items/${itemId}/consumptions/${consumptionId}`,
+      { quantity },
+      { headers: this.getHeaders() }
+    ).pipe(
+      tap(cart => {
+        this.cartSubject.next(cart);
+        if (cart) {
+          this.startTimer(cart.expiresAt);
+        }
+      }),
+      catchError(this.handleError)
+    );
+  }
+
+  /**
+   * Agrega una nueva consumición a un item existente del carrito
+   * Si la consumición ya existe, incrementa su cantidad
+   */
+  addConsumptionToItem(itemId: number, consumptionId: number, quantity: number): Observable<Cart> {
+    return this.http.post<Cart>(
+      `${this.apiUrl}/cart/items/${itemId}/consumptions`,
+      { consumptionId, quantity },
+      { headers: this.getHeaders() }
+    ).pipe(
+      tap(cart => {
+        this.cartSubject.next(cart);
+        if (cart) {
+          this.startTimer(cart.expiresAt);
+        }
+      }),
+      catchError(this.handleError)
+    );
+  }
+
+  /**
+   * Elimina una consumición de un item del carrito
+   */
+  removeConsumptionFromItem(itemId: number, consumptionId: number): Observable<Cart> {
+    return this.http.delete<Cart>(
+      `${this.apiUrl}/cart/items/${itemId}/consumptions/${consumptionId}`,
+      { headers: this.getHeaders() }
+    ).pipe(
+      tap(cart => {
+        this.cartSubject.next(cart);
+        if (cart) {
+          this.startTimer(cart.expiresAt);
+        }
+      }),
+      catchError(this.handleError)
+    );
+  }
+
+  /**
    * Obtiene la cantidad total de entradas en el carrito para un evento específico
    */
   getTicketCountForEvent(eventId: number): number {
@@ -296,6 +353,14 @@ export class CartService {
         case 400:
           errorMessage = serverError.message || 'Datos inválidos';
           break;
+        case 401:
+          // Token inválido o expirado
+          errorMessage = 'Tu sesión ha expirado. Por favor, inicia sesión nuevamente.';
+          // Limpiar token y redirigir al login
+          localStorage.removeItem('token');
+          localStorage.removeItem('userRole');
+          window.location.href = '/customer/login';
+          break;
         case 404:
           errorMessage = serverError.message || 'Carrito no encontrado';
           break;
@@ -304,6 +369,17 @@ export class CartService {
           break;
         case 410:
           errorMessage = serverError.message || 'El carrito ha expirado';
+          break;
+        case 500:
+          // Error 500 puede ser por token inválido también
+          if (serverError.message && serverError.message.includes('Invalid token')) {
+            errorMessage = 'Tu sesión ha expirado. Por favor, inicia sesión nuevamente.';
+            localStorage.removeItem('token');
+            localStorage.removeItem('userRole');
+            window.location.href = '/customer/login';
+          } else {
+            errorMessage = serverError.message || 'Error interno del servidor';
+          }
           break;
         case 503:
           errorMessage = 'Servicio no disponible. Intenta más tarde';

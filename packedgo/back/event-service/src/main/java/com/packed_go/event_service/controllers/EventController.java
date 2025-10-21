@@ -1,5 +1,6 @@
 package com.packed_go.event_service.controllers;
 
+import com.packed_go.event_service.dtos.consumption.ConsumptionDTO;
 import com.packed_go.event_service.dtos.event.CreateEventDTO;
 import com.packed_go.event_service.dtos.event.EventDTO;
 import com.packed_go.event_service.dtos.eventCategory.EventCategoryDTO;
@@ -58,5 +59,11 @@ public class EventController {
     @DeleteMapping("/logical/{id}")
     public ResponseEntity<EventCategoryDTO> deleteLogical(@PathVariable Long id) {
         return ResponseEntity.ok(modelMapper.map(service.deleteLogical(id), EventCategoryDTO.class));
+    }
+
+    @GetMapping("/{eventId}/consumptions")
+    public ResponseEntity<List<ConsumptionDTO>> getEventConsumptions(@PathVariable Long eventId) {
+        EventDTO event = service.findById(eventId);
+        return ResponseEntity.ok(event.getAvailableConsumptions());
     }
 }

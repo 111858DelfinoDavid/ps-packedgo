@@ -51,17 +51,39 @@ export class CustomerDashboardComponent implements OnInit, OnDestroy {
   isLoadingProfile = false;
   isEditingProfile = false;
   profileForm: FormGroup;
+  changePasswordForm: FormGroup;
   originalProfileData: any = null;
+  userAuthData: any = null; // Para username, email, document (readonly)
+
+  // Modal para agregar consumiciones
+  showModal = false;
+  selectedItemId: number | null = null;
+  availableConsumptions: any[] = [];
+  isLoadingConsumptions = false;
 
   constructor() {
+    // Formulario de perfil - DESHABILITADO por defecto
     this.profileForm = this.fb.group({
-      name: ['', [Validators.required, Validators.minLength(2)]],
-      lastName: ['', [Validators.required, Validators.minLength(2)]],
-      telephone: ['', [Validators.required, Validators.pattern(/^\d{10}$/)]],
-      gender: ['', Validators.required],
-      bornDate: ['', Validators.required],
-      profileImageUrl: ['']
+      name: [{value: '', disabled: true}, [Validators.required, Validators.minLength(2)]],
+      lastName: [{value: '', disabled: true}, [Validators.required, Validators.minLength(2)]],
+      telephone: [{value: '', disabled: true}, [Validators.required, Validators.pattern(/^\d{10}$/)]],
+      gender: [{value: '', disabled: true}, Validators.required],
+      bornDate: [{value: '', disabled: true}, Validators.required],
+      profileImageUrl: [{value: '', disabled: true}]
     });
+
+    // Formulario de cambio de contraseña
+    this.changePasswordForm = this.fb.group({
+      currentPassword: ['', [Validators.required, Validators.minLength(6)]],
+      newPassword: ['', [Validators.required, Validators.minLength(6)]],
+      confirmPassword: ['', [Validators.required, Validators.minLength(6)]]
+    }, { validators: this.passwordMatchValidator });
+  }
+
+  // Validador personalizado para confirmar contraseñas
+  private passwordMatchValidator(g: FormGroup) {
+    return g.get('newPassword')?.value === g.get('confirmPassword')?.value
+      ? null : { 'mismatch': true };
   }
 
   ngOnInit(): void {
@@ -170,46 +192,135 @@ export class CustomerDashboardComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Incrementa la cantidad de un item en el carrito
+   * Duplica un item del carrito (crea una copia idéntica)
+   * Con Opción A: cada item = 1 entrada = 1 QR
    */
-  incrementQuantity(itemId: number, currentQuantity: number): void {
-    const maxTickets = this.cartService.MAX_TICKETS_PER_PERSON;
-    
-    if (currentQuantity >= maxTickets) {
-      alert(`No puedes agregar más de ${maxTickets} entradas por evento`);
+  duplicateItem(item: any): void {
+    if (!confirm('¿Deseas duplicar esta entrada? Se creará una copia idéntica con las mismas consumiciones.')) {
       return;
     }
-    
-    this.cartService.updateCartItemQuantity(itemId, currentQuantity + 1).subscribe({
+
+    // Construir las consumiciones para el nuevo item
+    const consumptions = item.consumptions?.map((c: any) => ({
+      consumptionId: c.consumptionId,
+      quantity: c.quantity
+    })) || [];
+
+    // Agregar al carrito (esto creará un nuevo item con quantity=1)
+    this.cartService.addToCart({
+      eventId: item.eventId,
+      quantity: 1,
+      consumptions: consumptions
+    }).subscribe({
       next: () => {
-        console.log('Quantity incremented');
+        console.log('Item duplicado exitosamente');
       },
       error: (error) => {
-        console.error('Error incrementing quantity:', error);
-        alert('Error al actualizar la cantidad');
+        console.error('Error al duplicar item:', error);
+        alert(error.error?.message || 'Error al duplicar la entrada');
       }
     });
   }
 
   /**
-   * Decrementa la cantidad de un item en el carrito
+   * Incrementa la cantidad de una consumición específica
    */
-  decrementQuantity(itemId: number, currentQuantity: number): void {
-    if (currentQuantity <= 1) {
-      // Si es la última entrada, mejor eliminar el item
-      this.removeFromCart(itemId);
+  incrementConsumption(itemId: number, consumption: any): void {
+    const newQuantity = consumption.quantity + 1;
+    
+    this.cartService.updateConsumptionQuantity(itemId, consumption.consumptionId, newQuantity).subscribe({
+      next: () => {
+        console.log('Consumption quantity incremented');
+      },
+      error: (error) => {
+        console.error('Error incrementing consumption:', error);
+        alert(error.error?.message || 'Error al actualizar la cantidad de consumición');
+      }
+    });
+  }
+
+  /**
+   * Decrementa la cantidad de una consumición específica
+   * Si la cantidad es 1, elimina la consumición
+   */
+  decrementConsumption(itemId: number, consumption: any): void {
+    if (consumption.quantity <= 1) {
+      // Si la cantidad es 1, eliminar la consumición
+      this.cartService.removeConsumptionFromItem(itemId, consumption.consumptionId).subscribe({
+        next: () => {
+          console.log('Consumption removed successfully');
+        },
+        error: (error) => {
+          console.error('Error removing consumption:', error);
+          alert(error.error?.message || 'Error al eliminar la consumición');
+        }
+      });
       return;
     }
     
-    this.cartService.updateCartItemQuantity(itemId, currentQuantity - 1).subscribe({
+    const newQuantity = consumption.quantity - 1;
+    
+    this.cartService.updateConsumptionQuantity(itemId, consumption.consumptionId, newQuantity).subscribe({
       next: () => {
-        console.log('Quantity decremented');
+        console.log('Consumption quantity decremented');
       },
       error: (error) => {
-        console.error('Error decrementing quantity:', error);
-        alert('Error al actualizar la cantidad');
+        console.error('Error decrementing consumption:', error);
+        alert(error.error?.message || 'Error al actualizar la cantidad de consumición');
       }
     });
+  }
+
+  /**
+   * Muestra el modal para agregar consumiciones a un item específico
+   */
+  showAddConsumptionModal(item: any): void {
+    this.selectedItemId = item.id;
+    this.isLoadingConsumptions = true;
+    this.showModal = true;
+    
+    // Obtener consumiciones disponibles del evento
+    this.eventService.getEventById(item.eventId).subscribe({
+      next: (event: any) => {
+        // El backend devuelve availableConsumptions (no consumptions)
+        this.availableConsumptions = event.availableConsumptions || [];
+        this.isLoadingConsumptions = false;
+        console.log('Available consumptions:', this.availableConsumptions);
+      },
+      error: (err: any) => {
+        console.error('Error loading consumptions:', err);
+        alert('No se pudieron cargar las consumiciones del evento');
+        this.closeModal();
+      }
+    });
+  }
+
+  /**
+   * Agrega una consumición al item seleccionado
+   */
+  addConsumption(consumptionId: number): void {
+    if (!this.selectedItemId) return;
+    
+    this.cartService.addConsumptionToItem(this.selectedItemId, consumptionId, 1).subscribe({
+      next: () => {
+        console.log('Consumption added successfully');
+        this.closeModal();
+      },
+      error: (err) => {
+        console.error('Error adding consumption:', err);
+        alert(err.error?.message || 'Error al agregar consumición');
+      }
+    });
+  }
+
+  /**
+   * Cierra el modal de agregar consumiciones
+   */
+  closeModal(): void {
+    this.showModal = false;
+    this.selectedItemId = null;
+    this.availableConsumptions = [];
+    this.isLoadingConsumptions = false;
   }
 
   clearCart(): void {
@@ -224,6 +335,11 @@ export class CustomerDashboardComponent implements OnInit, OnDestroy {
         }
       });
     }
+  }
+
+  getConsumptionsTotal(consumptions: any[]): number {
+    if (!consumptions || consumptions.length === 0) return 0;
+    return consumptions.reduce((total, consumption) => total + consumption.subtotal, 0);
   }
 
   proceedToCheckout(): void {
@@ -260,6 +376,15 @@ export class CustomerDashboardComponent implements OnInit, OnDestroy {
     this.userService.getUserProfile(userId).subscribe({
       next: (profile: any) => {
         this.originalProfileData = profile;
+        
+        // Guardar datos de autenticación (readonly)
+        this.userAuthData = {
+          username: this.currentUser?.username || '',
+          email: this.currentUser?.email || '',
+          document: profile.document
+        };
+        
+        // Llenar formulario con datos del perfil
         this.profileForm.patchValue({
           name: profile.name,
           lastName: profile.lastName,
@@ -272,6 +397,7 @@ export class CustomerDashboardComponent implements OnInit, OnDestroy {
       },
       error: (error: any) => {
         console.error('Error al cargar perfil:', error);
+        alert('Error al cargar el perfil. Por favor, intenta nuevamente.');
         this.isLoadingProfile = false;
       }
     });
@@ -301,12 +427,18 @@ export class CustomerDashboardComponent implements OnInit, OnDestroy {
     if (!userId) return;
 
     this.isLoadingProfile = true;
-    const profileData = this.profileForm.value;
+    // Usar getRawValue() para obtener también los valores deshabilitados
+    const profileData = {
+      name: this.profileForm.get('name')?.value,
+      lastName: this.profileForm.get('lastName')?.value,
+      telephone: this.profileForm.get('telephone')?.value,
+      profileImageUrl: this.profileForm.get('profileImageUrl')?.value
+    };
 
     this.userService.updateUserProfile(userId, profileData).subscribe({
       next: (response: any) => {
         console.log('Perfil actualizado:', response);
-        this.originalProfileData = this.profileForm.value;
+        this.originalProfileData = response;
         this.isEditingProfile = false;
         this.profileForm.disable();
         this.isLoadingProfile = false;
@@ -318,6 +450,23 @@ export class CustomerDashboardComponent implements OnInit, OnDestroy {
         alert('Error al actualizar el perfil. Intenta nuevamente.');
       }
     });
+  }
+
+  onChangePassword(): void {
+    if (this.changePasswordForm.invalid) {
+      this.changePasswordForm.markAllAsTouched();
+      return;
+    }
+
+    const passwordData = {
+      currentPassword: this.changePasswordForm.get('currentPassword')?.value,
+      newPassword: this.changePasswordForm.get('newPassword')?.value
+    };
+
+    // TODO: Implementar el servicio para cambiar contraseña
+    console.log('Cambiar contraseña:', passwordData);
+    alert('Funcionalidad de cambiar contraseña pendiente de implementar en el backend');
+    this.changePasswordForm.reset();
   }
 
   // ==================== GENERAL ====================

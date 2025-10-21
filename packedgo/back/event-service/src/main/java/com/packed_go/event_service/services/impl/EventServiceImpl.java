@@ -6,7 +6,6 @@ import com.packed_go.event_service.dtos.consumption.ConsumptionDTO;
 import com.packed_go.event_service.entities.Event;
 import com.packed_go.event_service.entities.EventCategory;
 import com.packed_go.event_service.entities.Consumption;
-import com.packed_go.event_service.exceptions.ResourceNotFoundException;
 import com.packed_go.event_service.repositories.EventCategoryRepository;
 import com.packed_go.event_service.repositories.EventRepository;
 import com.packed_go.event_service.repositories.ConsumptionRepository;
@@ -38,14 +37,20 @@ public class EventServiceImpl implements EventService {
     private final ConsumptionRepository consumptionRepository;
 
     @Override
+    @Transactional
     public EventDTO findById(Long id) {
         Optional<Event> eventExist = eventRepository.findById(id);
         if (eventExist.isPresent()) {
             Event event = eventExist.get();
             EventDTO eventDTO = modelMapper.map(event, EventDTO.class);
             
+            // Asegurar que el categoryId se mapee correctamente
+            if (event.getCategory() != null) {
+                eventDTO.setCategoryId(event.getCategory().getId());
+            }
+            
             // Mapear los consumos disponibles si existen
-            if (!event.getAvailableConsumptions().isEmpty()) {
+            if (event.getAvailableConsumptions() != null && !event.getAvailableConsumptions().isEmpty()) {
                 List<ConsumptionDTO> consumptionDTOs = event.getAvailableConsumptions().stream()
                     .map(consumption -> {
                         ConsumptionDTO dto = modelMapper.map(consumption, ConsumptionDTO.class);
@@ -64,9 +69,31 @@ public class EventServiceImpl implements EventService {
     }
 
     @Override
+    @Transactional
     public List<EventDTO> findAll() {
         List<Event> eventEntities = eventRepository.findAll();
-        return eventEntities.stream().map(entity -> modelMapper.map(entity, EventDTO.class)).toList();
+        return eventEntities.stream().map(entity -> {
+            EventDTO eventDTO = modelMapper.map(entity, EventDTO.class);
+            
+            // Asegurar que el categoryId se mapee correctamente
+            if (entity.getCategory() != null) {
+                eventDTO.setCategoryId(entity.getCategory().getId());
+            }
+            
+            // Mapear los consumos disponibles si existen
+            if (entity.getAvailableConsumptions() != null && !entity.getAvailableConsumptions().isEmpty()) {
+                List<ConsumptionDTO> consumptionDTOs = entity.getAvailableConsumptions().stream()
+                    .map(consumption -> {
+                        ConsumptionDTO dto = modelMapper.map(consumption, ConsumptionDTO.class);
+                        dto.setCategoryId(consumption.getCategory().getId());
+                        return dto;
+                    })
+                    .toList();
+                eventDTO.setAvailableConsumptions(consumptionDTOs);
+            }
+            
+            return eventDTO;
+        }).toList();
     }
 
 
@@ -103,7 +130,7 @@ public class EventServiceImpl implements EventService {
     @Override
     public EventDTO createEvent(CreateEventDTO createEventDto) {
         EventCategory category = eventCategoryRepository.findById(createEventDto.getCategoryId())
-                .orElseThrow(() -> new ResourceNotFoundException("Category with id " + createEventDto.getCategoryId() + " not found"));
+                .orElseThrow(() -> new RuntimeException("Category with id " + createEventDto.getCategoryId() + " not found"));
 
         Event event = modelMapper.map(createEventDto, Event.class);
 
@@ -120,7 +147,7 @@ public class EventServiceImpl implements EventService {
         if (createEventDto.getConsumptionIds() != null && !createEventDto.getConsumptionIds().isEmpty()) {
             List<Consumption> consumptions = consumptionRepository.findAllById(createEventDto.getConsumptionIds());
             if (consumptions.size() != createEventDto.getConsumptionIds().size()) {
-                throw new ResourceNotFoundException("Some consumption IDs were not found");
+                throw new RuntimeException("Some consumption IDs were not found");
             }
             consumptions.forEach(event::addAvailableConsumption);
         }
@@ -131,7 +158,7 @@ public class EventServiceImpl implements EventService {
         EventDTO eventDTO = modelMapper.map(savedEvent, EventDTO.class);
         
         // Mapear los consumos disponibles si existen
-        if (!savedEvent.getAvailableConsumptions().isEmpty()) {
+        if (savedEvent.getAvailableConsumptions() != null && !savedEvent.getAvailableConsumptions().isEmpty()) {
             List<ConsumptionDTO> consumptionDTOs = savedEvent.getAvailableConsumptions().stream()
                 .map(consumption -> {
                     ConsumptionDTO dto = modelMapper.map(consumption, ConsumptionDTO.class);
@@ -150,10 +177,73 @@ public class EventServiceImpl implements EventService {
     public EventDTO updateEvent(Long id, EventDTO eventDto) {
         Optional<Event> eventExist = eventRepository.findById(id);
         if (eventExist.isPresent()) {
-            Event entity = modelMapper.map(eventDto, Event.class);
-            entity.setId(id);
-            Event updatedEntity = eventRepository.save(entity);
-            return modelMapper.map(updatedEntity, EventDTO.class);
+            Event existingEvent = eventExist.get();
+            
+            // Actualizar campos básicos
+            existingEvent.setName(eventDto.getName());
+            existingEvent.setDescription(eventDto.getDescription());
+            existingEvent.setEventDate(eventDto.getEventDate());
+            existingEvent.setLat(eventDto.getLat());
+            existingEvent.setLng(eventDto.getLng());
+            existingEvent.setMaxCapacity(eventDto.getMaxCapacity());
+            existingEvent.setBasePrice(eventDto.getBasePrice());
+            existingEvent.setImageUrl(eventDto.getImageUrl());
+            existingEvent.setStatus(eventDto.getStatus());
+            // NO actualizar 'active' aquí - se maneja con deleteLogical/activateLogical
+            existingEvent.setUpdatedAt(LocalDateTime.now());
+            
+            // Actualizar categoría si cambió
+            if (eventDto.getCategoryId() != null && 
+                (existingEvent.getCategory() == null || !existingEvent.getCategory().getId().equals(eventDto.getCategoryId()))) {
+                EventCategory category = eventCategoryRepository.findById(eventDto.getCategoryId())
+                    .orElseThrow(() -> new RuntimeException("Category with id " + eventDto.getCategoryId() + " not found"));
+                existingEvent.setCategory(category);
+            }
+            
+            // Actualizar consumos disponibles
+            // Primero limpiar las relaciones existentes
+            existingEvent.getAvailableConsumptions().clear();
+            
+            // Agregar los nuevos consumos si existen en el DTO
+            // Usar consumptionIds si está disponible, sino usar availableConsumptions
+            List<Long> consumptionIds = null;
+            
+            if (eventDto.getConsumptionIds() != null && !eventDto.getConsumptionIds().isEmpty()) {
+                // Usar los IDs directamente desde consumptionIds
+                consumptionIds = eventDto.getConsumptionIds();
+            } else if (eventDto.getAvailableConsumptions() != null && !eventDto.getAvailableConsumptions().isEmpty()) {
+                // Fallback: extraer IDs desde availableConsumptions
+                consumptionIds = eventDto.getAvailableConsumptions().stream()
+                    .map(ConsumptionDTO::getId)
+                    .toList();
+            }
+            
+            if (consumptionIds != null && !consumptionIds.isEmpty()) {
+                List<Consumption> consumptions = consumptionRepository.findAllById(consumptionIds);
+                if (consumptions.size() != consumptionIds.size()) {
+                    throw new RuntimeException("Some consumption IDs were not found");
+                }
+                consumptions.forEach(existingEvent::addAvailableConsumption);
+            }
+            
+            Event updatedEntity = eventRepository.save(existingEvent);
+            
+            // Mapear el evento actualizado a DTO
+            EventDTO resultDTO = modelMapper.map(updatedEntity, EventDTO.class);
+            
+            // Mapear los consumos disponibles si existen
+            if (updatedEntity.getAvailableConsumptions() != null && !updatedEntity.getAvailableConsumptions().isEmpty()) {
+                List<ConsumptionDTO> consumptionDTOs = updatedEntity.getAvailableConsumptions().stream()
+                    .map(consumption -> {
+                        ConsumptionDTO dto = modelMapper.map(consumption, ConsumptionDTO.class);
+                        dto.setCategoryId(consumption.getCategory().getId());
+                        return dto;
+                    })
+                    .toList();
+                resultDTO.setAvailableConsumptions(consumptionDTOs);
+            }
+            
+            return resultDTO;
         } else {
             throw new RuntimeException("Event con id " + id + " no encontrado");
         }

@@ -43,6 +43,13 @@ export class AdminDashboardComponent implements OnInit {
       color: 'primary'
     },
     {
+      title: 'Gestionar Consumos',
+      description: 'Administrar consumos y categorías',
+      icon: 'bi-cup-straw',
+      route: '/admin/consumptions',
+      color: 'danger'
+    },
+    {
       title: 'Gestionar Usuarios',
       description: 'Ver y administrar usuarios',
       icon: 'bi-people',

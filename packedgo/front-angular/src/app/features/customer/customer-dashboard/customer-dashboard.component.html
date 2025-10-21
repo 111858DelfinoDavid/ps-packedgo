@@ -155,32 +155,83 @@
             <div *ngFor="let item of cart.items" class="cart-item-card">
               <div class="item-header">
                 <h4>{{ item.eventName }}</h4>
-                <button class="btn-remove" (click)="removeFromCart(item.id)">
+                <button class="btn-remove" (click)="removeFromCart(item.id)" title="Eliminar del carrito">
                   <i class="bi bi-trash"></i>
                 </button>
               </div>
+              
               <div class="item-details">
-                <div class="detail-row">
-                  <span>Entrada base:</span>
-                  <div class="quantity-controls">
-                    <button class="btn-quantity" (click)="decrementQuantity(item.id, item.quantity)" title="Disminuir cantidad">
-                      <i class="bi bi-dash"></i>
-                    </button>
-                    <span class="quantity-display">{{ item.quantity }}</span>
-                    <button class="btn-quantity" (click)="incrementQuantity(item.id, item.quantity)" title="Aumentar cantidad">
-                      <i class="bi bi-plus"></i>
-                    </button>
+                <!-- Entradas -->
+                <div class="detail-section">
+                  <div class="section-title">
+                    <i class="bi bi-ticket-perforated"></i>
+                    <span>Entradas</span>
                   </div>
-                  <span>{{ item.unitPrice | currency: 'USD':'symbol':'1.2-2' }}</span>
+                  <div class="detail-row">
+                    <span>Precio por entrada:</span>
+                    <span>{{ item.unitPrice | currency: 'USD':'symbol':'1.2-2' }}</span>
+                  </div>
+                  <div class="detail-row">
+                    <span>Cantidad:</span>
+                    <div class="quantity-controls">
+                      <span class="quantity-display">{{ item.quantity }}</span>
+                      <button class="btn-quantity" (click)="duplicateItem(item)" title="Agregar otra entrada">
+                        <i class="bi bi-plus"></i>
+                      </button>
+                    </div>
+                  </div>
+                  <div class="detail-row subtotal-row">
+                    <span>Subtotal entradas:</span>
+                    <strong>{{ item.unitPrice * item.quantity | currency: 'USD':'symbol':'1.2-2' }}</strong>
+                  </div>
                 </div>
-                <div class="detail-row" *ngFor="let consumption of item.consumptions">
-                  <span>{{ consumption.consumptionName }} (x{{ consumption.quantity }})</span>
-                  <span>{{ consumption.subtotal | currency: 'USD':'symbol':'1.2-2' }}</span>
+
+                <!-- Consumiciones (si hay) -->
+                <div class="detail-section" *ngIf="item.consumptions && item.consumptions.length > 0">
+                  <div class="section-title">
+                    <i class="bi bi-cup-straw"></i>
+                    <span>Consumiciones Incluidas</span>
+                  </div>
+                  <div class="detail-row consumption-row" *ngFor="let consumption of item.consumptions">
+                    <div class="consumption-info">
+                      <span class="consumption-name">{{ consumption.consumptionName }}</span>
+                      <span class="consumption-price">{{ consumption.unitPrice | currency: 'USD':'symbol':'1.2-2' }} c/u</span>
+                    </div>
+                    <div class="consumption-controls">
+                      <div class="quantity-controls">
+                        <button class="btn-quantity" 
+                                (click)="decrementConsumption(item.id, consumption)" 
+                                [disabled]="consumption.quantity <= 1"
+                                title="Disminuir cantidad">
+                          <i class="bi bi-dash"></i>
+                        </button>
+                        <span class="quantity-display">{{ consumption.quantity }}</span>
+                        <button class="btn-quantity" 
+                                (click)="incrementConsumption(item.id, consumption)"
+                                title="Aumentar cantidad">
+                          <i class="bi bi-plus"></i>
+                        </button>
+                      </div>
+                      <span class="consumption-subtotal">{{ consumption.subtotal | currency: 'USD':'symbol':'1.2-2' }}</span>
+                    </div>
+                  </div>
+                  <div class="detail-row subtotal-row">
+                    <span>Subtotal consumiciones:</span>
+                    <strong>{{ getConsumptionsTotal(item.consumptions) | currency: 'USD':'symbol':'1.2-2' }}</strong>
+                  </div>
                 </div>
+
+                <!-- Total del item -->
                 <div class="detail-row total">
-                  <strong>Subtotal:</strong>
+                  <strong>Total:</strong>
                   <strong>{{ item.subtotal | currency: 'USD':'symbol':'1.2-2' }}</strong>
                 </div>
+
+                <!-- Botón para agregar más consumiciones -->
+                <button class="btn-add-consumption" (click)="showAddConsumptionModal(item)">
+                  <i class="bi bi-plus-circle"></i>
+                  Agregar consumición
+                </button>
               </div>
             </div>
           </div>
@@ -261,13 +312,7 @@
       <div class="profile-section">
         <div class="section-header">
           <h2><i class="bi bi-person me-2"></i>Mi Perfil</h2>
-          <button 
-            *ngIf="!isEditingProfile" 
-            class="btn btn-edit" 
-            (click)="toggleEditProfile()">
-            <i class="bi bi-pencil me-2"></i>
-            Editar Perfil
-          </button>
+          <p class="text-muted">Actualiza tu información personal</p>
         </div>
 
         <div *ngIf="isLoadingProfile" class="loading-container">
@@ -278,124 +323,219 @@
         </div>
 
         <div *ngIf="!isLoadingProfile" class="profile-content">
-          <form [formGroup]="profileForm" (ngSubmit)="onSubmitProfile()">
-            <div class="row">
-              <div class="col-md-6">
+          <div class="row">
+            <!-- Información de Acceso (READONLY) -->
+            <div class="col-md-6">
+              <div class="info-section">
+                <div class="section-title-profile">
+                  <i class="bi bi-shield-lock me-2"></i>
+                  <h5>Información de Acceso</h5>
+                </div>
                 <div class="form-group">
-                  <label for="name">
-                    <i class="bi bi-person"></i> Nombre *
-                  </label>
+                  <label><i class="bi bi-person-badge"></i> Nombre de Usuario</label>
                   <input 
                     type="text" 
                     class="form-control" 
-                    id="name"
-                    formControlName="name"
-                    [class.is-invalid]="profileForm.get('name')?.invalid && profileForm.get('name')?.touched"
+                    [value]="userAuthData?.username || ''"
+                    readonly
                   />
-                  <div class="invalid-feedback" *ngIf="profileForm.get('name')?.errors?.['required']">
-                    El nombre es requerido
-                  </div>
                 </div>
-              </div>
-
-              <div class="col-md-6">
                 <div class="form-group">
-                  <label for="lastName">
-                    <i class="bi bi-person"></i> Apellido *
-                  </label>
+                  <label><i class="bi bi-envelope"></i> Email</label>
+                  <input 
+                    type="email" 
+                    class="form-control" 
+                    [value]="userAuthData?.email || ''"
+                    readonly
+                  />
+                </div>
+                <div class="form-group">
+                  <label><i class="bi bi-card-text"></i> Documento</label>
                   <input 
                     type="text" 
                     class="form-control" 
-                    id="lastName"
-                    formControlName="lastName"
-                    [class.is-invalid]="profileForm.get('lastName')?.invalid && profileForm.get('lastName')?.touched"
-                  />
-                  <div class="invalid-feedback" *ngIf="profileForm.get('lastName')?.errors?.['required']">
-                    El apellido es requerido
-                  </div>
-                </div>
-              </div>
-
-              <div class="col-md-6">
-                <div class="form-group">
-                  <label for="telephone">
-                    <i class="bi bi-telephone"></i> Teléfono *
-                  </label>
-                  <input 
-                    type="tel" 
-                    class="form-control" 
-                    id="telephone"
-                    formControlName="telephone"
-                    placeholder="1234567890"
-                    [class.is-invalid]="profileForm.get('telephone')?.invalid && profileForm.get('telephone')?.touched"
-                  />
-                  <div class="invalid-feedback" *ngIf="profileForm.get('telephone')?.errors?.['pattern']">
-                    Debe ser un número de 10 dígitos
-                  </div>
-                </div>
-              </div>
-
-              <div class="col-md-6">
-                <div class="form-group">
-                  <label for="gender">
-                    <i class="bi bi-gender-ambiguous"></i> Género *
-                  </label>
-                  <select 
-                    class="form-control" 
-                    id="gender"
-                    formControlName="gender"
-                    [class.is-invalid]="profileForm.get('gender')?.invalid && profileForm.get('gender')?.touched"
-                  >
-                    <option value="">Seleccionar...</option>
-                    <option value="MALE">Masculino</option>
-                    <option value="FEMALE">Femenino</option>
-                    <option value="OTHER">Otro</option>
-                  </select>
-                </div>
-              </div>
-
-              <div class="col-md-6">
-                <div class="form-group">
-                  <label for="bornDate">
-                    <i class="bi bi-calendar"></i> Fecha de Nacimiento *
-                  </label>
-                  <input 
-                    type="date" 
-                    class="form-control" 
-                    id="bornDate"
-                    formControlName="bornDate"
-                    [class.is-invalid]="profileForm.get('bornDate')?.invalid && profileForm.get('bornDate')?.touched"
-                  />
-                </div>
-              </div>
-
-              <div class="col-md-6">
-                <div class="form-group">
-                  <label for="profileImageUrl">
-                    <i class="bi bi-image"></i> URL de Imagen de Perfil
-                  </label>
-                  <input 
-                    type="url" 
-                    class="form-control" 
-                    id="profileImageUrl"
-                    formControlName="profileImageUrl"
-                    placeholder="https://ejemplo.com/imagen.jpg"
+                    [value]="userAuthData?.document || ''"
+                    readonly
                   />
                 </div>
               </div>
             </div>
 
-            <div class="form-actions" *ngIf="isEditingProfile">
-              <button type="submit" class="btn btn-save" [disabled]="profileForm.invalid || isLoadingProfile">
-                <i class="bi bi-check-lg me-2"></i>
-                Guardar Cambios
-              </button>
-              <button type="button" class="btn btn-cancel" (click)="toggleEditProfile()">
-                <i class="bi bi-x-lg me-2"></i>
-                Cancelar
-              </button>
+            <!-- Información Personal (EDITABLE) -->
+            <div class="col-md-6">
+              <div class="info-section">
+                <div class="section-title-profile">
+                  <i class="bi bi-person me-2"></i>
+                  <h5>Información Personal</h5>
+                  <button 
+                    *ngIf="!isEditingProfile" 
+                    class="btn btn-sm btn-edit-small" 
+                    (click)="toggleEditProfile()">
+                    <i class="bi bi-pencil me-1"></i>Editar
+                  </button>
+                  <button 
+                    *ngIf="isEditingProfile" 
+                    class="btn btn-sm btn-cancel-small" 
+                    (click)="toggleEditProfile()">
+                    <i class="bi bi-x-lg me-1"></i>Cancelar
+                  </button>
+                </div>
+                
+                <form [formGroup]="profileForm" (ngSubmit)="onSubmitProfile()">
+                  <div class="form-group">
+                    <label><i class="bi bi-person"></i> Nombre *</label>
+                    <input 
+                      type="text" 
+                      class="form-control" 
+                      formControlName="name"
+                      [class.is-invalid]="profileForm.get('name')?.invalid && profileForm.get('name')?.touched"
+                    />
+                    <div class="invalid-feedback" *ngIf="profileForm.get('name')?.errors?.['required']">
+                      El nombre es requerido
+                    </div>
+                  </div>
+
+                  <div class="form-group">
+                    <label><i class="bi bi-person"></i> Apellido *</label>
+                    <input 
+                      type="text" 
+                      class="form-control" 
+                      formControlName="lastName"
+                      [class.is-invalid]="profileForm.get('lastName')?.invalid && profileForm.get('lastName')?.touched"
+                    />
+                    <div class="invalid-feedback" *ngIf="profileForm.get('lastName')?.errors?.['required']">
+                      El apellido es requerido
+                    </div>
+                  </div>
+
+                  <div class="row">
+                    <div class="col-md-6">
+                      <div class="form-group">
+                        <label><i class="bi bi-gender-ambiguous"></i> Género *</label>
+                        <select 
+                          class="form-control" 
+                          formControlName="gender"
+                          [class.is-invalid]="profileForm.get('gender')?.invalid && profileForm.get('gender')?.touched"
+                        >
+                          <option value="">Seleccionar...</option>
+                          <option value="MALE">Masculino</option>
+                          <option value="FEMALE">Femenino</option>
+                          <option value="OTHER">Otro</option>
+                        </select>
+                      </div>
+                    </div>
+                    <div class="col-md-6">
+                      <div class="form-group">
+                        <label><i class="bi bi-calendar"></i> Fecha de Nacimiento *</label>
+                        <input 
+                          type="date" 
+                          class="form-control" 
+                          formControlName="bornDate"
+                          [class.is-invalid]="profileForm.get('bornDate')?.invalid && profileForm.get('bornDate')?.touched"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="form-group">
+                    <label><i class="bi bi-telephone"></i> Teléfono *</label>
+                    <input 
+                      type="tel" 
+                      class="form-control" 
+                      formControlName="telephone"
+                      placeholder="1234567890"
+                      [class.is-invalid]="profileForm.get('telephone')?.invalid && profileForm.get('telephone')?.touched"
+                    />
+                    <div class="invalid-feedback" *ngIf="profileForm.get('telephone')?.errors?.['pattern']">
+                      Debe ser un número de 10 dígitos
+                    </div>
+                  </div>
+
+                  <div class="form-group">
+                    <label><i class="bi bi-image"></i> URL de Imagen de Perfil</label>
+                    <input 
+                      type="url" 
+                      class="form-control" 
+                      formControlName="profileImageUrl"
+                      placeholder="https://ejemplo.com/imagen.jpg"
+                    />
+                  </div>
+
+                  <button 
+                    type="submit" 
+                    class="btn btn-save w-100" 
+                    *ngIf="isEditingProfile"
+                    [disabled]="profileForm.invalid || isLoadingProfile">
+                    <i class="bi bi-check-lg me-2"></i>
+                    Guardar Cambios
+                  </button>
+                </form>
+              </div>
             </div>
-          </form>
+          </div>
+
+          <hr class="my-4" />
+
+          <!-- Cambiar Contraseña -->
+          <div class="row">
+            <div class="col-md-6">
+              <div class="info-section">
+                <div class="section-title-profile">
+                  <i class="bi bi-key me-2"></i>
+                  <h5>Cambiar Contraseña</h5>
+                </div>
+                
+                <form [formGroup]="changePasswordForm" (ngSubmit)="onChangePassword()">
+                  <div class="form-group">
+                    <label><i class="bi bi-lock"></i> Contraseña Actual *</label>
+                    <input 
+                      type="password" 
+                      class="form-control" 
+                      formControlName="currentPassword"
+                      [class.is-invalid]="changePasswordForm.get('currentPassword')?.invalid && changePasswordForm.get('currentPassword')?.touched"
+                    />
+                    <div class="invalid-feedback" *ngIf="changePasswordForm.get('currentPassword')?.errors?.['required']">
+                      La contraseña actual es requerida
+                    </div>
+                  </div>
+
+                  <div class="form-group">
+                    <label><i class="bi bi-lock-fill"></i> Nueva Contraseña *</label>
+                    <input 
+                      type="password" 
+                      class="form-control" 
+                      formControlName="newPassword"
+                      [class.is-invalid]="changePasswordForm.get('newPassword')?.invalid && changePasswordForm.get('newPassword')?.touched"
+                    />
+                    <div class="invalid-feedback" *ngIf="changePasswordForm.get('newPassword')?.errors?.['minlength']">
+                      La contraseña debe tener al menos 6 caracteres
+                    </div>
+                  </div>
+
+                  <div class="form-group">
+                    <label><i class="bi bi-lock-fill"></i> Confirmar Nueva Contraseña *</label>
+                    <input 
+                      type="password" 
+                      class="form-control" 
+                      formControlName="confirmPassword"
+                      [class.is-invalid]="(changePasswordForm.get('confirmPassword')?.invalid || changePasswordForm.errors?.['mismatch']) && changePasswordForm.get('confirmPassword')?.touched"
+                    />
+                    <div class="invalid-feedback" *ngIf="changePasswordForm.errors?.['mismatch'] && changePasswordForm.get('confirmPassword')?.touched">
+                      Las contraseñas no coinciden
+                    </div>
+                  </div>
+
+                  <button 
+                    type="submit" 
+                    class="btn btn-warning w-100"
+                    [disabled]="changePasswordForm.invalid">
+                    <i class="bi bi-shield-lock me-2"></i>
+                    Cambiar Contraseña
+                  </button>
+                </form>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -403,6 +543,44 @@
     <!-- Footer -->
     <div class="dashboard-footer">
       <p>&copy; 2025 PackedGo. Todos los derechos reservados.</p>
+    </div>
+  </div>
+</div>
+
+<!-- Modal para agregar consumiciones -->
+<div class="modal-overlay" *ngIf="showModal" (click)="closeModal()">
+  <div class="modal-content" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h3><i class="bi bi-cup-straw me-2"></i>Agregar Consumición</h3>
+      <button class="btn-close" (click)="closeModal()">×</button>
+    </div>
+    
+    <div class="modal-body">
+      <!-- Loader mientras se cargan las consumiciones -->
+      <div *ngIf="isLoadingConsumptions" class="modal-loader">
+        <div class="spinner"></div>
+        <p>Cargando consumiciones...</p>
+      </div>
+
+      <!-- Lista de consumiciones disponibles -->
+      <div *ngIf="!isLoadingConsumptions && availableConsumptions.length > 0" class="consumptions-list">
+        <div class="consumption-option" *ngFor="let consumption of availableConsumptions">
+          <div class="consumption-info-modal">
+            <h4>{{ consumption.name }}</h4>
+            <p class="consumption-category">{{ consumption.categoryName }}</p>
+            <p class="consumption-price-modal">{{ consumption.price | currency: 'USD':'symbol':'1.2-2' }}</p>
+          </div>
+          <button class="btn-add" (click)="addConsumption(consumption.id)">
+            <i class="bi bi-plus"></i> Agregar
+          </button>
+        </div>
+      </div>
+
+      <!-- Mensaje si no hay consumiciones -->
+      <div *ngIf="!isLoadingConsumptions && availableConsumptions.length === 0" class="no-consumptions">
+        <i class="bi bi-info-circle"></i>
+        <p>No hay consumiciones disponibles para este evento</p>
+      </div>
     </div>
   </div>
 </div>

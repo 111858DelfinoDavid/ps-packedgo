@@ -36,4 +36,7 @@ public class EventDTO {
     
     // Consumptions disponibles para este evento
     private List<ConsumptionDTO> availableConsumptions;
+    
+    // IDs de consumptions para crear/actualizar (usado al crear o actualizar eventos)
+    private List<Long> consumptionIds;
 }

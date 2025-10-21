@@ -5,7 +5,7 @@ import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
 import { EventService } from '../../../core/services/event.service';
 import { AuthService } from '../../../core/services/auth.service';
-import { Event, EventCategory } from '../../../shared/models/event.model';
+import { Event, EventCategory, Consumption } from '../../../shared/models/event.model';
 
 @Component({
   selector: 'app-events-management',
@@ -21,7 +21,9 @@ export class EventsManagementComponent implements OnInit {
 
   events: Event[] = [];
   categories: EventCategory[] = [];
+  consumptions: Consumption[] = [];
   filteredEvents: Event[] = [];
+  selectedConsumptions: number[] = [];
   
   eventForm: FormGroup;
   isLoading = true;
@@ -63,6 +65,14 @@ export class EventsManagementComponent implements OnInit {
       error: (error: any) => console.error('Error al cargar categorías:', error)
     });
 
+    // Cargar consumptions
+    this.eventService.getConsumptions().subscribe({
+      next: (consumptions: any) => {
+        this.consumptions = consumptions.filter((c: Consumption) => c.active);
+      },
+      error: (error: any) => console.error('Error al cargar consumptions:', error)
+    });
+
     // Cargar eventos
     this.eventService.getEvents().subscribe({
       next: (events: any) => {
@@ -94,6 +104,7 @@ export class EventsManagementComponent implements OnInit {
   openCreateModal(): void {
     this.isEditMode = false;
     this.currentEventId = undefined;
+    this.selectedConsumptions = [];
     this.eventForm.reset();
     this.showModal = true;
     this.errorMessage = '';
@@ -103,6 +114,11 @@ export class EventsManagementComponent implements OnInit {
   openEditModal(event: Event): void {
     this.isEditMode = true;
     this.currentEventId = event.id;
+    
+    // Cargar consumiciones existentes del evento
+    this.selectedConsumptions = event.availableConsumptions 
+      ? event.availableConsumptions.map(c => c.id).filter((id): id is number => id !== undefined) 
+      : [];
     
     // Convertir fecha al formato YYYY-MM-DD para el input date
     // El servidor envía la fecha en UTC sin 'Z', así que la agregamos para parsear correctamente
@@ -128,9 +144,11 @@ export class EventsManagementComponent implements OnInit {
 
   closeModal(): void {
     this.showModal = false;
+    this.selectedConsumptions = [];
     this.eventForm.reset();
     this.errorMessage = '';
     this.successMessage = '';
+    this.isSubmitting = false; // Resetear estado de carga
   }
 
   onSubmit(): void {
@@ -146,20 +164,22 @@ export class EventsManagementComponent implements OnInit {
     const eventDateString = this.eventForm.value.eventDate;
     const eventDateTime = `${eventDateString}T20:00:00`; // Agregar hora por defecto (8 PM)
 
-    const eventData: Event = {
+    const eventData: Event & { consumptionIds?: number[] } = {
       ...this.eventForm.value,
       eventDate: eventDateTime, // Usar la fecha con hora
       lat: Number(this.eventForm.value.lat),
       lng: Number(this.eventForm.value.lng),
       maxCapacity: Number(this.eventForm.value.maxCapacity),
       basePrice: Number(this.eventForm.value.basePrice),
-      categoryId: Number(this.eventForm.value.categoryId)
+      categoryId: Number(this.eventForm.value.categoryId),
+      consumptionIds: this.selectedConsumptions
     };
 
     if (this.isEditMode && this.currentEventId) {
       // Actualizar evento existente
       this.eventService.updateEvent(this.currentEventId, eventData).subscribe({
         next: () => {
+          this.isSubmitting = false;
           this.successMessage = 'Evento actualizado exitosamente';
           setTimeout(() => {
             this.closeModal();
@@ -176,6 +196,7 @@ export class EventsManagementComponent implements OnInit {
       // Crear nuevo evento
       this.eventService.createEvent(eventData).subscribe({
         next: () => {
+          this.isSubmitting = false;
           this.successMessage = 'Evento creado exitosamente';
           setTimeout(() => {
             this.closeModal();
@@ -221,6 +242,33 @@ export class EventsManagementComponent implements OnInit {
   getCategoryName(categoryId: number): string {
     const category = this.categories.find(c => c.id === categoryId);
     return category ? category.name : 'Sin categoría';
+  }
+
+  // Métodos para manejo de consumptions
+  toggleConsumptionSelection(consumptionId: number): void {
+    const index = this.selectedConsumptions.indexOf(consumptionId);
+    if (index > -1) {
+      this.selectedConsumptions.splice(index, 1);
+    } else {
+      this.selectedConsumptions.push(consumptionId);
+    }
+  }
+
+  isConsumptionSelected(consumptionId: number): boolean {
+    return this.selectedConsumptions.includes(consumptionId);
+  }
+
+  getSelectedConsumptionsList(): Consumption[] {
+    return this.consumptions.filter(c => this.isConsumptionSelected(c.id!));
+  }
+
+  getAvailableConsumptionsList(): Consumption[] {
+    return this.consumptions.filter(c => !this.isConsumptionSelected(c.id!));
+  }
+
+  getConsumptionCategoryName(categoryId: number): string {
+    const consumption = this.consumptions.find(c => c.id === categoryId);
+    return consumption?.categoryId ? `Categoría ${consumption.categoryId}` : 'Sin categoría';
   }
 
   // Getters para validación en template

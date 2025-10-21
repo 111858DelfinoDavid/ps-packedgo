@@ -56,12 +56,13 @@ public class CartItem {
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();
-        calculateSubtotal();
+        // NO calcular subtotal aquí porque las consumiciones pueden no estar inicializadas
     }
 
     @PreUpdate
     protected void onUpdate() {
-        calculateSubtotal();
+        // NO calcular subtotal aquí automáticamente
+        // El servicio debe llamar explícitamente a calculateSubtotal() cuando sea necesario
     }
 
     // ============================================
@@ -74,6 +75,7 @@ public class CartItem {
     public void calculateSubtotal() {
         BigDecimal consumptionsTotal = consumptions.stream()
                 .map(CartItemConsumption::getSubtotal)
+                .filter(subtotal -> subtotal != null) // Filtrar nulos por seguridad
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
         
         this.subtotal = unitPrice.multiply(BigDecimal.valueOf(quantity))

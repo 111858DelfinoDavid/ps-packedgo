@@ -16,7 +16,7 @@ import jakarta.validation.Valid;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/user-profiles")
+@RequestMapping("/user-profiles")
 @RequiredArgsConstructor
 @Slf4j
 public class UserProfileController {

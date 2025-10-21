@@ -34,8 +34,13 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class CartServiceImpl implements CartService {
     
-    // Constante: Máximo de entradas por persona
+    // Constantes de límites
     private static final int MAX_TICKETS_PER_PERSON = 10;
+    /**
+     * Límite máximo TOTAL de consumiciones por entrada individual
+     * (suma de TODAS las consumiciones de una entrada)
+     */
+    private static final int MAX_TOTAL_CONSUMPTIONS_PER_TICKET = 20;
     
     private final ShoppingCartRepository cartRepository;
     private final CartItemRepository cartItemRepository;
@@ -54,8 +59,8 @@ public class CartServiceImpl implements CartService {
             throw new StockNotAvailableException(request.getEventId());
         }
         
-        // 2. Obtener o crear carrito activo para el usuario
-        ShoppingCart cart = cartRepository.findByUserIdAndStatus(userId, "ACTIVE")
+        // 2. Obtener o crear carrito activo para el usuario (con items cargados)
+        ShoppingCart cart = cartRepository.findByUserIdAndStatusWithItems(userId, "ACTIVE")
                 .orElse(null);
         
         // 3. Verificar si el carrito existe y si expiró
@@ -76,63 +81,69 @@ public class CartServiceImpl implements CartService {
                 ? request.getQuantity() 
                 : 1;
         
-        // 5. Verificar si el evento ya está en el carrito
-        CartItem cartItem = cartItemRepository.findByCartIdAndEventId(cart.getId(), request.getEventId())
-                .orElse(null);
+        // 5. Validar límite total de entradas en el carrito para este evento
+        int totalEventTicketsInCart = cart.getItems().stream()
+                .filter(item -> item.getEventId().equals(request.getEventId()))
+                .mapToInt(CartItem::getQuantity)
+                .sum();
         
-        // Calcular la cantidad total que tendría el item después de agregar
-        int currentQuantity = (cartItem != null) ? cartItem.getQuantity() : 0;
-        int totalQuantity = currentQuantity + quantityToAdd;
+        log.info("Event {} - Current tickets in cart: {}, Adding: {}, Total would be: {}", 
+                request.getEventId(), totalEventTicketsInCart, quantityToAdd, totalEventTicketsInCart + quantityToAdd);
+        
+        int newTotalQuantity = totalEventTicketsInCart + quantityToAdd;
         
         // Validar que no exceda el máximo permitido
-        if (totalQuantity > MAX_TICKETS_PER_PERSON) {
+        if (newTotalQuantity > MAX_TICKETS_PER_PERSON) {
+            log.warn("Limit exceeded for event {}: trying to add {} when already have {}", 
+                    request.getEventId(), quantityToAdd, totalEventTicketsInCart);
             throw new IllegalArgumentException(
-                String.format("Cannot add more than %d tickets per person (current: %d, adding: %d)", 
-                    MAX_TICKETS_PER_PERSON, currentQuantity, quantityToAdd)
+                String.format("Cannot add more than %d tickets per person for this event (current: %d, adding: %d)", 
+                    MAX_TICKETS_PER_PERSON, totalEventTicketsInCart, quantityToAdd)
             );
         }
         
-        if (cartItem == null) {
-            // Crear nuevo item en el carrito con la cantidad especificada
-            cartItem = CartItem.builder()
+        // 6. OPCIÓN A: Crear N items separados, cada uno con quantity=1
+        // Esto permite que cada entrada sea independiente y tenga su propio QR
+        // Usuario verá exactamente cuántos QR recibirá (1 QR por item)
+        log.info("Creating {} separate cart items (quantity=1 each) for event {}", quantityToAdd, request.getEventId());
+        
+        for (int i = 0; i < quantityToAdd; i++) {
+            // Crear un CartItem individual con quantity=1
+            CartItem cartItem = CartItem.builder()
                     .cart(cart)
                     .eventId(request.getEventId())
                     .eventName(event.getName())
-                    .quantity(quantityToAdd)
+                    .quantity(1)  // SIEMPRE 1 - cada item = 1 entrada = 1 QR
                     .unitPrice(event.getBasePrice())
                     .consumptions(new ArrayList<>())
                     .build();
             
-            cart.getItems().add(cartItem);
-            log.info("Created new cart item with {} tickets for event {}", quantityToAdd, request.getEventId());
-        } else {
-            // Si ya existe, sumar la cantidad
-            cartItem.setQuantity(totalQuantity);
-            log.info("Updated cart item quantity from {} to {} for event {}", 
-                    currentQuantity, totalQuantity, request.getEventId());
-        }
-        
-        // 6. Agregar o actualizar consumos
-        if (request.getConsumptions() != null && !request.getConsumptions().isEmpty()) {
-            List<ConsumptionDTO> consumptionsInfo = eventServiceClient.getEventConsumptions(request.getEventId());
-            
-            for (AddToCartRequest.ConsumptionRequest consumptionReq : request.getConsumptions()) {
-                ConsumptionDTO consumptionInfo = consumptionsInfo.stream()
-                        .filter(c -> c.getId().equals(consumptionReq.getConsumptionId()))
-                        .findFirst()
-                        .orElseThrow(() -> new RuntimeException("Consumption " + consumptionReq.getConsumptionId() + " not found"));
+            // 7. Agregar consumos al item (si hay)
+            if (request.getConsumptions() != null && !request.getConsumptions().isEmpty()) {
+                List<ConsumptionDTO> consumptionsInfo = eventServiceClient.getEventConsumptions(request.getEventId());
                 
-                // Buscar si el consumo ya existe en el item
-                CartItemConsumption existingConsumption = cartItem.getConsumptions().stream()
-                        .filter(c -> c.getConsumptionId().equals(consumptionReq.getConsumptionId()))
-                        .findFirst()
-                        .orElse(null);
+                // Calcular total de consumiciones para este item
+                int totalConsumptions = request.getConsumptions().stream()
+                        .mapToInt(AddToCartRequest.ConsumptionRequest::getQuantity)
+                        .sum();
                 
-                if (existingConsumption != null) {
-                    // Actualizar cantidad existente
-                    existingConsumption.setQuantity(existingConsumption.getQuantity() + consumptionReq.getQuantity());
-                } else {
-                    // Crear nuevo consumo
+                // Validar límite TOTAL de consumiciones (no por consumición individual, sino la suma total)
+                if (totalConsumptions > MAX_TOTAL_CONSUMPTIONS_PER_TICKET) {
+                    log.warn("Cannot add consumptions: total quantity {} exceeds limit {}", 
+                            totalConsumptions, MAX_TOTAL_CONSUMPTIONS_PER_TICKET);
+                    throw new IllegalArgumentException(
+                        String.format("Cannot add more than %d consumptions in total per ticket (requested total: %d)", 
+                            MAX_TOTAL_CONSUMPTIONS_PER_TICKET, totalConsumptions)
+                    );
+                }
+                
+                for (AddToCartRequest.ConsumptionRequest consumptionReq : request.getConsumptions()) {
+                    ConsumptionDTO consumptionInfo = consumptionsInfo.stream()
+                            .filter(c -> c.getId().equals(consumptionReq.getConsumptionId()))
+                            .findFirst()
+                            .orElseThrow(() -> new RuntimeException("Consumption " + consumptionReq.getConsumptionId() + " not found"));
+                    
+                    // Crear consumo para este item específico
                     CartItemConsumption newConsumption = CartItemConsumption.builder()
                             .cartItem(cartItem)
                             .consumptionId(consumptionReq.getConsumptionId())
@@ -141,17 +152,25 @@ public class CartServiceImpl implements CartService {
                             .unitPrice(consumptionInfo.getPrice())
                             .build();
                     
+                    // Calcular subtotal de la consumición
+                    newConsumption.updateQuantity(consumptionReq.getQuantity());
+                    
                     cartItem.getConsumptions().add(newConsumption);
                 }
             }
+            
+            // 8. Calcular subtotal del item (entrada + consumiciones)
+            cartItem.calculateSubtotal();
+            
+            // 9. Agregar item al carrito
+            cart.getItems().add(cartItem);
         }
         
-        // 7. Recalcular subtotales
-        cartItem.calculateSubtotal();
+        log.info("Created {} cart items for event {}", quantityToAdd, request.getEventId());
         
-        // 8. Guardar carrito
+        // 10. Guardar carrito (esto persiste todos los CartItems con sus subtotales calculados)
         ShoppingCart savedCart = cartRepository.save(cart);
-        log.info("Event {} added to cart {} successfully", request.getEventId(), savedCart.getId());
+        log.info("{} items for event {} added to cart {} successfully", quantityToAdd, request.getEventId(), savedCart.getId());
         
         return convertToDTO(savedCart);
     }
@@ -161,7 +180,7 @@ public class CartServiceImpl implements CartService {
     public CartDTO getActiveCart(Long userId) {
         log.info("Retrieving active cart for user {}", userId);
         
-        ShoppingCart cart = cartRepository.findByUserIdAndStatus(userId, "ACTIVE")
+        ShoppingCart cart = cartRepository.findByUserIdAndStatusWithItems(userId, "ACTIVE")
                 .orElse(null);
         
         // Si no hay carrito o expiró, crear uno nuevo
@@ -183,7 +202,7 @@ public class CartServiceImpl implements CartService {
     public CartDTO removeCartItem(Long userId, Long itemId) {
         log.info("Removing item {} from cart for user {}", itemId, userId);
         
-        ShoppingCart cart = cartRepository.findByUserIdAndStatus(userId, "ACTIVE")
+        ShoppingCart cart = cartRepository.findByUserIdAndStatusWithItems(userId, "ACTIVE")
                 .orElseThrow(() -> new CartNotFoundException(userId));
         
         // Verificar si expiró
@@ -220,7 +239,7 @@ public class CartServiceImpl implements CartService {
     public void clearCart(Long userId) {
         log.info("Clearing cart for user {}", userId);
         
-        ShoppingCart cart = cartRepository.findByUserIdAndStatus(userId, "ACTIVE")
+        ShoppingCart cart = cartRepository.findByUserIdAndStatusWithItems(userId, "ACTIVE")
                 .orElseThrow(() -> new CartNotFoundException(userId));
         
         cartRepository.delete(cart);
@@ -232,7 +251,14 @@ public class CartServiceImpl implements CartService {
     public CartDTO updateCartItemQuantity(Long userId, Long itemId, UpdateCartItemRequest request) {
         log.info("Updating item {} quantity to {} for user {}", itemId, request.getQuantity(), userId);
         
-        ShoppingCart cart = cartRepository.findByUserIdAndStatus(userId, "ACTIVE")
+        // OPCIÓN A: Cada item tiene quantity=1 siempre
+        // Este método ya NO se usa para incrementar/decrementar
+        // Los botones +/- del frontend ahora crean/eliminan items completos
+        if (request.getQuantity() != 1) {
+            throw new IllegalArgumentException("Quantity must be 1. Use add/remove methods to manage cart items.");
+        }
+        
+        ShoppingCart cart = cartRepository.findByUserIdAndStatusWithItems(userId, "ACTIVE")
                 .orElseThrow(() -> new CartNotFoundException(userId));
         
         // Verificar si expiró
@@ -249,20 +275,212 @@ public class CartServiceImpl implements CartService {
                 .findFirst()
                 .orElseThrow(() -> new RuntimeException("Item not found in cart"));
         
-        // Validar que no exceda el máximo permitido
-        if (request.getQuantity() > MAX_TICKETS_PER_PERSON) {
-            throw new IllegalArgumentException(
-                String.format("Cannot add more than %d tickets per person (requested: %d)", 
-                    MAX_TICKETS_PER_PERSON, request.getQuantity())
-            );
-        }
-        
-        // Actualizar cantidad
-        item.setQuantity(request.getQuantity());
-        item.calculateSubtotal();
+        // No hacer nada, quantity ya es 1
+        log.info("Item {} already has quantity=1, no changes needed", itemId);
         
         ShoppingCart savedCart = cartRepository.save(cart);
         log.info("Item {} quantity updated successfully", itemId);
+        
+        return convertToDTO(savedCart);
+    }
+    
+    @Override
+    @Transactional
+    public CartDTO updateConsumptionQuantity(Long userId, Long itemId, Long consumptionId, Integer newQuantity) {
+        log.info("Updating consumption {} quantity to {} in item {} for user {}", 
+                consumptionId, newQuantity, itemId, userId);
+        
+        ShoppingCart cart = cartRepository.findByUserIdAndStatusWithItems(userId, "ACTIVE")
+                .orElseThrow(() -> new CartNotFoundException(userId));
+        
+        // Verificar si expiró
+        if (cart.isExpired()) {
+            log.warn("Cart {} expired for user {}", cart.getId(), userId);
+            cart.markAsExpired();
+            cartRepository.save(cart);
+            throw new CartExpiredException(cart.getId());
+        }
+        
+        // Buscar el item
+        CartItem item = cart.getItems().stream()
+                .filter(i -> i.getId().equals(itemId))
+                .findFirst()
+                .orElseThrow(() -> new RuntimeException("Item not found in cart"));
+        
+        // Buscar la consumición
+        CartItemConsumption consumption = item.getConsumptions().stream()
+                .filter(c -> c.getConsumptionId().equals(consumptionId))
+                .findFirst()
+                .orElseThrow(() -> new RuntimeException("Consumption not found in item"));
+        
+        // Calcular el total de consumiciones que tendría el item después de este cambio
+        int totalConsumptionsAfterUpdate = item.getConsumptions().stream()
+                .mapToInt(c -> c.getConsumptionId().equals(consumptionId) ? newQuantity : c.getQuantity())
+                .sum();
+        
+        // Validar límite TOTAL de consumiciones (suma de todas)
+        if (totalConsumptionsAfterUpdate > MAX_TOTAL_CONSUMPTIONS_PER_TICKET) {
+            log.warn("Attempted to set total consumptions to {} (max: {})", totalConsumptionsAfterUpdate, MAX_TOTAL_CONSUMPTIONS_PER_TICKET);
+            throw new IllegalArgumentException(
+                String.format("Cannot exceed %d total consumptions per ticket (would result in: %d)", 
+                    MAX_TOTAL_CONSUMPTIONS_PER_TICKET, totalConsumptionsAfterUpdate)
+            );
+        }
+        
+        // Actualizar cantidad de la consumición
+        consumption.updateQuantity(newQuantity);
+        
+        // Recalcular subtotal del item
+        item.calculateSubtotal();
+        
+        ShoppingCart savedCart = cartRepository.save(cart);
+        log.info("Consumption {} quantity updated successfully", consumptionId);
+        
+        return convertToDTO(savedCart);
+    }
+    
+    @Override
+    @Transactional
+    public CartDTO addConsumptionToItem(Long userId, Long itemId, 
+                                        com.packed_go.order_service.dto.request.AddConsumptionToItemRequest request) {
+        log.info("Adding consumption {} (quantity: {}) to item {} for user {}", 
+                request.getConsumptionId(), request.getQuantity(), itemId, userId);
+        
+        // 1. Obtener carrito activo
+        ShoppingCart cart = cartRepository.findByUserIdAndStatusWithItems(userId, "ACTIVE")
+                .orElseThrow(() -> new CartNotFoundException(userId));
+        
+        // Verificar si expiró
+        if (cart.isExpired()) {
+            log.warn("Cart {} expired for user {}", cart.getId(), userId);
+            cart.markAsExpired();
+            cartRepository.save(cart);
+            throw new CartExpiredException(cart.getId());
+        }
+        
+        // 2. Buscar el item en el carrito
+        CartItem item = cart.getItems().stream()
+                .filter(i -> i.getId().equals(itemId))
+                .findFirst()
+                .orElseThrow(() -> new RuntimeException("Item not found in cart"));
+        
+        // 3. Obtener información de la consumición desde event-service
+        List<ConsumptionDTO> consumptions = eventServiceClient.getEventConsumptions(item.getEventId());
+        ConsumptionDTO consumptionInfo = consumptions.stream()
+                .filter(c -> c.getId().equals(request.getConsumptionId()))
+                .findFirst()
+                .orElseThrow(() -> new RuntimeException("Consumption not found in event"));
+        
+        // 4. Verificar si la consumición ya existe en el item
+        CartItemConsumption existingConsumption = item.getConsumptions().stream()
+                .filter(c -> c.getConsumptionId().equals(request.getConsumptionId()))
+                .findFirst()
+                .orElse(null);
+        
+        if (existingConsumption != null) {
+            // Si ya existe, incrementar la cantidad
+            log.info("Consumption {} already exists in item, incrementing quantity", request.getConsumptionId());
+            int newQuantity = existingConsumption.getQuantity() + request.getQuantity();
+            
+            // Calcular el total de consumiciones después de agregar
+            int totalConsumptionsAfterAdd = item.getConsumptions().stream()
+                    .mapToInt(c -> c.getConsumptionId().equals(request.getConsumptionId()) ? newQuantity : c.getQuantity())
+                    .sum();
+            
+            // Validar límite TOTAL de consumiciones
+            if (totalConsumptionsAfterAdd > MAX_TOTAL_CONSUMPTIONS_PER_TICKET) {
+                log.warn("Cannot add consumption: would exceed total limit (would result in: {}, max: {})", 
+                        totalConsumptionsAfterAdd, MAX_TOTAL_CONSUMPTIONS_PER_TICKET);
+                throw new IllegalArgumentException(
+                    String.format("Cannot exceed %d total consumptions per ticket (would result in: %d)", 
+                        MAX_TOTAL_CONSUMPTIONS_PER_TICKET, totalConsumptionsAfterAdd)
+                );
+            }
+            
+            existingConsumption.updateQuantity(newQuantity);
+        } else {
+            // Si no existe, crear una nueva
+            log.info("Creating new consumption {} in item", request.getConsumptionId());
+            
+            // Calcular el total de consumiciones después de agregar esta nueva
+            int totalConsumptionsAfterAdd = item.getConsumptions().stream()
+                    .mapToInt(CartItemConsumption::getQuantity)
+                    .sum() + request.getQuantity();
+            
+            // Validar límite TOTAL de consumiciones
+            if (totalConsumptionsAfterAdd > MAX_TOTAL_CONSUMPTIONS_PER_TICKET) {
+                log.warn("Cannot add consumption: would exceed total limit (would result in: {}, max: {})", 
+                        totalConsumptionsAfterAdd, MAX_TOTAL_CONSUMPTIONS_PER_TICKET);
+                throw new IllegalArgumentException(
+                    String.format("Cannot exceed %d total consumptions per ticket (would result in: %d)", 
+                        MAX_TOTAL_CONSUMPTIONS_PER_TICKET, totalConsumptionsAfterAdd)
+                );
+            }
+            
+            CartItemConsumption newConsumption = CartItemConsumption.builder()
+                    .cartItem(item)
+                    .consumptionId(consumptionInfo.getId())
+                    .consumptionName(consumptionInfo.getName())
+                    .quantity(1) // Inicializar con 1
+                    .unitPrice(consumptionInfo.getPrice())
+                    .build();
+            
+            // Actualizar cantidad (esto calcula el subtotal automáticamente)
+            newConsumption.updateQuantity(request.getQuantity());
+            
+            // Agregar al item
+            item.getConsumptions().add(newConsumption);
+        }
+        
+        // 5. Recalcular subtotal del item
+        item.calculateSubtotal();
+        
+        // 6. Guardar y retornar
+        ShoppingCart savedCart = cartRepository.save(cart);
+        log.info("Consumption {} added successfully to item {}", request.getConsumptionId(), itemId);
+        
+        return convertToDTO(savedCart);
+    }
+    
+    @Override
+    @Transactional
+    public CartDTO removeConsumptionFromItem(Long userId, Long itemId, Long consumptionId) {
+        log.info("Removing consumption {} from item {} for user {}", consumptionId, itemId, userId);
+        
+        // 1. Obtener carrito activo
+        ShoppingCart cart = cartRepository.findByUserIdAndStatusWithItems(userId, "ACTIVE")
+                .orElseThrow(() -> new CartNotFoundException(userId));
+        
+        // Verificar si expiró
+        if (cart.isExpired()) {
+            log.warn("Cart {} expired for user {}", cart.getId(), userId);
+            cart.markAsExpired();
+            cartRepository.save(cart);
+            throw new CartExpiredException(cart.getId());
+        }
+        
+        // 2. Buscar el item en el carrito
+        CartItem item = cart.getItems().stream()
+                .filter(i -> i.getId().equals(itemId))
+                .findFirst()
+                .orElseThrow(() -> new RuntimeException("Item not found in cart"));
+        
+        // 3. Buscar la consumición en el item
+        CartItemConsumption consumptionToRemove = item.getConsumptions().stream()
+                .filter(c -> c.getConsumptionId().equals(consumptionId))
+                .findFirst()
+                .orElseThrow(() -> new RuntimeException("Consumption not found in item"));
+        
+        // 4. Eliminar la consumición
+        item.removeConsumption(consumptionToRemove);
+        log.info("Consumption {} removed from item {}", consumptionId, itemId);
+        
+        // 5. Recalcular subtotal del item
+        item.calculateSubtotal();
+        
+        // 6. Guardar y retornar
+        ShoppingCart savedCart = cartRepository.save(cart);
+        log.info("Cart updated after removing consumption {}", consumptionId);
         
         return convertToDTO(savedCart);
     }
@@ -286,6 +504,12 @@ public class CartServiceImpl implements CartService {
      * Convierte una entidad ShoppingCart a CartDTO
      */
     private CartDTO convertToDTO(ShoppingCart cart) {
+        // Ordenar items por ID para mantener orden consistente
+        List<CartItemDTO> sortedItems = cart.getItems().stream()
+                .sorted((i1, i2) -> i1.getId().compareTo(i2.getId()))
+                .map(this::convertItemToDTO)
+                .collect(Collectors.toList());
+        
         CartDTO dto = CartDTO.builder()
                 .id(cart.getId())
                 .userId(cart.getUserId())
@@ -296,9 +520,7 @@ public class CartServiceImpl implements CartService {
                 .expired(cart.isExpired())
                 .totalAmount(cart.getTotalAmount())
                 .itemCount(cart.getItems().size())
-                .items(cart.getItems().stream()
-                        .map(this::convertItemToDTO)
-                        .collect(Collectors.toList()))
+                .items(sortedItems)
                 .build();
         
         return dto;
@@ -308,6 +530,12 @@ public class CartServiceImpl implements CartService {
      * Convierte un CartItem a CartItemDTO
      */
     private CartItemDTO convertItemToDTO(CartItem item) {
+        // Ordenar consumiciones por ID para mantener orden consistente
+        List<CartItemConsumptionDTO> sortedConsumptions = item.getConsumptions().stream()
+                .sorted((c1, c2) -> c1.getConsumptionId().compareTo(c2.getConsumptionId()))
+                .map(this::convertConsumptionToDTO)
+                .collect(Collectors.toList());
+        
         return CartItemDTO.builder()
                 .id(item.getId())
                 .eventId(item.getEventId())
@@ -315,9 +543,7 @@ public class CartServiceImpl implements CartService {
                 .quantity(item.getQuantity())
                 .unitPrice(item.getUnitPrice())
                 .subtotal(item.getSubtotal())
-                .consumptions(item.getConsumptions().stream()
-                        .map(this::convertConsumptionToDTO)
-                        .collect(Collectors.toList()))
+                .consumptions(sortedConsumptions)
                 .build();
     }
     

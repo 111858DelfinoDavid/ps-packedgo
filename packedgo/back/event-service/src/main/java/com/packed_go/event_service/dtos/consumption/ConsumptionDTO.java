@@ -15,6 +15,7 @@ public class ConsumptionDTO {
     private String description;
     private BigDecimal price;
     private String imageUrl;
+    private boolean active;
 
 
 }

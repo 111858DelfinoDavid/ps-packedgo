@@ -82,9 +82,68 @@
             </small>
           </div>
 
+          <!-- Available Consumptions Section -->
+          <div class="consumptions-section" *ngIf="event.availableConsumptions && event.availableConsumptions.length > 0">
+            <h3 class="consumptions-title">
+              <i class="bi bi-cup-straw"></i>
+              Consumos Disponibles
+            </h3>
+            <p class="consumptions-subtitle">Agrega consumos opcionales a tu compra</p>
+            
+            <div class="consumptions-grid">
+              <div 
+                *ngFor="let consumption of event.availableConsumptions"
+                class="consumption-card"
+                [class.selected]="isConsumptionSelected(consumption.id!)"
+              >
+                <div class="consumption-image" *ngIf="consumption.imageUrl">
+                  <img [src]="consumption.imageUrl" [alt]="consumption.name">
+                </div>
+                
+                <div class="consumption-info">
+                  <h4>{{ consumption.name }}</h4>
+                  <p class="consumption-description" *ngIf="consumption.description">
+                    {{ consumption.description }}
+                  </p>
+                  <div class="consumption-price">
+                    {{ consumption.price | currency: 'USD':'symbol':'1.2-2' }}
+                  </div>
+                </div>
+
+                <div class="consumption-actions">
+                  <div *ngIf="!isConsumptionSelected(consumption.id!)" class="add-consumption">
+                    <button 
+                      class="btn-add-consumption"
+                      (click)="toggleConsumption(consumption.id!)"
+                    >
+                      <i class="bi bi-plus-circle"></i> Agregar
+                    </button>
+                  </div>
+
+                  <div *ngIf="isConsumptionSelected(consumption.id!)" class="consumption-quantity">
+                    <button 
+                      class="btn-quantity-small"
+                      (click)="decrementConsumption(consumption.id!)"
+                    >
+                      <i class="bi bi-dash"></i>
+                    </button>
+                    <span class="quantity-value">{{ getConsumptionQuantity(consumption.id!) }}</span>
+                    <button 
+                      class="btn-quantity-small"
+                      (click)="incrementConsumption(consumption.id!)"
+                      [disabled]="getConsumptionQuantity(consumption.id!) >= 10"
+                    >
+                      <i class="bi bi-plus"></i>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <div class="total-price">
             <span class="total-label">Total:</span>
-            <span class="total-amount">{{ (event.basePrice * quantity) | currency: 'USD':'symbol':'1.2-2' }}</span>
+            <span class="total-amount">{{ getTotalPrice() | currency: 'USD':'symbol':'1.2-2' }}</span>
           </div>
 
           <button 
