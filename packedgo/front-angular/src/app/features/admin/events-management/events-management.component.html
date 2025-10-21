@@ -94,10 +94,17 @@
             <td>{{ event.id }}</td>
             <td>
               <img 
-                [src]="event.imageUrl || 'https://via.placeholder.com/60x40?text=Evento'" 
+                *ngIf="event.imageUrl"
+                [src]="event.imageUrl" 
                 [alt]="event.name"
                 class="event-thumbnail"
               />
+              <i 
+                *ngIf="!event.imageUrl"
+                class="bi bi-image text-muted" 
+                style="font-size: 2rem;"
+                [title]="'Sin imagen'"
+              ></i>
             </td>
             <td>
               <strong>{{ event.name }}</strong>

@@ -116,6 +116,48 @@ services:
     networks:
       - packedgo-network
 
+  # Order Service
+  order-service:
+    build:
+      context: ./order-service
+      dockerfile: Dockerfile
+    ports:
+      - "8084:8084"
+      - "5008:5008"  # Debug port for order-service
+    env_file:
+      - ./order-service/.env
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - JAVA_TOOL_OPTIONS=-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5008
+    depends_on:
+      order-db:
+        condition: service_healthy
+      event-service:
+        condition: service_started
+      auth-service:
+        condition: service_started
+    networks:
+      - packedgo-network
+
+  # Order Database
+  order-db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: order_db
+      POSTGRES_USER: order_user
+      POSTGRES_PASSWORD: order_password
+    ports:
+      - "5436:5432"
+    volumes:
+      - order_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U order_user -d order_db"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - packedgo-network
+
 networks:
   packedgo-network:
     driver: bridge
@@ -124,3 +166,4 @@ volumes:
   auth_db_data:
   users_db_data:
   event_db_data:
+  order_db_data:

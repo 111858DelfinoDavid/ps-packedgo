@@ -4,4 +4,5 @@ export const environment = {
   authServiceUrl: 'https://your-production-domain.com/api',
   usersServiceUrl: 'https://your-production-domain.com/api',
   eventsServiceUrl: 'https://your-production-domain.com/api',
+  ordersServiceUrl: 'https://your-production-domain.com/api',
 };

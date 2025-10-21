@@ -36,3 +36,15 @@ export interface ConsumptionCategory {
   createdAt?: string;
   updatedAt?: string;
 }
+
+export interface Consumption {
+  id?: number;
+  categoryId: number;
+  name: string;
+  description?: string;
+  price: number;
+  imageUrl?: string;
+  active?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}

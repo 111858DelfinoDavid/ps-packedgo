@@ -134,13 +134,13 @@
       <div class="cart-section">
         <div class="section-header">
           <h2><i class="bi bi-cart me-2"></i>Mi Carrito de Compras</h2>
-          <div class="timer-badge" *ngIf="cartItems.length > 0">
+          <div class="timer-badge" *ngIf="cart && cart.items.length > 0">
             <i class="bi bi-clock"></i>
             Tiempo restante: <strong>{{ getTimerDisplay() }}</strong>
           </div>
         </div>
 
-        <div *ngIf="cartItems.length === 0" class="empty-cart">
+        <div *ngIf="!cart || cart.items.length === 0" class="empty-cart">
           <i class="bi bi-cart-x"></i>
           <h3>Tu carrito está vacío</h3>
           <p>Explora eventos y agrega paquetes a tu carrito</p>
@@ -150,27 +150,36 @@
           </button>
         </div>
 
-        <div *ngIf="cartItems.length > 0" class="cart-content">
+        <div *ngIf="cart && cart.items.length > 0" class="cart-content">
           <div class="cart-items">
-            <div *ngFor="let item of cartItems; let i = index" class="cart-item-card">
+            <div *ngFor="let item of cart.items" class="cart-item-card">
               <div class="item-header">
                 <h4>{{ item.eventName }}</h4>
-                <button class="btn-remove" (click)="removeFromCart(i)">
+                <button class="btn-remove" (click)="removeFromCart(item.id)">
                   <i class="bi bi-trash"></i>
                 </button>
               </div>
               <div class="item-details">
                 <div class="detail-row">
                   <span>Entrada base:</span>
-                  <span>{{ item.basePrice | currency: 'USD':'symbol':'1.2-2' }}</span>
+                  <div class="quantity-controls">
+                    <button class="btn-quantity" (click)="decrementQuantity(item.id, item.quantity)" title="Disminuir cantidad">
+                      <i class="bi bi-dash"></i>
+                    </button>
+                    <span class="quantity-display">{{ item.quantity }}</span>
+                    <button class="btn-quantity" (click)="incrementQuantity(item.id, item.quantity)" title="Aumentar cantidad">
+                      <i class="bi bi-plus"></i>
+                    </button>
+                  </div>
+                  <span>{{ item.unitPrice | currency: 'USD':'symbol':'1.2-2' }}</span>
                 </div>
                 <div class="detail-row" *ngFor="let consumption of item.consumptions">
-                  <span>{{ consumption.name }} (x{{ consumption.quantity }})</span>
-                  <span>{{ consumption.price * consumption.quantity | currency: 'USD':'symbol':'1.2-2' }}</span>
+                  <span>{{ consumption.consumptionName }} (x{{ consumption.quantity }})</span>
+                  <span>{{ consumption.subtotal | currency: 'USD':'symbol':'1.2-2' }}</span>
                 </div>
                 <div class="detail-row total">
                   <strong>Subtotal:</strong>
-                  <strong>{{ item.total | currency: 'USD':'symbol':'1.2-2' }}</strong>
+                  <strong>{{ item.subtotal | currency: 'USD':'symbol':'1.2-2' }}</strong>
                 </div>
               </div>
             </div>

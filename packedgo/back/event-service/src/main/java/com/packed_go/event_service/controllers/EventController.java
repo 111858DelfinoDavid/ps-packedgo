@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/event-service/event")
+@RequestMapping("/event-service/event")
 @RequiredArgsConstructor
 @Slf4j
 public class EventController {

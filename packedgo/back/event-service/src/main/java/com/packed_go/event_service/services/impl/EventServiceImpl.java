@@ -87,6 +87,12 @@ public class EventServiceImpl implements EventService {
 
         event.setActive(true);
         event.setCategory(category);
+        
+        // Inicializar passes disponibles igual a la capacidad máxima
+        if (event.getMaxCapacity() != null && event.getMaxCapacity() > 0) {
+            event.setTotalPasses(event.getMaxCapacity());
+            event.setAvailablePasses(event.getMaxCapacity());
+        }
 
         Event savedEvent = eventRepository.save(event);
 

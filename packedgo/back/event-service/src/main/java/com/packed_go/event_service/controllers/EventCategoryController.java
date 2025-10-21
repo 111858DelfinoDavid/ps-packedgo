@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/event-service/category")
+@RequestMapping("/event-service/category")
 @RequiredArgsConstructor
 @Slf4j
 public class EventCategoryController {

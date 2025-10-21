@@ -1,7 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { Event, EventCategory, ConsumptionCategory } from '../../shared/models/event.model';
+import { Event, EventCategory, ConsumptionCategory, Consumption } from '../../shared/models/event.model';
 import { environment } from '../../../environments/environment';
 
 @Injectable({
@@ -13,56 +13,93 @@ export class EventService {
 
   // Event CRUD
   getEvents(): Observable<Event[]> {
-    return this.http.get<Event[]>(`${this.apiUrl}/events`);
+    return this.http.get<Event[]>(`${this.apiUrl}/event-service/event`);
   }
 
   getEventById(id: number): Observable<Event> {
-    return this.http.get<Event>(`${this.apiUrl}/events/${id}`);
+    return this.http.get<Event>(`${this.apiUrl}/event-service/event/${id}`);
   }
 
   createEvent(event: Event): Observable<Event> {
-    return this.http.post<Event>(`${this.apiUrl}/events`, event);
+    return this.http.post<Event>(`${this.apiUrl}/event-service/event`, event);
   }
 
   updateEvent(id: number, event: Event): Observable<Event> {
-    return this.http.put<Event>(`${this.apiUrl}/events/${id}`, event);
+    return this.http.put<Event>(`${this.apiUrl}/event-service/event/${id}`, event);
   }
 
   deleteEvent(id: number): Observable<void> {
-    return this.http.delete<void>(`${this.apiUrl}/events/${id}`);
+    return this.http.delete<void>(`${this.apiUrl}/event-service/event/${id}`);
   }
 
   // Event Categories
   getEventCategories(): Observable<EventCategory[]> {
-    return this.http.get<EventCategory[]>(`${this.apiUrl}/event-categories`);
+    return this.http.get<EventCategory[]>(`${this.apiUrl}/event-service/category`);
+  }
+
+  getActiveEventCategories(): Observable<EventCategory[]> {
+    return this.http.get<EventCategory[]>(`${this.apiUrl}/event-service/category/active`);
   }
 
   createEventCategory(category: EventCategory): Observable<EventCategory> {
-    return this.http.post<EventCategory>(`${this.apiUrl}/event-categories`, category);
+    return this.http.post<EventCategory>(`${this.apiUrl}/event-service/category`, category);
   }
 
   updateEventCategory(id: number, category: EventCategory): Observable<EventCategory> {
-    return this.http.put<EventCategory>(`${this.apiUrl}/event-categories/${id}`, category);
+    return this.http.put<EventCategory>(`${this.apiUrl}/event-service/category/${id}`, category);
   }
 
   deleteEventCategory(id: number): Observable<void> {
-    return this.http.delete<void>(`${this.apiUrl}/event-categories/${id}`);
+    return this.http.delete<void>(`${this.apiUrl}/event-service/category/${id}`);
+  }
+
+  toggleEventCategoryStatus(id: number): Observable<EventCategory> {
+    return this.http.put<EventCategory>(`${this.apiUrl}/event-service/category/status/${id}`, {});
   }
 
   // Consumption Categories
   getConsumptionCategories(): Observable<ConsumptionCategory[]> {
-    return this.http.get<ConsumptionCategory[]>(`${this.apiUrl}/consumption-categories`);
+    return this.http.get<ConsumptionCategory[]>(`${this.apiUrl}/event-service/consumption-category`);
+  }
+
+  getActiveConsumptionCategories(): Observable<ConsumptionCategory[]> {
+    return this.http.get<ConsumptionCategory[]>(`${this.apiUrl}/event-service/consumption-category/active`);
   }
 
   createConsumptionCategory(category: ConsumptionCategory): Observable<ConsumptionCategory> {
-    return this.http.post<ConsumptionCategory>(`${this.apiUrl}/consumption-categories`, category);
+    return this.http.post<ConsumptionCategory>(`${this.apiUrl}/event-service/consumption-category`, category);
   }
 
   updateConsumptionCategory(id: number, category: ConsumptionCategory): Observable<ConsumptionCategory> {
-    return this.http.put<ConsumptionCategory>(`${this.apiUrl}/consumption-categories/${id}`, category);
+    return this.http.put<ConsumptionCategory>(`${this.apiUrl}/event-service/consumption-category/${id}`, category);
   }
 
   deleteConsumptionCategory(id: number): Observable<void> {
-    return this.http.delete<void>(`${this.apiUrl}/consumption-categories/${id}`);
+    return this.http.delete<void>(`${this.apiUrl}/event-service/consumption-category/${id}`);
+  }
+
+  toggleConsumptionCategoryStatus(id: number): Observable<ConsumptionCategory> {
+    return this.http.put<ConsumptionCategory>(`${this.apiUrl}/event-service/consumption-category/status/${id}`, {});
+  }
+
+  // Consumptions CRUD
+  getConsumptions(): Observable<Consumption[]> {
+    return this.http.get<Consumption[]>(`${this.apiUrl}/event-service/consumption`);
+  }
+
+  getConsumptionById(id: number): Observable<Consumption> {
+    return this.http.get<Consumption>(`${this.apiUrl}/event-service/consumption/${id}`);
+  }
+
+  createConsumption(consumption: Consumption): Observable<Consumption> {
+    return this.http.post<Consumption>(`${this.apiUrl}/event-service/consumption`, consumption);
+  }
+
+  updateConsumption(id: number, consumption: Consumption): Observable<Consumption> {
+    return this.http.put<Consumption>(`${this.apiUrl}/event-service/consumption/${id}`, consumption);
+  }
+
+  deleteConsumption(id: number): Observable<void> {
+    return this.http.delete<void>(`${this.apiUrl}/event-service/consumption/${id}`);
   }
 }

@@ -2,10 +2,13 @@ import { Component, inject, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
+import { Subscription } from 'rxjs';
 import { AuthService } from '../../../core/services/auth.service';
 import { EventService } from '../../../core/services/event.service';
 import { UserService } from '../../../core/services/user.service';
+import { CartService } from '../../../core/services/cart.service';
 import { Event } from '../../../shared/models/event.model';
+import { Cart } from '../../../shared/models/cart.model';
 
 type TabType = 'events' | 'cart' | 'tickets' | 'profile';
 
@@ -19,6 +22,7 @@ export class CustomerDashboardComponent implements OnInit, OnDestroy {
   private authService = inject(AuthService);
   private eventService = inject(EventService);
   private userService = inject(UserService);
+  private cartService = inject(CartService);
   private router = inject(Router);
   private fb = inject(FormBuilder);
 
@@ -33,9 +37,11 @@ export class CustomerDashboardComponent implements OnInit, OnDestroy {
   searchTerm = '';
 
   // Cart Section
-  cartItems: any[] = [];
-  cartTimer: any = null;
-  timeRemaining = 600; // 10 minutos en segundos
+  cart: Cart | null = null;
+  timeRemaining = 0;
+  private previousTimeRemaining = 0;
+  private cartSubscription?: Subscription;
+  private timerSubscription?: Subscription;
 
   // Tickets Section
   isLoadingTickets = false;
@@ -60,7 +66,27 @@ export class CustomerDashboardComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.loadEvents();
-    this.loadCartFromStorage();
+    
+    // Suscribirse a cambios del carrito PRIMERO
+    this.cartSubscription = this.cartService.cart$.subscribe(cart => {
+      this.cart = cart;
+    });
+    
+    // Suscribirse a cambios del timer
+    this.timerSubscription = this.cartService.timeRemaining$.subscribe(seconds => {
+      // Detectar transición de tiempo > 0 a 0 (verdadera expiración)
+      if (this.previousTimeRemaining > 0 && seconds === 0 && this.cart && this.cart.items && this.cart.items.length > 0) {
+        alert('El tiempo de reserva ha expirado. Tu carrito ha sido vaciado.');
+        this.cart = null;
+      }
+      
+      this.previousTimeRemaining = this.timeRemaining;
+      this.timeRemaining = seconds;
+    });
+    
+    // SIEMPRE cargar el carrito del backend al iniciar el dashboard
+    // Esto asegura que tengamos el estado más actualizado, especialmente después de recargar la página
+    this.loadCart();
   }
 
   // ==================== TAB NAVIGATION ====================
@@ -110,76 +136,104 @@ export class CustomerDashboardComponent implements OnInit, OnDestroy {
   }
 
   // ==================== CART SECTION ====================
-  loadCartFromStorage(): void {
-    const savedCart = localStorage.getItem('shopping_cart');
-    if (savedCart) {
-      this.cartItems = JSON.parse(savedCart);
-      if (this.cartItems.length > 0) {
-        this.startCartTimer();
-      }
-    }
-  }
-
-  startCartTimer(): void {
-    if (this.cartTimer) clearInterval(this.cartTimer);
-    
-    this.cartTimer = setInterval(() => {
-      this.timeRemaining--;
-      
-      if (this.timeRemaining <= 0) {
-        this.clearCart();
-        alert('El tiempo de reserva ha expirado. Tu carrito ha sido vaciado.');
-      }
-    }, 1000);
+  loadCart(): void {
+    this.cartService.loadCart();
   }
 
   get cartCount(): number {
-    return this.cartItems.length;
+    return this.cart ? this.cart.itemCount : 0;
   }
 
   get cartTotal(): number {
-    return this.cartItems.reduce((sum, item) => sum + item.total, 0);
+    return this.cart ? this.cart.totalAmount : 0;
   }
 
   getTimerDisplay(): string {
-    const minutes = Math.floor(this.timeRemaining / 60);
-    const seconds = this.timeRemaining % 60;
-    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+    return this.cartService.formatTimeRemaining(this.timeRemaining);
   }
 
-  removeFromCart(index: number): void {
+  removeFromCart(itemId: number): void {
     if (confirm('¿Estás seguro de que quieres eliminar este item del carrito?')) {
-      this.cartItems.splice(index, 1);
-      this.saveCartToStorage();
-      
-      if (this.cartItems.length === 0) {
-        this.clearCart();
-      }
+      this.cartService.removeCartItem(itemId).subscribe({
+        next: (cart) => {
+          console.log('Item removed from cart');
+          if (!cart) {
+            console.log('Cart is now empty');
+          }
+        },
+        error: (error) => {
+          console.error('Error removing item:', error);
+          alert('Error al eliminar el item del carrito: ' + error.message);
+        }
+      });
     }
+  }
+
+  /**
+   * Incrementa la cantidad de un item en el carrito
+   */
+  incrementQuantity(itemId: number, currentQuantity: number): void {
+    const maxTickets = this.cartService.MAX_TICKETS_PER_PERSON;
+    
+    if (currentQuantity >= maxTickets) {
+      alert(`No puedes agregar más de ${maxTickets} entradas por evento`);
+      return;
+    }
+    
+    this.cartService.updateCartItemQuantity(itemId, currentQuantity + 1).subscribe({
+      next: () => {
+        console.log('Quantity incremented');
+      },
+      error: (error) => {
+        console.error('Error incrementing quantity:', error);
+        alert('Error al actualizar la cantidad');
+      }
+    });
+  }
+
+  /**
+   * Decrementa la cantidad de un item en el carrito
+   */
+  decrementQuantity(itemId: number, currentQuantity: number): void {
+    if (currentQuantity <= 1) {
+      // Si es la última entrada, mejor eliminar el item
+      this.removeFromCart(itemId);
+      return;
+    }
+    
+    this.cartService.updateCartItemQuantity(itemId, currentQuantity - 1).subscribe({
+      next: () => {
+        console.log('Quantity decremented');
+      },
+      error: (error) => {
+        console.error('Error decrementing quantity:', error);
+        alert('Error al actualizar la cantidad');
+      }
+    });
   }
 
   clearCart(): void {
-    this.cartItems = [];
-    this.timeRemaining = 600;
-    if (this.cartTimer) {
-      clearInterval(this.cartTimer);
-      this.cartTimer = null;
+    if (confirm('¿Estás seguro de que quieres vaciar todo el carrito?')) {
+      this.cartService.clearCart().subscribe({
+        next: () => {
+          console.log('Cart cleared successfully');
+        },
+        error: (error) => {
+          console.error('Error clearing cart:', error);
+          alert('Error al vaciar el carrito: ' + error.message);
+        }
+      });
     }
-    localStorage.removeItem('shopping_cart');
   }
 
   proceedToCheckout(): void {
-    if (this.cartItems.length === 0) {
+    if (!this.cart || this.cart.itemCount === 0) {
       alert('Tu carrito está vacío');
       return;
     }
     
     // TODO: Implementar proceso de pago con MercadoPago
     alert('Redirigiendo a pasarela de pago... (Por implementar)');
-  }
-
-  private saveCartToStorage(): void {
-    localStorage.setItem('shopping_cart', JSON.stringify(this.cartItems));
   }
 
   // ==================== TICKETS SECTION ====================
@@ -268,15 +322,16 @@ export class CustomerDashboardComponent implements OnInit, OnDestroy {
 
   // ==================== GENERAL ====================
   logout(): void {
-    if (this.cartTimer) {
-      clearInterval(this.cartTimer);
-    }
     this.authService.logout();
   }
 
   ngOnDestroy(): void {
-    if (this.cartTimer) {
-      clearInterval(this.cartTimer);
+    // Limpiar suscripciones para evitar memory leaks
+    if (this.cartSubscription) {
+      this.cartSubscription.unsubscribe();
+    }
+    if (this.timerSubscription) {
+      this.timerSubscription.unsubscribe();
     }
   }
 }

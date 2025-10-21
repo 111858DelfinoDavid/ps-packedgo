@@ -105,7 +105,8 @@ export class EventsManagementComponent implements OnInit {
     this.currentEventId = event.id;
     
     // Convertir fecha al formato YYYY-MM-DD para el input date
-    const eventDate = new Date(event.eventDate);
+    // El servidor envía la fecha en UTC sin 'Z', así que la agregamos para parsear correctamente
+    const eventDate = new Date(event.eventDate.endsWith('Z') ? event.eventDate : event.eventDate + 'Z');
     const formattedDate = eventDate.toISOString().split('T')[0];
     
     this.eventForm.patchValue({
@@ -141,8 +142,13 @@ export class EventsManagementComponent implements OnInit {
     this.isSubmitting = true;
     this.errorMessage = '';
 
+    // Convertir la fecha (YYYY-MM-DD) a LocalDateTime (YYYY-MM-DDTHH:mm:ss)
+    const eventDateString = this.eventForm.value.eventDate;
+    const eventDateTime = `${eventDateString}T20:00:00`; // Agregar hora por defecto (8 PM)
+
     const eventData: Event = {
       ...this.eventForm.value,
+      eventDate: eventDateTime, // Usar la fecha con hora
       lat: Number(this.eventForm.value.lat),
       lng: Number(this.eventForm.value.lng),
       maxCapacity: Number(this.eventForm.value.maxCapacity),

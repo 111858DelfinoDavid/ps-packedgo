@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/event-service/consumption")
+@RequestMapping("/event-service/consumption")
 @RequiredArgsConstructor
 @Slf4j
 public class ConsumptionController {

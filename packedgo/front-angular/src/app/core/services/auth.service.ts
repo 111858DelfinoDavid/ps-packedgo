@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { BehaviorSubject, Observable, tap } from 'rxjs';
+import { BehaviorSubject, Observable, tap, map } from 'rxjs';
 import { Router } from '@angular/router';
 import { 
   AdminLoginRequest, 
@@ -11,6 +11,14 @@ import {
   AuthUser 
 } from '../../shared/models/user.model';
 import { environment } from '../../../environments/environment';
+
+// Interfaz para la respuesta envuelta del backend
+interface ApiResponse<T> {
+  success: boolean;
+  message: string;
+  data: T;
+  timestamp: string;
+}
 
 @Injectable({
   providedIn: 'root'
@@ -58,20 +66,22 @@ export class AuthService {
 
   // Admin Login
   adminLogin(credentials: AdminLoginRequest): Observable<LoginResponse> {
-    return this.http.post<LoginResponse>(`${this.apiUrl}/auth/admin/login`, credentials)
+    return this.http.post<ApiResponse<LoginResponse>>(`${this.apiUrl}/auth/admin/login`, credentials)
       .pipe(
-        tap(response => {
-          this.saveAuthData(response);
+        map(response => response.data),
+        tap(loginData => {
+          this.saveAuthData(loginData);
         })
       );
   }
 
   // Customer Login
   customerLogin(credentials: CustomerLoginRequest): Observable<LoginResponse> {
-    return this.http.post<LoginResponse>(`${this.apiUrl}/auth/customer/login`, credentials)
+    return this.http.post<ApiResponse<LoginResponse>>(`${this.apiUrl}/auth/customer/login`, credentials)
       .pipe(
-        tap(response => {
-          this.saveAuthData(response);
+        map(response => response.data),
+        tap(loginData => {
+          this.saveAuthData(loginData);
         })
       );
   }
@@ -106,7 +116,7 @@ export class AuthService {
     localStorage.removeItem('currentUser');
     localStorage.removeItem('permissions');
     this.currentUserSubject.next(null);
-    this.router.navigate(['/login']);
+    this.router.navigate(['/']); // Volver a la landing page
   }
 
   isAdmin(): boolean {

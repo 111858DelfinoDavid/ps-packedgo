@@ -1,10 +1,21 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './core/guards/auth.guard';
 import { adminGuard } from './core/guards/admin.guard';
+import { inject } from '@angular/core';
+import { Router } from '@angular/router';
+import { AuthService } from './core/services/auth.service';
 
 export const routes: Routes = [
-  // Redirect root to admin login by default
-  { path: '', redirectTo: '/admin/login', pathMatch: 'full' },
+  // Landing page
+  {
+    path: '',
+    loadComponent: () => import('./features/landing/landing.component').then(m => m.LandingComponent)
+  },
+  {
+    path: 'home',
+    redirectTo: '',
+    pathMatch: 'full'
+  },
   
   // Auth routes - Admin
   {
@@ -47,6 +58,11 @@ export const routes: Routes = [
   {
     path: 'customer/dashboard',
     loadComponent: () => import('./features/customer/customer-dashboard/customer-dashboard.component').then(m => m.CustomerDashboardComponent),
+    canActivate: [authGuard]
+  },
+  {
+    path: 'customer/events/:id',
+    loadComponent: () => import('./features/customer/event-detail/event-detail.component').then(m => m.EventDetailComponent),
     canActivate: [authGuard]
   },
   
