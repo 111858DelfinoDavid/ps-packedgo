@@ -458,15 +458,26 @@ export class CustomerDashboardComponent implements OnInit, OnDestroy {
       return;
     }
 
-    const passwordData = {
-      currentPassword: this.changePasswordForm.get('currentPassword')?.value,
-      newPassword: this.changePasswordForm.get('newPassword')?.value
-    };
+    const user = this.authService.getCurrentUser();
+    if (!user) {
+      alert('Error: Usuario no encontrado');
+      return;
+    }
 
-    // TODO: Implementar el servicio para cambiar contraseña
-    console.log('Cambiar contraseña:', passwordData);
-    alert('Funcionalidad de cambiar contraseña pendiente de implementar en el backend');
-    this.changePasswordForm.reset();
+    const currentPassword = this.changePasswordForm.get('currentPassword')?.value;
+    const newPassword = this.changePasswordForm.get('newPassword')?.value;
+
+    this.authService.changePassword(user.id, currentPassword, newPassword).subscribe({
+      next: () => {
+        alert('✓ Contraseña actualizada exitosamente');
+        this.changePasswordForm.reset();
+      },
+      error: (error) => {
+        const errorMessage = error.error?.message || 'Error al cambiar la contraseña. Verifica que la contraseña actual sea correcta.';
+        alert('❌ ' + errorMessage);
+        console.error('Error al cambiar contraseña:', error);
+      }
+    });
   }
 
   // ==================== GENERAL ====================

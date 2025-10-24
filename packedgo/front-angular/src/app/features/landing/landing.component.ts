@@ -1,11 +1,11 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Router } from '@angular/router';
+import { Router, RouterModule } from '@angular/router';
 
 @Component({
   selector: 'app-landing',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, RouterModule],
   templateUrl: './landing.component.html',
   styleUrls: ['./landing.component.css']
 })
@@ -22,5 +22,9 @@ export class LandingComponent {
 
   goToCustomerRegister(): void {
     this.router.navigate(['/customer/register']);
+  }
+
+  goToEvents(): void {
+    this.router.navigate(['/customer/dashboard']);
   }
 }

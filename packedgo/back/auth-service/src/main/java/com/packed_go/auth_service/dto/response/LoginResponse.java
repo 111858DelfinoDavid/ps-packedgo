@@ -31,6 +31,7 @@ public class LoginResponse {
         private Long document;
         private String role;
         private String loginType;
+        private Boolean isEmailVerified;
         private LocalDateTime lastLogin;
         // No incluimos campos sensibles como passwordHash
     }

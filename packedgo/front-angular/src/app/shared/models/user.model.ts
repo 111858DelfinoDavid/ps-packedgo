@@ -6,6 +6,7 @@ export interface AuthUser {
   document?: number;
   role: string;
   loginType: string;
+  isEmailVerified?: boolean;
   lastLogin?: string;
 }
 

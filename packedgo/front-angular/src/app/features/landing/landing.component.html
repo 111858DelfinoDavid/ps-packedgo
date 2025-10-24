@@ -1,293 +1,41 @@
-<!-- Navbar -->
-<nav class="navbar navbar-expand-lg fixed-top">
-  <div class="container">
-    <a class="navbar-brand" href="#">
-      <i class="bi bi-calendar-event"></i>
-      PackedGo
-    </a>
-    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-      <span class="navbar-toggler-icon"></span>
-    </button>
-    <div class="collapse navbar-collapse" id="navbarNav">
-      <ul class="navbar-nav ms-auto">
-        <li class="nav-item">
-          <a class="nav-link" href="#hero">Inicio</a>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link" href="#features">Características</a>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link" href="#events">Eventos</a>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link" href="#contact">Contacto</a>
-        </li>
-      </ul>
-      <div class="auth-buttons ms-3">
-        <button class="btn btn-outline-primary me-2" (click)="goToCustomerRegister()">
-          <i class="bi bi-person-plus"></i> Registrarse
+<!-- PASO 1: Estructura básica con colores visibles -->
+<div class="landing-container">
+  <!-- Navbar Simple -->
+  <nav class="navbar">
+    <div class="container">
+      <div class="navbar-brand">
+        <span class="logo">📅 PackedGo</span>
+      </div>
+      <div class="navbar-menu">
+        <button class="btn-register" (click)="goToCustomerRegister()">
+          Registrarse
         </button>
-        <div class="dropdown">
-          <button class="btn btn-login dropdown-toggle" type="button" data-bs-toggle="dropdown">
-            <i class="bi bi-box-arrow-in-right"></i> Iniciar Sesión
+        <button class="btn-login" (click)="goToCustomerLogin()">
+          Iniciar Sesión
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Hero Section -->
+  <section class="hero-section">
+    <div class="container">
+      <div class="hero-content">
+        <h1 class="hero-title">
+          Descubre y Reserva<br>
+          <span class="highlight">los Mejores Eventos</span>
+        </h1>
+        <p class="hero-description">
+          Conciertos • Deportes • Arte • Cultura
+        </p>
+        <div class="hero-buttons">
+          <button class="btn-register" (click)="goToCustomerRegister()">
+            Explorar Eventos
           </button>
-          <ul class="dropdown-menu dropdown-menu-end">
-            <li>
-              <a class="dropdown-item" style="cursor: pointer;" (click)="goToCustomerLogin()">
-                <i class="bi bi-person"></i> Cliente
-              </a>
-            </li>
-            <li><hr class="dropdown-divider"></li>
-            <li>
-              <a class="dropdown-item" style="cursor: pointer;" (click)="goToAdminLogin()">
-                <i class="bi bi-shield-lock"></i> Administrador
-              </a>
-            </li>
-          </ul>
         </div>
       </div>
     </div>
-  </div>
-</nav>
+  </section>
 
-<!-- Hero Section -->
-<section id="hero" class="hero">
-  <div class="container">
-    <div class="row align-items-center">
-      <div class="col-lg-6">
-        <div class="hero-content">
-          <h1 class="hero-title">
-            Descubre y Reserva los <span class="gradient-text">Mejores Eventos</span>
-          </h1>
-          <p class="hero-subtitle">
-            PackedGo es tu portal definitivo para encontrar y reservar entradas para los eventos más emocionantes. 
-            Desde conciertos hasta conferencias, tenemos todo lo que buscas.
-          </p>
-          <div class="hero-buttons">
-            <button class="btn btn-hero-primary" (click)="goToCustomerRegister()">
-              <i class="bi bi-ticket-perforated"></i> Explorar Eventos
-            </button>
-            <button class="btn btn-hero-outline" (click)="goToCustomerLogin()">
-              <i class="bi bi-play-circle"></i> Ver Demo
-            </button>
-          </div>
-          <div class="hero-stats">
-            <div class="stat-item">
-              <div class="stat-number">500+</div>
-              <div class="stat-label">Eventos</div>
-            </div>
-            <div class="stat-item">
-              <div class="stat-number">10K+</div>
-              <div class="stat-label">Usuarios</div>
-            </div>
-            <div class="stat-item">
-              <div class="stat-number">50+</div>
-              <div class="stat-label">Ciudades</div>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div class="col-lg-6">
-        <div class="hero-image">
-          <div class="floating-card card-1">
-            <i class="bi bi-music-note-beamed"></i>
-            <div>Conciertos</div>
-          </div>
-          <div class="floating-card card-2">
-            <i class="bi bi-trophy"></i>
-            <div>Deportes</div>
-          </div>
-          <div class="floating-card card-3">
-            <i class="bi bi-palette"></i>
-            <div>Arte</div>
-          </div>
-          <div class="hero-illustration">
-            <i class="bi bi-calendar-event-fill"></i>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- Features Section -->
-<section id="features" class="features-section">
-  <div class="container">
-    <div class="section-header text-center">
-      <h2 class="section-title">¿Por qué elegir <span class="gradient-text">PackedGo</span>?</h2>
-      <p class="section-subtitle">Descubre todas las ventajas que ofrecemos</p>
-    </div>
-    <div class="row g-4">
-      <div class="col-md-6 col-lg-3">
-        <div class="feature-card">
-          <div class="feature-icon">
-            <i class="bi bi-lightning-charge-fill"></i>
-          </div>
-          <h3 class="feature-title">Reserva Rápida</h3>
-          <p class="feature-description">Proceso de compra simple y rápido en pocos clics</p>
-        </div>
-      </div>
-      <div class="col-md-6 col-lg-3">
-        <div class="feature-card">
-          <div class="feature-icon">
-            <i class="bi bi-shield-check"></i>
-          </div>
-          <h3 class="feature-title">Pago Seguro</h3>
-          <p class="feature-description">Transacciones protegidas con encriptación de última generación</p>
-        </div>
-      </div>
-      <div class="col-md-6 col-lg-3">
-        <div class="feature-card">
-          <div class="feature-icon">
-            <i class="bi bi-clock-history"></i>
-          </div>
-          <h3 class="feature-title">Disponible 24/7</h3>
-          <p class="feature-description">Compra tus entradas en cualquier momento del día</p>
-        </div>
-      </div>
-      <div class="col-md-6 col-lg-3">
-        <div class="feature-card">
-          <div class="feature-icon">
-            <i class="bi bi-phone"></i>
-          </div>
-          <h3 class="feature-title">Tickets Digitales</h3>
-          <p class="feature-description">Recibe tus entradas directamente en tu dispositivo</p>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- Events Preview Section -->
-<section id="events" class="events-section">
-  <div class="container">
-    <div class="section-header text-center">
-      <h2 class="section-title">Eventos <span class="gradient-text">Destacados</span></h2>
-      <p class="section-subtitle">Los eventos más populares de la temporada</p>
-    </div>
-    <div class="row g-4">
-      <div class="col-md-6 col-lg-4">
-        <div class="event-card">
-          <div class="event-image">
-            <i class="bi bi-music-note-beamed"></i>
-            <div class="event-category">Música</div>
-          </div>
-          <div class="event-content">
-            <h3 class="event-title">Festival de Rock</h3>
-            <div class="event-date">
-              <i class="bi bi-calendar3"></i> 15 Nov 2025
-            </div>
-            <div class="event-location">
-              <i class="bi bi-geo-alt"></i> Estadio Nacional
-            </div>
-            <div class="event-price">Desde $50.00</div>
-          </div>
-        </div>
-      </div>
-      <div class="col-md-6 col-lg-4">
-        <div class="event-card">
-          <div class="event-image">
-            <i class="bi bi-palette-fill"></i>
-            <div class="event-category">Arte</div>
-          </div>
-          <div class="event-content">
-            <h3 class="event-title">Exposición de Arte Moderno</h3>
-            <div class="event-date">
-              <i class="bi bi-calendar3"></i> 20 Nov 2025
-            </div>
-            <div class="event-location">
-              <i class="bi bi-geo-alt"></i> Museo Nacional
-            </div>
-            <div class="event-price">Desde $25.00</div>
-          </div>
-        </div>
-      </div>
-      <div class="col-md-6 col-lg-4">
-        <div class="event-card">
-          <div class="event-image">
-            <i class="bi bi-trophy-fill"></i>
-            <div class="event-category">Deportes</div>
-          </div>
-          <div class="event-content">
-            <h3 class="event-title">Copa de Fútbol</h3>
-            <div class="event-date">
-              <i class="bi bi-calendar3"></i> 25 Nov 2025
-            </div>
-            <div class="event-location">
-              <i class="bi bi-geo-alt"></i> Arena Deportiva
-            </div>
-            <div class="event-price">Desde $40.00</div>
-          </div>
-        </div>
-      </div>
-    </div>
-    <div class="text-center mt-5">
-      <button class="btn btn-view-all" (click)="goToCustomerLogin()">
-        Ver Todos los Eventos <i class="bi bi-arrow-right"></i>
-      </button>
-    </div>
-  </div>
-</section>
-
-<!-- CTA Section -->
-<section class="cta-section">
-  <div class="container">
-    <div class="cta-content text-center">
-      <h2 class="cta-title">¿Listo para comenzar?</h2>
-      <p class="cta-subtitle">Únete a miles de usuarios que ya disfrutan de los mejores eventos</p>
-      <button class="btn btn-cta" (click)="goToCustomerRegister()">
-        <i class="bi bi-rocket-takeoff"></i> Crear Cuenta Gratis
-      </button>
-    </div>
-  </div>
-</section>
-
-<!-- Footer -->
-<footer id="contact" class="footer">
-  <div class="container">
-    <div class="row">
-      <div class="col-lg-4">
-        <div class="footer-brand">
-          <i class="bi bi-calendar-event"></i>
-          <h3>PackedGo</h3>
-          <p>Tu portal de eventos favorito</p>
-        </div>
-        <div class="social-links">
-          <a href="#"><i class="bi bi-facebook"></i></a>
-          <a href="#"><i class="bi bi-twitter"></i></a>
-          <a href="#"><i class="bi bi-instagram"></i></a>
-          <a href="#"><i class="bi bi-linkedin"></i></a>
-        </div>
-      </div>
-      <div class="col-lg-2 col-md-6">
-        <h4 class="footer-title">Enlaces</h4>
-        <ul class="footer-links">
-          <li><a href="#hero">Inicio</a></li>
-          <li><a href="#features">Características</a></li>
-          <li><a href="#events">Eventos</a></li>
-          <li><a href="#contact">Contacto</a></li>
-        </ul>
-      </div>
-      <div class="col-lg-3 col-md-6">
-        <h4 class="footer-title">Soporte</h4>
-        <ul class="footer-links">
-          <li><a href="#">Ayuda</a></li>
-          <li><a href="#">Términos y Condiciones</a></li>
-          <li><a href="#">Política de Privacidad</a></li>
-          <li><a href="#">FAQ</a></li>
-        </ul>
-      </div>
-      <div class="col-lg-3 col-md-6">
-        <h4 class="footer-title">Contacto</h4>
-        <ul class="footer-contact">
-          <li><i class="bi bi-envelope"></i> info&#64;packedgo.com</li>
-          <li><i class="bi bi-phone"></i> +1 234 567 890</li>
-          <li><i class="bi bi-geo-alt"></i> Buenos Aires, Argentina</li>
-        </ul>
-      </div>
-    </div>
-    <div class="footer-bottom">
-      <p>&copy; 2025 PackedGo. Todos los derechos reservados.</p>
-    </div>
-  </div>
-</footer>
+  <!-- ...resto del contenido y footer... -->
+</div>

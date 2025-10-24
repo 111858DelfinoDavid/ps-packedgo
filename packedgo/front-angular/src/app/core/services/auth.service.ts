@@ -138,4 +138,22 @@ export class AuthService {
     const permissions = this.getPermissions();
     return permissions.includes(permission);
   }
+
+  // Resend verification email
+  resendVerificationEmail(): Observable<any> {
+    return this.http.post(`${this.apiUrl}/auth/resend-verification`, {});
+  }
+
+  // Verify email with token (cuando el usuario hace clic en el enlace del correo)
+  verifyEmail(token: string): Observable<any> {
+    return this.http.post(`${this.apiUrl}/auth/verify-email`, { token });
+  }
+
+  // Change password for logged user
+  changePassword(userId: number, currentPassword: string, newPassword: string): Observable<any> {
+    return this.http.post(`${this.apiUrl}/auth/change-password/${userId}`, {
+      currentPassword,
+      newPassword
+    });
+  }
 }

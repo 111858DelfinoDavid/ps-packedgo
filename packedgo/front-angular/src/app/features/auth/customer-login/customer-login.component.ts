@@ -19,6 +19,9 @@ export class CustomerLoginComponent {
   isLoading = false;
   errorMessage = '';
   showPassword = false;
+  showResendEmailButton = false;
+  resendingEmail = false;
+  resendSuccess = false;
 
   constructor() {
     this.loginForm = this.fb.group({
@@ -39,6 +42,8 @@ export class CustomerLoginComponent {
 
     this.isLoading = true;
     this.errorMessage = '';
+    this.showResendEmailButton = false;
+    this.resendSuccess = false;
 
     // Convert document string to number
     const credentials = {
@@ -49,6 +54,15 @@ export class CustomerLoginComponent {
     this.authService.customerLogin(credentials).subscribe({
       next: (response) => {
         console.log('Login exitoso:', response);
+        
+        // Verificar si el email está verificado
+        if (response.user.isEmailVerified === false) {
+          this.errorMessage = 'Tu correo electrónico aún no ha sido verificado. Por favor, revisa tu bandeja de entrada.';
+          this.showResendEmailButton = true;
+          this.isLoading = false;
+          return;
+        }
+        
         this.router.navigate(['/customer/dashboard']);
       },
       error: (error) => {
@@ -58,6 +72,31 @@ export class CustomerLoginComponent {
       },
       complete: () => {
         this.isLoading = false;
+      }
+    });
+  }
+
+  resendVerificationEmail(): void {
+    this.resendingEmail = true;
+    this.resendSuccess = false;
+    this.errorMessage = '';
+
+    this.authService.resendVerificationEmail().subscribe({
+      next: () => {
+        this.resendSuccess = true;
+        this.resendingEmail = false;
+        this.errorMessage = '✓ Correo de verificación enviado exitosamente. Revisa tu bandeja de entrada.';
+        this.showResendEmailButton = false;
+        
+        // Ocultar mensaje de éxito después de 5 segundos
+        setTimeout(() => {
+          this.errorMessage = '';
+        }, 5000);
+      },
+      error: (error) => {
+        console.error('Error al reenviar correo:', error);
+        this.errorMessage = error.error?.message || 'Error al enviar el correo. Por favor, intenta nuevamente.';
+        this.resendingEmail = false;
       }
     });
   }

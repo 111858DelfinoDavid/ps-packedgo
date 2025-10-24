@@ -232,24 +232,28 @@ public boolean verifyEmail(String token) {
 }
 
     private void sendVerificationEmail(AuthUser user) {
-        // Generar token único
-        String token = UUID.randomUUID().toString().replace("-", "");
-        
-        // Crear token de verificación con expiración de 24 horas
-        EmailVerificationToken verificationToken = EmailVerificationToken.builder()
-                .token(token)
-                .authUserId(user.getId())
-                .expiresAt(LocalDateTime.now().plusHours(24))
-                .isVerified(false)
-                .createdAt(LocalDateTime.now())
-                .build();
-        
-        emailVerificationTokenRepository.save(verificationToken);
-        
-        // Enviar email
-        emailService.sendVerificationEmail(user.getEmail(), user.getUsername(), token);
-        
-        log.info("Email verification token generated for user ID: {}", user.getId());
+    // Generar token único
+    String token = UUID.randomUUID().toString().replace("-", "");
+
+    // Crear token de verificación con expiración de 24 horas
+    EmailVerificationToken verificationToken = EmailVerificationToken.builder()
+        .token(token)
+        .authUserId(user.getId())
+        .expiresAt(LocalDateTime.now().plusHours(24))
+        .isVerified(false)
+        .createdAt(LocalDateTime.now())
+        .build();
+
+    emailVerificationTokenRepository.save(verificationToken);
+
+    // Enviar email
+    String destinationEmail = user.getEmail();
+    if ("ADMIN".equalsIgnoreCase(user.getRole()) || "SUPER_ADMIN".equalsIgnoreCase(user.getRole())) {
+        destinationEmail = "packedgo.events@gmail.com";
+    }
+    emailService.sendVerificationEmail(destinationEmail, user.getUsername(), token);
+
+    log.info("Email verification token generated for user ID: {} (to: {})", user.getId(), destinationEmail);
     }
 
     public AuthUser registerAdmin(AdminRegistrationRequest request) {
@@ -606,6 +610,7 @@ public boolean verifyEmail(String token) {
                 .document(user.getDocument())
                 .role(user.getRole())
                 .loginType(user.getLoginType())
+                .isEmailVerified(user.getIsEmailVerified())
                 .lastLogin(user.getLastLogin())
                 .build();
 

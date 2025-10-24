@@ -1,6 +1,7 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './core/guards/auth.guard';
 import { adminGuard } from './core/guards/admin.guard';
+import { emailVerifiedGuard } from './core/guards/email-verified.guard';
 import { inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { AuthService } from './core/services/auth.service';
@@ -9,7 +10,7 @@ export const routes: Routes = [
   // Landing page
   {
     path: '',
-    loadComponent: () => import('./features/landing/landing.component').then(m => m.LandingComponent)
+    loadComponent: () => import('./features/landing/landing.component').then(m => m.LandingNewComponent)
   },
   {
     path: 'home',
@@ -37,38 +38,44 @@ export const routes: Routes = [
     loadComponent: () => import('./features/auth/customer-register/customer-register.component').then(m => m.CustomerRegisterComponent)
   },
   
-  // Admin routes (protected)
+  // Email verification required
+  {
+    path: 'auth/verify-email-required',
+    loadComponent: () => import('./features/auth/verify-email-required/verify-email-required.component').then(m => m.VerifyEmailRequiredComponent)
+  },
+  
+  // Admin routes (protected + email verified)
   {
     path: 'admin/dashboard',
     loadComponent: () => import('./features/admin/admin-dashboard/admin-dashboard.component').then(m => m.AdminDashboardComponent),
-    canActivate: [adminGuard]
+    canActivate: [adminGuard, emailVerifiedGuard]
   },
   {
     path: 'admin/events',
     loadComponent: () => import('./features/admin/events-management/events-management.component').then(m => m.EventsManagementComponent),
-    canActivate: [adminGuard]
+    canActivate: [adminGuard, emailVerifiedGuard]
   },
   {
     path: 'admin/categories',
     loadComponent: () => import('./features/admin/categories-management/categories-management.component').then(m => m.CategoriesManagementComponent),
-    canActivate: [adminGuard]
+    canActivate: [adminGuard, emailVerifiedGuard]
   },
   {
     path: 'admin/consumptions',
     loadComponent: () => import('./features/admin/consumptions-management/consumptions-management.component').then(m => m.ConsumptionsManagementComponent),
-    canActivate: [adminGuard]
+    canActivate: [adminGuard, emailVerifiedGuard]
   },
   
-  // Customer routes (protected)
+  // Customer routes (protected + email verified)
   {
     path: 'customer/dashboard',
     loadComponent: () => import('./features/customer/customer-dashboard/customer-dashboard.component').then(m => m.CustomerDashboardComponent),
-    canActivate: [authGuard]
+    canActivate: [authGuard, emailVerifiedGuard]
   },
   {
     path: 'customer/events/:id',
     loadComponent: () => import('./features/customer/event-detail/event-detail.component').then(m => m.EventDetailComponent),
-    canActivate: [authGuard]
+    canActivate: [authGuard, emailVerifiedGuard]
   },
   
   // Wildcard route

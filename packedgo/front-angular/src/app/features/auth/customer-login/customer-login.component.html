@@ -12,10 +12,33 @@
   </div>
 
   <!-- Error Alert -->
-  <div *ngIf="errorMessage" class="alert alert-danger alert-dismissible fade show" role="alert">
-    <i class="bi bi-exclamation-triangle-fill me-2"></i>
+  <div *ngIf="errorMessage" [class]="resendSuccess ? 'alert alert-success alert-dismissible fade show' : 'alert alert-danger alert-dismissible fade show'" role="alert">
+    <i [class]="resendSuccess ? 'bi bi-check-circle-fill me-2' : 'bi bi-exclamation-triangle-fill me-2'"></i>
     {{ errorMessage }}
     <button type="button" class="btn-close" (click)="errorMessage = ''" aria-label="Close"></button>
+  </div>
+
+  <!-- Resend Email Button -->
+  <div *ngIf="showResendEmailButton" class="alert alert-warning" role="alert">
+    <div class="d-flex align-items-center justify-content-between">
+      <span>
+        <i class="bi bi-envelope-exclamation me-2"></i>
+        ¿No recibiste el correo?
+      </span>
+      <button 
+        type="button" 
+        class="btn btn-sm btn-outline-warning"
+        (click)="resendVerificationEmail()"
+        [disabled]="resendingEmail">
+        <span *ngIf="!resendingEmail">
+          <i class="bi bi-send"></i> Reenviar Email
+        </span>
+        <span *ngIf="resendingEmail">
+          <span class="spinner-border spinner-border-sm me-1"></span>
+          Enviando...
+        </span>
+      </button>
+    </div>
   </div>
 
   <form [formGroup]="loginForm" (ngSubmit)="onSubmit()">
