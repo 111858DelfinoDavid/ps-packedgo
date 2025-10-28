@@ -10,7 +10,7 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
     ports:
-      - "5432:5432"
+      - "5437:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./database-init.sql:/docker-entrypoint-initdb.d/init.sql
@@ -34,15 +34,15 @@ services:
       DB_USERNAME: postgres
       DB_PASSWORD: postgres
       # Server
-      SERVER_PORT: 8082
+      SERVER_PORT: 8087
       # Webhook
-      WEBHOOK_URL: http://localhost:8082/api/payments/webhook
+      WEBHOOK_URL: http://localhost:8087/api/payments/webhook
       # CORS
       CORS_ORIGINS: http://localhost:3000,http://localhost:4200
       # JVM Options
       JAVA_OPTS: -Xms256m -Xmx512m
     ports:
-      - "8082:8082"
+      - "8087:8087"
     depends_on:
       postgres:
         condition: service_healthy

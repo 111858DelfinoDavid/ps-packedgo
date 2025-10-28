@@ -177,6 +177,17 @@ public class PaymentService {
         }
     }
 
+    /**
+     * Obtiene el estado de un pago por orderId
+     */
+    @Transactional(readOnly = true)
+    public Payment getPaymentByOrderId(String orderId) {
+        log.info("Consultando pago para orden: {}", orderId);
+        
+        return paymentRepository.findByOrderId(orderId)
+                .orElseThrow(() -> new ResourceNotFoundException("No se encontró pago para la orden: " + orderId));
+    }
+
     private Payment.PaymentStatus mapMercadoPagoStatus(String mpStatus) {
         return switch (mpStatus) {
             case "approved" -> Payment.PaymentStatus.APPROVED;

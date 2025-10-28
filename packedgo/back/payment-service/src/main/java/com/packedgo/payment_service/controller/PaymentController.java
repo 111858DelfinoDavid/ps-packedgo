@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.packedgo.payment_service.dto.PaymentRequest;
 import com.packedgo.payment_service.dto.PaymentResponse;
 import com.packedgo.payment_service.dto.WebhookNotification;
+import com.packedgo.payment_service.model.Payment;
 import com.packedgo.payment_service.service.PaymentService;
 
 import jakarta.validation.Valid;
@@ -99,13 +100,25 @@ public class PaymentController {
         log.info("GET /api/payments/order/{}", orderId);
 
         try {
-            // Implementar lógica para consultar pago
-            return ResponseEntity.ok(Map.of("message", "Endpoint de consulta"));
+            Payment payment = paymentService.getPaymentByOrderId(orderId);
+            
+            PaymentResponse response = PaymentResponse.builder()
+                    .paymentId(payment.getId())
+                    .orderId(payment.getOrderId())
+                    .status(payment.getStatus().name())
+                    .amount(payment.getAmount())
+                    .currency(payment.getCurrency())
+                    .preferenceId(payment.getPreferenceId())
+                    .message("Payment found")
+                    .build();
+            
+            return ResponseEntity.ok(response);
 
         } catch (Exception e) {
+            log.error("Error getting payment for order: {}", orderId, e);
             return ResponseEntity
                     .status(HttpStatus.NOT_FOUND)
-                    .body(Map.of("error", "Pago no encontrado"));
+                    .body(Map.of("error", "Pago no encontrado para la orden: " + orderId));
         }
     }
 
