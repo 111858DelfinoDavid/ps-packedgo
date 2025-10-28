@@ -1,0 +1,81 @@
+version: '3.8'
+
+services:
+  # Base de datos PostgreSQL
+  postgres:
+    image: postgres:15-alpine
+    container_name: payment-service-db
+    environment:
+      POSTGRES_DB: payment_service_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database-init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - payment-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Servicio de pagos
+  payment-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: payment-service-app
+    environment:
+      # Database
+      DB_URL: jdbc:postgresql://postgres:5432/payment_service_db
+      DB_USERNAME: postgres
+      DB_PASSWORD: postgres
+      # Server
+      SERVER_PORT: 8082
+      # Webhook
+      WEBHOOK_URL: http://localhost:8082/api/payments/webhook
+      # CORS
+      CORS_ORIGINS: http://localhost:3000,http://localhost:4200
+      # JVM Options
+      JAVA_OPTS: -Xms256m -Xmx512m
+    ports:
+      - "8082:8082"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - payment-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8082/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # PgAdmin (opcional - para administración de BD)
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: payment-service-pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@packedgo.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+    ports:
+      - "5050:80"
+    depends_on:
+      - postgres
+    networks:
+      - payment-network
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  payment-network:
+    driver: bridge

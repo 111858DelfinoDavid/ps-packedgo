@@ -1,4 +1,4 @@
-package com.packed_go.payment_service;
+package com.packedgo.payment_service;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
