@@ -1,24 +1,24 @@
 package com.packed_go.event_service.services.impl;
 
-import com.packed_go.event_service.dtos.event.CreateEventDTO;
-import com.packed_go.event_service.dtos.event.EventDTO;
-import com.packed_go.event_service.dtos.consumption.ConsumptionDTO;
-import com.packed_go.event_service.entities.Event;
-import com.packed_go.event_service.entities.EventCategory;
-import com.packed_go.event_service.entities.Consumption;
-import com.packed_go.event_service.repositories.EventCategoryRepository;
-import com.packed_go.event_service.repositories.EventRepository;
-import com.packed_go.event_service.repositories.ConsumptionRepository;
-import com.packed_go.event_service.services.EventService;
-import jakarta.transaction.Transactional;
-import lombok.RequiredArgsConstructor;
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Optional;
+
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Optional;
+import com.packed_go.event_service.dtos.event.CreateEventDTO;
+import com.packed_go.event_service.dtos.event.EventDTO;
+import com.packed_go.event_service.entities.Event;
+import com.packed_go.event_service.entities.EventCategory;
+import com.packed_go.event_service.exceptions.ResourceNotFoundException;
+import com.packed_go.event_service.repositories.EventCategoryRepository;
+import com.packed_go.event_service.repositories.EventRepository;
+import com.packed_go.event_service.services.EventService;
+
+import jakarta.transaction.Transactional;
+import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
@@ -33,35 +33,12 @@ public class EventServiceImpl implements EventService {
     @Autowired
     private final EventCategoryRepository eventCategoryRepository;
 
-    @Autowired
-    private final ConsumptionRepository consumptionRepository;
-
     @Override
-    @Transactional
     public EventDTO findById(Long id) {
         Optional<Event> eventExist = eventRepository.findById(id);
         if (eventExist.isPresent()) {
-            Event event = eventExist.get();
-            EventDTO eventDTO = modelMapper.map(event, EventDTO.class);
-            
-            // Asegurar que el categoryId se mapee correctamente
-            if (event.getCategory() != null) {
-                eventDTO.setCategoryId(event.getCategory().getId());
-            }
-            
-            // Mapear los consumos disponibles si existen
-            if (event.getAvailableConsumptions() != null && !event.getAvailableConsumptions().isEmpty()) {
-                List<ConsumptionDTO> consumptionDTOs = event.getAvailableConsumptions().stream()
-                    .map(consumption -> {
-                        ConsumptionDTO dto = modelMapper.map(consumption, ConsumptionDTO.class);
-                        dto.setCategoryId(consumption.getCategory().getId());
-                        return dto;
-                    })
-                    .toList();
-                eventDTO.setAvailableConsumptions(consumptionDTOs);
-            }
-            
-            return eventDTO;
+            EventDTO event = modelMapper.map(eventExist.get(), EventDTO.class);
+            return modelMapper.map(eventExist.get(), EventDTO.class);
         } else {
             throw new RuntimeException("Event with id" + id + " not found");
         }
@@ -69,31 +46,9 @@ public class EventServiceImpl implements EventService {
     }
 
     @Override
-    @Transactional
     public List<EventDTO> findAll() {
         List<Event> eventEntities = eventRepository.findAll();
-        return eventEntities.stream().map(entity -> {
-            EventDTO eventDTO = modelMapper.map(entity, EventDTO.class);
-            
-            // Asegurar que el categoryId se mapee correctamente
-            if (entity.getCategory() != null) {
-                eventDTO.setCategoryId(entity.getCategory().getId());
-            }
-            
-            // Mapear los consumos disponibles si existen
-            if (entity.getAvailableConsumptions() != null && !entity.getAvailableConsumptions().isEmpty()) {
-                List<ConsumptionDTO> consumptionDTOs = entity.getAvailableConsumptions().stream()
-                    .map(consumption -> {
-                        ConsumptionDTO dto = modelMapper.map(consumption, ConsumptionDTO.class);
-                        dto.setCategoryId(consumption.getCategory().getId());
-                        return dto;
-                    })
-                    .toList();
-                eventDTO.setAvailableConsumptions(consumptionDTOs);
-            }
-            
-            return eventDTO;
-        }).toList();
+        return eventEntities.stream().map(entity -> modelMapper.map(entity, EventDTO.class)).toList();
     }
 
 
@@ -130,46 +85,34 @@ public class EventServiceImpl implements EventService {
     @Override
     public EventDTO createEvent(CreateEventDTO createEventDto) {
         EventCategory category = eventCategoryRepository.findById(createEventDto.getCategoryId())
-                .orElseThrow(() -> new RuntimeException("Category with id " + createEventDto.getCategoryId() + " not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Category with id " + createEventDto.getCategoryId() + " not found"));
 
-        Event event = modelMapper.map(createEventDto, Event.class);
-
-        event.setActive(true);
+        Event event = new Event(); // Constructor inicializa status="ACTIVE", active=true, timestamps
+        
+        System.out.println("AFTER Constructor - Event status: " + event.getStatus());
+        
+        // Mapeo MANUAL para evitar problemas con ModelMapper
+        event.setName(createEventDto.getName());
+        event.setDescription(createEventDto.getDescription());
+        event.setEventDate(createEventDto.getEventDate());
+        event.setLat(createEventDto.getLat());
+        event.setLng(createEventDto.getLng());
+        event.setMaxCapacity(createEventDto.getMaxCapacity());
+        event.setCurrentCapacity(createEventDto.getCurrentCapacity() != null ? createEventDto.getCurrentCapacity() : 0);
+        event.setBasePrice(createEventDto.getBasePrice());
+        event.setImageUrl(createEventDto.getImageUrl());
+        event.setCreatedBy(createEventDto.getCreatedBy());
         event.setCategory(category);
         
-        // Inicializar passes disponibles igual a la capacidad máxima
-        if (event.getMaxCapacity() != null && event.getMaxCapacity() > 0) {
-            event.setTotalPasses(event.getMaxCapacity());
-            event.setAvailablePasses(event.getMaxCapacity());
-        }
+        System.out.println("BEFORE save - Event status: " + event.getStatus());
+        System.out.println("BEFORE save - Event name: " + event.getName());
         
-        // Procesamos los consumptionIds si vienen en el DTO
-        if (createEventDto.getConsumptionIds() != null && !createEventDto.getConsumptionIds().isEmpty()) {
-            List<Consumption> consumptions = consumptionRepository.findAllById(createEventDto.getConsumptionIds());
-            if (consumptions.size() != createEventDto.getConsumptionIds().size()) {
-                throw new RuntimeException("Some consumption IDs were not found");
-            }
-            consumptions.forEach(event::addAvailableConsumption);
-        }
+        // El constructor ya inicializa: status, active, timestamps, passes, etc.
+        // No es necesario setearlos de nuevo a menos que el DTO los override
 
         Event savedEvent = eventRepository.save(event);
 
-        // Mapear el evento a DTO
-        EventDTO eventDTO = modelMapper.map(savedEvent, EventDTO.class);
-        
-        // Mapear los consumos disponibles si existen
-        if (savedEvent.getAvailableConsumptions() != null && !savedEvent.getAvailableConsumptions().isEmpty()) {
-            List<ConsumptionDTO> consumptionDTOs = savedEvent.getAvailableConsumptions().stream()
-                .map(consumption -> {
-                    ConsumptionDTO dto = modelMapper.map(consumption, ConsumptionDTO.class);
-                    dto.setCategoryId(consumption.getCategory().getId());
-                    return dto;
-                })
-                .toList();
-            eventDTO.setAvailableConsumptions(consumptionDTOs);
-        }
-
-        return eventDTO;
+        return modelMapper.map(savedEvent, EventDTO.class);
     }
 
 
@@ -177,73 +120,37 @@ public class EventServiceImpl implements EventService {
     public EventDTO updateEvent(Long id, EventDTO eventDto) {
         Optional<Event> eventExist = eventRepository.findById(id);
         if (eventExist.isPresent()) {
-            Event existingEvent = eventExist.get();
-            
-            // Actualizar campos básicos
-            existingEvent.setName(eventDto.getName());
-            existingEvent.setDescription(eventDto.getDescription());
-            existingEvent.setEventDate(eventDto.getEventDate());
-            existingEvent.setLat(eventDto.getLat());
-            existingEvent.setLng(eventDto.getLng());
-            existingEvent.setMaxCapacity(eventDto.getMaxCapacity());
-            existingEvent.setBasePrice(eventDto.getBasePrice());
-            existingEvent.setImageUrl(eventDto.getImageUrl());
-            existingEvent.setStatus(eventDto.getStatus());
-            // NO actualizar 'active' aquí - se maneja con deleteLogical/activateLogical
-            existingEvent.setUpdatedAt(LocalDateTime.now());
-            
-            // Actualizar categoría si cambió
-            if (eventDto.getCategoryId() != null && 
-                (existingEvent.getCategory() == null || !existingEvent.getCategory().getId().equals(eventDto.getCategoryId()))) {
+            Event entity = eventExist.get();
+
+            // Si viene una categoryId en el DTO, la buscamos y la asignamos
+            if (eventDto.getCategoryId() != null) {
                 EventCategory category = eventCategoryRepository.findById(eventDto.getCategoryId())
-                    .orElseThrow(() -> new RuntimeException("Category with id " + eventDto.getCategoryId() + " not found"));
-                existingEvent.setCategory(category);
+                        .orElseThrow(() -> new RuntimeException("Category with id " + eventDto.getCategoryId() + " not found"));
+                entity.setCategory(category);
             }
-            
-            // Actualizar consumos disponibles
-            // Primero limpiar las relaciones existentes
-            existingEvent.getAvailableConsumptions().clear();
-            
-            // Agregar los nuevos consumos si existen en el DTO
-            // Usar consumptionIds si está disponible, sino usar availableConsumptions
-            List<Long> consumptionIds = null;
-            
-            if (eventDto.getConsumptionIds() != null && !eventDto.getConsumptionIds().isEmpty()) {
-                // Usar los IDs directamente desde consumptionIds
-                consumptionIds = eventDto.getConsumptionIds();
-            } else if (eventDto.getAvailableConsumptions() != null && !eventDto.getAvailableConsumptions().isEmpty()) {
-                // Fallback: extraer IDs desde availableConsumptions
-                consumptionIds = eventDto.getAvailableConsumptions().stream()
-                    .map(ConsumptionDTO::getId)
-                    .toList();
-            }
-            
-            if (consumptionIds != null && !consumptionIds.isEmpty()) {
-                List<Consumption> consumptions = consumptionRepository.findAllById(consumptionIds);
-                if (consumptions.size() != consumptionIds.size()) {
-                    throw new RuntimeException("Some consumption IDs were not found");
-                }
-                consumptions.forEach(existingEvent::addAvailableConsumption);
-            }
-            
-            Event updatedEntity = eventRepository.save(existingEvent);
-            
-            // Mapear el evento actualizado a DTO
-            EventDTO resultDTO = modelMapper.map(updatedEntity, EventDTO.class);
-            
-            // Mapear los consumos disponibles si existen
-            if (updatedEntity.getAvailableConsumptions() != null && !updatedEntity.getAvailableConsumptions().isEmpty()) {
-                List<ConsumptionDTO> consumptionDTOs = updatedEntity.getAvailableConsumptions().stream()
-                    .map(consumption -> {
-                        ConsumptionDTO dto = modelMapper.map(consumption, ConsumptionDTO.class);
-                        dto.setCategoryId(consumption.getCategory().getId());
-                        return dto;
-                    })
-                    .toList();
-                resultDTO.setAvailableConsumptions(consumptionDTOs);
-            }
-            
-            return resultDTO;
+
+            // Actualizamos los campos relevantes desde el DTO
+            entity.setName(eventDto.getName());
+            entity.setDescription(eventDto.getDescription());
+            entity.setEventDate(eventDto.getEventDate());
+            entity.setLat(eventDto.getLat());
+            entity.setLng(eventDto.getLng());
+            entity.setMaxCapacity(eventDto.getMaxCapacity());
+            entity.setCurrentCapacity(eventDto.getCurrentCapacity());
+            entity.setBasePrice(eventDto.getBasePrice());
+            entity.setImageUrl(eventDto.getImageUrl());
+            entity.setStatus(eventDto.getStatus());
+            entity.setActive(eventDto.isActive());
+            // No tocar createdAt/createdBy para preservar histórico; actualizamos updatedAt
+            entity.setUpdatedAt(LocalDateTime.now());
+
+            // Campos de Pass (si vienen en el DTO)
+            if (eventDto.getTotalPasses() != null) entity.setTotalPasses(eventDto.getTotalPasses());
+            if (eventDto.getAvailablePasses() != null) entity.setAvailablePasses(eventDto.getAvailablePasses());
+            if (eventDto.getSoldPasses() != null) entity.setSoldPasses(eventDto.getSoldPasses());
+
+            Event updatedEntity = eventRepository.save(entity);
+            return modelMapper.map(updatedEntity, EventDTO.class);
         } else {
             throw new RuntimeException("Event con id " + id + " no encontrado");
         }
