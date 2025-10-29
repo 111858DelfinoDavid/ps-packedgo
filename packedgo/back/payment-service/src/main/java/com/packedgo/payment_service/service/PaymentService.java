@@ -3,6 +3,7 @@ package com.packedgo.payment_service.service;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -16,6 +17,7 @@ import com.mercadopago.client.preference.PreferenceRequest;
 import com.mercadopago.exceptions.MPApiException;
 import com.mercadopago.exceptions.MPException;
 import com.mercadopago.resources.preference.Preference;
+import com.packedgo.payment_service.client.OrderServiceClient;
 import com.packedgo.payment_service.dto.PaymentRequest;
 import com.packedgo.payment_service.dto.PaymentResponse;
 import com.packedgo.payment_service.exception.PaymentException;
@@ -24,15 +26,25 @@ import com.packedgo.payment_service.model.AdminCredential;
 import com.packedgo.payment_service.model.Payment;
 import com.packedgo.payment_service.repository.PaymentRepository;
 
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 @Service
-@RequiredArgsConstructor
 @Slf4j
 public class PaymentService {
     private final PaymentRepository paymentRepository;
     private final AdminCredentialService credentialService;
+    private final OrderServiceClient orderServiceClient;
+
+    @Value("${mercadopago.webhook.url:}")
+    private String webhookUrl;
+
+    public PaymentService(PaymentRepository paymentRepository,
+                         AdminCredentialService credentialService,
+                         OrderServiceClient orderServiceClient) {
+        this.paymentRepository = paymentRepository;
+        this.credentialService = credentialService;
+        this.orderServiceClient = orderServiceClient;
+    }
 
     /**
      * Crea una preferencia de pago en MercadoPago
@@ -91,15 +103,29 @@ public class PaymentService {
                     .build();
 
             // 7. Crear la preferencia de pago
-            PreferenceRequest preferenceRequest = PreferenceRequest.builder()
+            PreferenceRequest.PreferenceRequestBuilder preferenceBuilder = PreferenceRequest.builder()
                     .items(items)
                     .payer(payer)
                     .backUrls(backUrls)
                     // .autoReturn("approved") // Comentado para sandbox - descomentar con URLs HTTPS válidas
-                    .externalReference(payment.getId().toString())
-                    .statementDescriptor("PackedGo")
-                    // .notificationUrl("https://tu-dominio.com/api/payments/webhook") // Configurar webhook en producción
-                    .build();
+                    .externalReference(payment.getOrderId()) // Usar orderId como external_reference
+                    .statementDescriptor("PackedGo");
+
+            // Agregar notificationUrl si está configurada y es HTTPS (requerido por MercadoPago en producción)
+            if (webhookUrl != null && !webhookUrl.isEmpty()) {
+                if (webhookUrl.startsWith("https://") || credential.getIsSandbox()) {
+                    // En sandbox se permite HTTP, en producción solo HTTPS
+                    String fullWebhookUrl = webhookUrl + "?adminId=" + request.getAdminId();
+                    preferenceBuilder.notificationUrl(fullWebhookUrl);
+                    log.info("Webhook configurado: {}", fullWebhookUrl);
+                } else {
+                    log.warn("Webhook URL debe ser HTTPS en producción: {}", webhookUrl);
+                }
+            } else {
+                log.warn("Webhook URL no configurada - las notificaciones automáticas no funcionarán");
+            }
+
+            PreferenceRequest preferenceRequest = preferenceBuilder.build();
 
             // 8. Enviar a MercadoPago
             PreferenceClient client = new PreferenceClient();
@@ -156,24 +182,94 @@ public class PaymentService {
             PaymentClient client = new PaymentClient();
             com.mercadopago.resources.payment.Payment mpPayment = client.get(paymentId);
 
-            // Buscar el pago en nuestra BD
-            Payment payment = paymentRepository
-                    .findByPreferenceId(mpPayment.getExternalReference())
-                    .orElseThrow(() -> new ResourceNotFoundException("Pago no encontrado"));
+            log.info("Pago de MercadoPago obtenido: ID={}, Status={}, ExternalRef={}",
+                    mpPayment.getId(), mpPayment.getStatus(), mpPayment.getExternalReference());
 
-            // Actualizar estado
+            // Buscar el pago en nuestra BD por el external_reference (que es el orderId)
+            Payment payment = paymentRepository
+                    .findByOrderId(mpPayment.getExternalReference())
+                    .orElseThrow(() -> new ResourceNotFoundException(
+                            "Pago no encontrado para external_reference: " + mpPayment.getExternalReference()));
+
+            // Guardar estado anterior para comparar
+            Payment.PaymentStatus previousStatus = payment.getStatus();
+            Payment.PaymentStatus newStatus = mapMercadoPagoStatus(mpPayment.getStatus());
+
+            // Actualizar información del pago
             payment.setMpPaymentId(mpPayment.getId());
             payment.setPaymentMethod(mpPayment.getPaymentMethodId());
-            payment.setStatus(mapMercadoPagoStatus(mpPayment.getStatus()));
+            payment.setPaymentTypeId(mpPayment.getPaymentTypeId());
+            payment.setStatus(newStatus);
+            payment.setStatusDetail(mpPayment.getStatusDetail());
+            payment.setTransactionAmount(mpPayment.getTransactionAmount());
+
+            // Si tiene información del pagador, actualizarla
+            if (mpPayment.getPayer() != null) {
+                payment.setPayerEmail(mpPayment.getPayer().getEmail());
+                if (mpPayment.getPayer().getFirstName() != null) {
+                    payment.setPayerName(mpPayment.getPayer().getFirstName() + " " +
+                            (mpPayment.getPayer().getLastName() != null ? mpPayment.getPayer().getLastName() : ""));
+                }
+            }
+
+            // Si el pago fue aprobado, guardar fecha de aprobación
+            if (newStatus == Payment.PaymentStatus.APPROVED && mpPayment.getDateApproved() != null) {
+                payment.setApprovedAt(mpPayment.getDateApproved().toLocalDateTime());
+            }
 
             paymentRepository.save(payment);
 
-            log.info("Webhook procesado. Pago {} actualizado a estado: {}",
-                    payment.getId(), payment.getStatus());
+            log.info("Webhook procesado. Pago {} actualizado: {} -> {}",
+                    payment.getId(), previousStatus, newStatus);
 
+            // NOTIFICAR A ORDER-SERVICE si el estado cambió
+            if (previousStatus != newStatus) {
+                notifyOrderService(payment, newStatus, mpPayment.getStatusDetail());
+            }
+
+        } catch (ResourceNotFoundException e) {
+            log.error("Pago no encontrado en BD: {}", e.getMessage());
+            throw e;
         } catch (Exception e) {
             log.error("Error procesando webhook", e);
             throw new PaymentException("Error procesando notificación: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Notifica a order-service sobre el cambio de estado del pago
+     */
+    private void notifyOrderService(Payment payment, Payment.PaymentStatus newStatus, String statusDetail) {
+        try {
+            if (newStatus == Payment.PaymentStatus.APPROVED) {
+                log.info("Notificando aprobación de pago a order-service: orderId={}", payment.getOrderId());
+                boolean success = orderServiceClient.notifyPaymentApproved(
+                        payment.getOrderId(),
+                        payment.getMpPaymentId());
+
+                if (success) {
+                    log.info("Order-service notificado exitosamente para orden: {}", payment.getOrderId());
+                } else {
+                    log.warn("Falló la notificación a order-service para orden: {}", payment.getOrderId());
+                }
+
+            } else if (newStatus == Payment.PaymentStatus.REJECTED) {
+                log.info("Notificando rechazo de pago a order-service: orderId={}", payment.getOrderId());
+                boolean success = orderServiceClient.notifyPaymentRejected(
+                        payment.getOrderId(),
+                        payment.getMpPaymentId(),
+                        statusDetail);
+
+                if (success) {
+                    log.info("Order-service notificado de rechazo para orden: {}", payment.getOrderId());
+                } else {
+                    log.warn("Falló la notificación de rechazo a order-service para orden: {}", payment.getOrderId());
+                }
+            }
+
+        } catch (Exception e) {
+            log.error("Error al notificar a order-service: {}", e.getMessage());
+            // No lanzamos excepción para no fallar el webhook
         }
     }
 
