@@ -95,10 +95,10 @@ public class PaymentService {
                     .items(items)
                     .payer(payer)
                     .backUrls(backUrls)
-                    .autoReturn("approved")
+                    // .autoReturn("approved") // Comentado para sandbox - descomentar con URLs HTTPS válidas
                     .externalReference(payment.getId().toString())
                     .statementDescriptor("PackedGo")
-                    .notificationUrl("https://tu-dominio.com/api/payments/webhook") // Configurar tu webhook
+                    // .notificationUrl("https://tu-dominio.com/api/payments/webhook") // Configurar webhook en producción
                     .build();
 
             // 8. Enviar a MercadoPago
