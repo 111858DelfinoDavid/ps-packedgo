@@ -9,7 +9,6 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.packedgo.payment_service.dto.PaymentRequest;
@@ -17,6 +16,7 @@ import com.packedgo.payment_service.dto.PaymentResponse;
 import com.packedgo.payment_service.dto.WebhookNotification;
 import com.packedgo.payment_service.model.Payment;
 import com.packedgo.payment_service.service.PaymentService;
+import com.packedgo.payment_service.security.JwtTokenValidator;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -28,22 +28,46 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class PaymentController {
     private final PaymentService paymentService;
+    private final JwtTokenValidator jwtTokenValidator;
 
     /**
      * Endpoint para crear una preferencia de pago
-     * IMPORTANTE: Solo recibe el adminId, las credenciales se obtienen internamente
+     * SEGURIDAD MULTI-TENANT: El adminId se extrae del JWT, no del request body
      */
     @PostMapping("/create")
     public ResponseEntity<PaymentResponse> createPayment(
-            @Valid @RequestBody PaymentRequest request) {
-
-        log.info("POST /api/payments/create - AdminId: {}, OrderId: {}",
-                request.getAdminId(), request.getOrderId());
+            @Valid @RequestBody PaymentRequest request,
+            @org.springframework.web.bind.annotation.RequestHeader("Authorization") String authHeader) {
 
         try {
+            // SECURITY FIX: Extraer adminId del JWT token
+            String token = jwtTokenValidator.extractTokenFromHeader(authHeader);
+            if (!jwtTokenValidator.validateToken(token)) {
+                return ResponseEntity
+                        .status(HttpStatus.UNAUTHORIZED)
+                        .body(PaymentResponse.builder()
+                                .message("Token JWT inválido")
+                                .build());
+            }
+
+            Long adminIdFromToken = jwtTokenValidator.getUserIdFromToken(token);
+            
+            // Inyectar el adminId desde el token (no confiar en el request body)
+            request.setAdminId(adminIdFromToken);
+
+            log.info("POST /api/payments/create - AdminId from JWT: {}, OrderId: {}",
+                    adminIdFromToken, request.getOrderId());
+
             PaymentResponse response = paymentService.createPaymentPreference(request);
             return ResponseEntity.status(HttpStatus.CREATED).body(response);
 
+        } catch (RuntimeException e) {
+            log.error("Error de autenticación: {}", e.getMessage());
+            return ResponseEntity
+                    .status(HttpStatus.UNAUTHORIZED)
+                    .body(PaymentResponse.builder()
+                            .message("Error de autenticación: " + e.getMessage())
+                            .build());
         } catch (Exception e) {
             log.error("Error creando pago", e);
             return ResponseEntity
@@ -57,11 +81,11 @@ public class PaymentController {
     /**
      * Webhook para recibir notificaciones de MercadoPago
      * MercadoPago envía notificaciones cuando cambia el estado de un pago
+     * SEGURIDAD: El adminId se obtiene del payment lookup, no del query param
      */
     @PostMapping("/webhook")
     public ResponseEntity<Map<String, String>> handleWebhook(
-            @RequestBody WebhookNotification notification,
-            @RequestParam(required = false) Long adminId) {
+            @RequestBody WebhookNotification notification) {
 
         log.info("POST /api/payments/webhook - Type: {}, Data: {}",
                 notification.getType(), notification.getData());
@@ -71,8 +95,9 @@ public class PaymentController {
             if ("payment".equals(notification.getType())) {
                 Long paymentId = Long.valueOf(notification.getData().getId());
 
-                // Procesar el webhook
-                paymentService.processWebhookNotification(adminId, paymentId);
+                // SECURITY FIX: processWebhookNotification ahora busca el payment
+                // y obtiene el adminId de ahí, no del query param
+                paymentService.processWebhookNotification(null, paymentId);
 
                 return ResponseEntity.ok(Map.of("status", "processed"));
             }
@@ -94,13 +119,35 @@ public class PaymentController {
 
     /**
      * Endpoint para consultar el estado de un pago por orderId
+     * SEGURIDAD MULTI-TENANT: Valida que el usuario solo pueda ver sus propios pagos
      */
     @GetMapping("/order/{orderId}")
-    public ResponseEntity<?> getPaymentByOrderId(@PathVariable String orderId) {
-        log.info("GET /api/payments/order/{}", orderId);
+    public ResponseEntity<?> getPaymentByOrderId(
+            @PathVariable String orderId,
+            @org.springframework.web.bind.annotation.RequestHeader("Authorization") String authHeader) {
 
         try {
+            // SECURITY FIX: Validar JWT y ownership
+            String token = jwtTokenValidator.extractTokenFromHeader(authHeader);
+            if (!jwtTokenValidator.validateToken(token)) {
+                return ResponseEntity
+                        .status(HttpStatus.UNAUTHORIZED)
+                        .body(Map.of("error", "Token JWT inválido"));
+            }
+
+            Long adminIdFromToken = jwtTokenValidator.getUserIdFromToken(token);
+            
+            log.info("GET /api/payments/order/{} - AdminId from JWT: {}", orderId, adminIdFromToken);
+
             Payment payment = paymentService.getPaymentByOrderId(orderId);
+            
+            // OWNERSHIP CHECK: Verificar que el pago pertenece al admin autenticado
+            if (!payment.getAdminId().equals(adminIdFromToken)) {
+                log.warn("Admin {} intentó acceder al pago de Admin {}", adminIdFromToken, payment.getAdminId());
+                return ResponseEntity
+                        .status(HttpStatus.FORBIDDEN)
+                        .body(Map.of("error", "No tienes permiso para ver este pago"));
+            }
             
             PaymentResponse response = PaymentResponse.builder()
                     .paymentId(payment.getId())
@@ -114,6 +161,11 @@ public class PaymentController {
             
             return ResponseEntity.ok(response);
 
+        } catch (RuntimeException e) {
+            log.error("Error de autenticación: {}", e.getMessage());
+            return ResponseEntity
+                    .status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("error", "Error de autenticación: " + e.getMessage()));
         } catch (Exception e) {
             log.error("Error getting payment for order: {}", orderId, e);
             return ResponseEntity
