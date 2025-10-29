@@ -1,13 +1,24 @@
 package com.packed_go.event_service.entities;
 
-import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.Setter;
-import org.locationtech.jts.geom.Point;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+
+import jakarta.persistence.CascadeType;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.Table;
+import jakarta.persistence.Version;
+import lombok.Getter;
+import lombok.Setter;
 
 @Entity
 @Table(name = "events")
@@ -31,33 +42,29 @@ public class Event {
     private Integer currentCapacity;
     private BigDecimal basePrice;
     private String imageUrl;
-    private String status="ACTIVE";
+    
+    @Column(nullable = false, length = 20)
+    private String status;
+    
     private Long createdBy;
-    private LocalDateTime createdAt=LocalDateTime.now();
-    private LocalDateTime updatedAt=LocalDateTime.now();
+    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
+    
+    @Column(nullable = false)
     private boolean active;
 
     // Nueva funcionalidad: Gestión de Pass
     @Column(nullable = false)
-    private Integer totalPasses = 0;
+    private Integer totalPasses;
 
     @Column(nullable = false)
-    private Integer availablePasses = 0;
+    private Integer availablePasses;
 
     @Column(nullable = false)
-    private Integer soldPasses = 0;
+    private Integer soldPasses;
 
     @OneToMany(mappedBy = "event", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private List<Pass> passes = new ArrayList<>();
-
-    // Relación Many-to-Many con Consumption
-    @ManyToMany(cascade = {CascadeType.PERSIST, CascadeType.MERGE}, fetch = FetchType.LAZY)
-    @JoinTable(
-        name = "event_consumptions",
-        joinColumns = @JoinColumn(name = "event_id"),
-        inverseJoinColumns = @JoinColumn(name = "consumption_id")
-    )
-    private List<Consumption> availableConsumptions;
+    private List<Pass> passes;
 
     @Version
     private Long version;
@@ -73,7 +80,6 @@ public class Event {
         this.soldPasses = 0;
         this.currentCapacity = 0;
         this.passes = new ArrayList<>();
-        this.availableConsumptions = new ArrayList<>();
     }
 
     // Métodos de utilidad para gestión de Pass
@@ -90,32 +96,6 @@ public class Event {
 
     public boolean hasAvailablePasses() {
         return this.availablePasses > 0;
-    }
-
-    // Métodos de utilidad para gestión de Consumption
-    public void addAvailableConsumption(Consumption consumption) {
-        if (!this.availableConsumptions.contains(consumption)) {
-            this.availableConsumptions.add(consumption);
-        }
-    }
-
-    public void removeAvailableConsumption(Consumption consumption) {
-        this.availableConsumptions.remove(consumption);
-    }
-
-    public List<Consumption> getActiveConsumptions() {
-        return this.availableConsumptions.stream()
-            .filter(Consumption::isActive)
-            .toList();
-    }
-
-    // Getters y Setters manuales para availableConsumptions (workaround para Lombok en Docker)
-    public List<Consumption> getAvailableConsumptions() {
-        return availableConsumptions;
-    }
-
-    public void setAvailableConsumptions(List<Consumption> availableConsumptions) {
-        this.availableConsumptions = availableConsumptions;
     }
 
 }
