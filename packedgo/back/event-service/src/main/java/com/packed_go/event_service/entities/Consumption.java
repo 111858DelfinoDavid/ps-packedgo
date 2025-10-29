@@ -27,6 +27,10 @@ public class Consumption {
     private String description;
     private BigDecimal price;
     private String imageUrl;
+    
+    @Column(name = "created_by", nullable = false)
+    private Long createdBy;
+    
     private LocalDateTime createdAt = LocalDateTime.now();
     private LocalDateTime updatedAt = LocalDateTime.now();
     private boolean active;

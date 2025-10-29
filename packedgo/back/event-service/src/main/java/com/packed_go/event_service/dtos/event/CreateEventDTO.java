@@ -5,6 +5,7 @@ import lombok.Setter;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Getter
 @Setter
@@ -24,4 +25,7 @@ public class CreateEventDTO {
     private Long createdBy;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+    
+    // Lista de IDs de consumiciones disponibles para el evento
+    private List<Long> consumptionIds;
 }

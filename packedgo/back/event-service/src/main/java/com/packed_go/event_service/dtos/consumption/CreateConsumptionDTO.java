@@ -16,6 +16,10 @@ public class CreateConsumptionDTO {
     private String description;
     private BigDecimal price;
     private String imageUrl;
+    
+    // Este campo NO se envía desde frontend, se inyecta desde JWT en el controller
+    private Long createdBy;
+    
     private LocalDateTime createdAt = LocalDateTime.now();
     private LocalDateTime updatedAt = LocalDateTime.now();
     private boolean active=true;

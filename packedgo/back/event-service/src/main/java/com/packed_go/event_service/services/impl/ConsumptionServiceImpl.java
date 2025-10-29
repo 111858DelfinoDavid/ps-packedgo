@@ -28,23 +28,57 @@ public class ConsumptionServiceImpl implements ConsumptionService {
                 .orElseThrow(() -> new RuntimeException("Consumption with id " + id + " not found"));
         return modelMapper.map(consumption, ConsumptionDTO.class);
     }
+    
+    /**
+     * 🔒 NUEVO: Busca una consumición validando ownership multi-tenant
+     */
+    public ConsumptionDTO findByIdAndCreatedBy(Long id, Long createdBy) {
+        Consumption consumption = consumptionRepository.findByIdAndCreatedBy(id, createdBy)
+                .orElseThrow(() -> new RuntimeException("Consumption not found or unauthorized"));
+        return modelMapper.map(consumption, ConsumptionDTO.class);
+    }
 
     @Override
     public List<ConsumptionDTO> findAll() {
+        // ⚠️ NOTA: Este método retorna TODAS las consumiciones sin filtrar
+        // Se mantiene para compatibilidad pero debería usarse findByCreatedBy() en su lugar
         return consumptionRepository.findAll().stream()
+                .map(entity -> modelMapper.map(entity, ConsumptionDTO.class))
+                .toList();
+    }
+    
+    /**
+     * 🔒 NUEVO: Busca todas las consumiciones del usuario autenticado
+     */
+    public List<ConsumptionDTO> findByCreatedBy(Long createdBy) {
+        return consumptionRepository.findByCreatedBy(createdBy).stream()
                 .map(entity -> modelMapper.map(entity, ConsumptionDTO.class))
                 .toList();
     }
 
     @Override
     public List<ConsumptionDTO> findAllByIsActive() {
+        // ⚠️ NOTA: Este método retorna TODAS las consumiciones activas sin filtrar
+        // Se mantiene para compatibilidad pero debería usarse findByCreatedByAndActive() en su lugar
         return consumptionRepository.findByActiveIsTrue().stream()
+                .map(entity -> modelMapper.map(entity, ConsumptionDTO.class))
+                .toList();
+    }
+    
+    /**
+     * 🔒 NUEVO: Busca consumiciones activas del usuario autenticado
+     */
+    public List<ConsumptionDTO> findByCreatedByAndActive(Long createdBy) {
+        return consumptionRepository.findByCreatedByAndActiveIsTrue(createdBy).stream()
                 .map(entity -> modelMapper.map(entity, ConsumptionDTO.class))
                 .toList();
     }
 
     @Override
     public ConsumptionDTO createConsumption(CreateConsumptionDTO createConsumptionDto) {
+        // ⚠️ DEPRECADO: Este método no valida ownership multi-tenant
+        // Usar createConsumption(CreateConsumptionDTO, Long createdBy) en su lugar
+        
         // Validar categoría
         ConsumptionCategory category = consumptionCategoryRepository.findById(createConsumptionDto.getCategoryId())
                 .orElseThrow(() -> new RuntimeException("Category with id " + createConsumptionDto.getCategoryId() + " not found"));
@@ -58,9 +92,32 @@ public class ConsumptionServiceImpl implements ConsumptionService {
         consumptionDTO.setCategoryId(savedConsumption.getCategory().getId());
         return consumptionDTO;
     }
+    
+    /**
+     * 🔒 NUEVO: Crea una consumición con validación multi-tenant
+     */
+    public ConsumptionDTO createConsumption(CreateConsumptionDTO createConsumptionDto, Long createdBy) {
+        // Validar categoría
+        ConsumptionCategory category = consumptionCategoryRepository.findById(createConsumptionDto.getCategoryId())
+                .orElseThrow(() -> new RuntimeException("Category with id " + createConsumptionDto.getCategoryId() + " not found"));
+
+        // Mapear DTO a entidad
+        Consumption consumption = modelMapper.map(createConsumptionDto, Consumption.class);
+        consumption.setCategory(category);
+        consumption.setCreatedBy(createdBy); // 🔒 Inyectar desde JWT
+        consumption.setActive(true);
+        
+        Consumption savedConsumption = consumptionRepository.save(consumption);
+        ConsumptionDTO consumptionDTO = modelMapper.map(savedConsumption, ConsumptionDTO.class);
+        consumptionDTO.setCategoryId(savedConsumption.getCategory().getId());
+        return consumptionDTO;
+    }
 
     @Override
     public ConsumptionDTO updateConsumption(Long id, CreateConsumptionDTO dto) {
+        // ⚠️ DEPRECADO: Este método no valida ownership multi-tenant
+        // Usar updateConsumption(Long id, CreateConsumptionDTO dto, Long createdBy) en su lugar
+        
         Consumption existingConsumption = consumptionRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Consumption with id " + id + " not found"));
 
@@ -77,20 +134,78 @@ public class ConsumptionServiceImpl implements ConsumptionService {
         Consumption updatedConsumption = consumptionRepository.save(existingConsumption);
         return modelMapper.map(updatedConsumption, ConsumptionDTO.class);
     }
+    
+    /**
+     * 🔒 NUEVO: Actualiza una consumición validando ownership
+     */
+    public ConsumptionDTO updateConsumption(Long id, CreateConsumptionDTO dto, Long createdBy) {
+        // 🔒 Validar que la consumición pertenece al usuario
+        Consumption existingConsumption = consumptionRepository.findByIdAndCreatedBy(id, createdBy)
+                .orElseThrow(() -> new RuntimeException("Consumption not found or unauthorized"));
+
+        // Validar categoría si se proporciona
+        if (dto.getCategoryId() != null) {
+            ConsumptionCategory category = consumptionCategoryRepository.findById(dto.getCategoryId())
+                    .orElseThrow(() -> new RuntimeException("Category with id " + dto.getCategoryId() + " not found"));
+            existingConsumption.setCategory(category);
+        }
+
+        // Mapear campos actualizables (excepto createdBy que no debe cambiar)
+        existingConsumption.setName(dto.getName());
+        existingConsumption.setDescription(dto.getDescription());
+        existingConsumption.setPrice(dto.getPrice());
+        existingConsumption.setImageUrl(dto.getImageUrl());
+        existingConsumption.setActive(dto.isActive());
+
+        Consumption updatedConsumption = consumptionRepository.save(existingConsumption);
+        return modelMapper.map(updatedConsumption, ConsumptionDTO.class);
+    }
 
     @Override
     public void delete(Long id) {
+        // ⚠️ DEPRECADO: Este método no valida ownership multi-tenant
+        // Usar delete(Long id, Long createdBy) en su lugar
+        
         if (!consumptionRepository.existsById(id)) {
             throw new RuntimeException("Consumption with id " + id + " not found");
         }
         consumptionRepository.deleteById(id);
     }
+    
+    /**
+     * 🔒 NUEVO: Elimina una consumición validando ownership
+     */
+    public void delete(Long id, Long createdBy) {
+        // 🔒 Validar que la consumición pertenece al usuario
+        Consumption consumption = consumptionRepository.findByIdAndCreatedBy(id, createdBy)
+                .orElseThrow(() -> new RuntimeException("Consumption not found or unauthorized"));
+        
+        consumptionRepository.delete(consumption);
+    }
 
     @Transactional
     @Override
     public ConsumptionDTO deleteLogical(Long id) {
+        // ⚠️ DEPRECADO: Este método no valida ownership multi-tenant
+        // Usar deleteLogical(Long id, Long createdBy) en su lugar
+        
         Consumption existingConsumption = consumptionRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Consumption with id " + id + " not found"));
+
+        existingConsumption.setActive(false);
+        Consumption updatedConsumption = consumptionRepository.save(existingConsumption);
+
+        return modelMapper.map(updatedConsumption, ConsumptionDTO.class);
+    }
+    
+    /**
+     * 🔒 NUEVO: Desactiva una consumición validando ownership
+     */
+    @Transactional
+    public ConsumptionDTO deleteLogical(Long id, Long createdBy) {
+        // 🔒 Validar que la consumición pertenece al usuario
+        Consumption existingConsumption = consumptionRepository.findByIdAndCreatedBy(id, createdBy)
+                .orElseThrow(() -> new RuntimeException("Consumption not found or unauthorized"));
 
         existingConsumption.setActive(false);
         Consumption updatedConsumption = consumptionRepository.save(existingConsumption);

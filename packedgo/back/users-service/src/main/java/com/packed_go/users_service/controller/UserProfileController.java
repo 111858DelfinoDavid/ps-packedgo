@@ -82,26 +82,135 @@ public class UserProfileController {
     }
 
 
+    /**
+     * 🔒 GET /user-profiles/{id} - Obtener perfil por ID (valida ownership)
+     * Solo el owner puede acceder a su propio perfil
+     */
     @GetMapping("/{id}")
-    public ResponseEntity<UserProfileDTO> getById(@PathVariable Long id) {
-        return ResponseEntity.ok(modelMapper.map(service.getById(id),UserProfileDTO.class));
+    public ResponseEntity<UserProfileDTO> getById(
+            @PathVariable Long id,
+            @RequestHeader("Authorization") String authHeader) {
+        
+        log.info("🔒 Getting profile {}", id);
+        
+        // Validar JWT
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            throw new RuntimeException("Missing or invalid Authorization header");
+        }
+        
+        String token = authHeader.substring(7);
+        if (!jwtValidator.validateToken(token)) {
+            throw new RuntimeException("Invalid JWT token");
+        }
+        
+        Long tokenUserId = jwtValidator.getUserIdFromToken(token);
+        UserProfile profile = service.getById(id);
+        
+        // Validar ownership: el authUserId del perfil debe coincidir con el userId del token
+        if (!profile.getAuthUserId().equals(tokenUserId)) {
+            log.warn("⚠️ User {} attempted to access profile {} owned by user {}", 
+                    tokenUserId, id, profile.getAuthUserId());
+            throw new RuntimeException("Access denied: You can only access your own profile");
+        }
+        
+        return ResponseEntity.ok(modelMapper.map(profile, UserProfileDTO.class));
     }
 
 
-    @GetMapping
-    public ResponseEntity<List<UserProfile>> getAll() {
-        return ResponseEntity.ok(service.getAll());
+    /**
+     * 🔒 GET /user-profiles/my-profile - Obtener perfil del usuario autenticado
+     * Reemplaza el endpoint público GET /user-profiles
+     */
+    @GetMapping("/my-profile")
+    public ResponseEntity<UserProfileDTO> getMyProfile(
+            @RequestHeader("Authorization") String authHeader) {
+        
+        log.info("🔒 Getting my profile");
+        
+        // Validar JWT y extraer userId
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            throw new RuntimeException("Missing or invalid Authorization header");
+        }
+        
+        String token = authHeader.substring(7);
+        if (!jwtValidator.validateToken(token)) {
+            throw new RuntimeException("Invalid JWT token");
+        }
+        
+        Long userId = jwtValidator.getUserIdFromToken(token);
+        UserProfile profile = service.getByAuthUserId(userId);
+        
+        return ResponseEntity.ok(modelMapper.map(profile, UserProfileDTO.class));
     }
 
 
+    /**
+     * 🔒 PUT /user-profiles/{id} - Actualizar perfil (valida ownership)
+     * Solo el owner puede actualizar su propio perfil
+     */
     @PutMapping("/{id}")
-    public ResponseEntity<UserProfile> update(@PathVariable Long id, @RequestBody UserProfile model) {
+    public ResponseEntity<UserProfile> update(
+            @PathVariable Long id, 
+            @RequestBody UserProfile model,
+            @RequestHeader("Authorization") String authHeader) {
+        
+        log.info("🔒 Updating profile {}", id);
+        
+        // Validar JWT
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            throw new RuntimeException("Missing or invalid Authorization header");
+        }
+        
+        String token = authHeader.substring(7);
+        if (!jwtValidator.validateToken(token)) {
+            throw new RuntimeException("Invalid JWT token");
+        }
+        
+        Long tokenUserId = jwtValidator.getUserIdFromToken(token);
+        UserProfile existingProfile = service.getById(id);
+        
+        // Validar ownership
+        if (!existingProfile.getAuthUserId().equals(tokenUserId)) {
+            log.warn("⚠️ User {} attempted to update profile {} owned by user {}", 
+                    tokenUserId, id, existingProfile.getAuthUserId());
+            throw new RuntimeException("Access denied: You can only update your own profile");
+        }
+        
         return ResponseEntity.ok(service.update(id, model));
     }
 
 
+    /**
+     * 🔒 DELETE /user-profiles/{id} - Eliminar perfil físicamente (valida ownership)
+     * Solo el owner puede eliminar su propio perfil
+     */
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> delete(@PathVariable Long id) {
+    public ResponseEntity<Void> delete(
+            @PathVariable Long id,
+            @RequestHeader("Authorization") String authHeader) {
+        
+        log.info("🔒 Deleting profile {}", id);
+        
+        // Validar JWT
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            throw new RuntimeException("Missing or invalid Authorization header");
+        }
+        
+        String token = authHeader.substring(7);
+        if (!jwtValidator.validateToken(token)) {
+            throw new RuntimeException("Invalid JWT token");
+        }
+        
+        Long tokenUserId = jwtValidator.getUserIdFromToken(token);
+        UserProfile existingProfile = service.getById(id);
+        
+        // Validar ownership
+        if (!existingProfile.getAuthUserId().equals(tokenUserId)) {
+            log.warn("⚠️ User {} attempted to delete profile {} owned by user {}", 
+                    tokenUserId, id, existingProfile.getAuthUserId());
+            throw new RuntimeException("Access denied: You can only delete your own profile");
+        }
+        
         service.delete(id);
         return ResponseEntity.noContent().build();
     }

@@ -37,4 +37,20 @@ public interface EventRepository extends JpaRepository<Event, Long> {
     @Query("SELECT COUNT(e) FROM Event e WHERE e.id = :eventId AND e.availablePasses > 0")
     Long hasAvailablePasses(@Param("eventId") Long eventId);
 
+    // ========== QUERIES MULTI-TENANT (NUEVAS) ==========
+    /**
+     * 🔒 Encuentra un evento por ID y createdBy (validación de ownership)
+     */
+    Optional<Event> findByIdAndCreatedBy(Long id, Long createdBy);
+    
+    /**
+     * 🔒 Encuentra todos los eventos de un usuario específico
+     */
+    List<Event> findByCreatedBy(Long createdBy);
+    
+    /**
+     * 🔒 Encuentra eventos activos de un usuario
+     */
+    List<Event> findByCreatedByAndStatus(Long createdBy, String status);
+
 }

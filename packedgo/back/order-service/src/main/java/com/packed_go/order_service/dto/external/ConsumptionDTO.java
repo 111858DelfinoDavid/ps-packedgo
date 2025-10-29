@@ -30,4 +30,6 @@ public class ConsumptionDTO {
     private Long categoryId;
     
     private String categoryName; // Opcional, puede venir en algunas respuestas
+    
+    private Long createdBy; // 🔒 Nuevo campo multi-tenant (no se usa en ORDER-SERVICE por ahora)
 }

@@ -158,11 +158,11 @@ public class UserProfileServiceImpl implements UserProfileService {
         if (userExist.isPresent()) {
             UserProfileEntity entity = userExist.get();
             
-            // Validar que el documento no esté en uso por otro usuario (si cambió)
+            // Validar que el documento no este en uso por otro usuario (si cambio)
             if (!entity.getDocument().equals(request.getDocument())) {
                 Optional<UserProfileEntity> documentExists = userProfileRepository.findByDocument(request.getDocument());
                 if (documentExists.isPresent() && !documentExists.get().getAuthUserId().equals(authUserId)) {
-                    throw new RuntimeException("El documento " + request.getDocument() + " ya está en uso por otro usuario");
+                    throw new RuntimeException("El documento " + request.getDocument() + " ya esta en uso por otro usuario");
                 }
             }
             

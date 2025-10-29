@@ -46,6 +46,7 @@ export interface Consumption {
   price: number;
   imageUrl?: string;
   active?: boolean;
+  createdBy?: number; // 🔒 Nuevo campo multi-tenant
   createdAt?: string;
   updatedAt?: string;
 }
