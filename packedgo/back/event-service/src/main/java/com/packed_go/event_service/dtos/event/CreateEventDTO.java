@@ -1,11 +1,11 @@
 package com.packed_go.event_service.dtos.event;
 
-import lombok.Getter;
-import lombok.Setter;
-
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
+
+import lombok.Getter;
+import lombok.Setter;
 
 @Getter
 @Setter

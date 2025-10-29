@@ -3,9 +3,8 @@ package com.packed_go.order_service.config;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.web.client.RestTemplate;
 import org.springframework.web.reactive.function.client.WebClient;
-
-import java.time.Duration;
 
 @Configuration
 public class WebClientConfig {
@@ -52,5 +51,13 @@ public class WebClientConfig {
                 .codecs(configurer -> configurer
                         .defaultCodecs()
                         .maxInMemorySize(16 * 1024 * 1024));
+    }
+
+    /**
+     * RestTemplate para comunicación con payment-service
+     */
+    @Bean
+    public RestTemplate restTemplate() {
+        return new RestTemplate();
     }
 }

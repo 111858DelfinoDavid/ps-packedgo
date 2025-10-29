@@ -1,4 +1,4 @@
-package com.packed_go.payment_service;
+package com.packedgo.payment_service;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
