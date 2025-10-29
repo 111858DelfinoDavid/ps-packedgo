@@ -168,28 +168,60 @@ public class PaymentService {
 
     /**
      * Procesa notificaciones de webhook de MercadoPago
+     * SECURITY FIX: adminId se obtiene del payment lookup, no del parámetro
      */
     @Transactional
-    public void processWebhookNotification(Long adminId, Long paymentId) {
-        log.info("Procesando webhook para admin: {}, payment: {}", adminId, paymentId);
+    public void processWebhookNotification(Long adminId, Long mpPaymentId) {
+        log.info("Procesando webhook para MercadoPago payment: {}", mpPaymentId);
 
         try {
-            // Obtener credenciales del admin
-            AdminCredential credential = credentialService.getValidatedCredentials(adminId);
+            // PASO 1: Primero consultar MercadoPago para obtener el external_reference
+            // Necesitamos hacer esto SIN credenciales específicas para obtener el orderId
+            // NOTA: Por seguridad, primero buscamos el pago en nuestra BD por mpPaymentId si existe
+            Payment existingPayment = paymentRepository.findByMpPaymentId(mpPaymentId).orElse(null);
+            
+            Long actualAdminId;
+            String externalReference;
+            
+            if (existingPayment != null) {
+                // SECURITY: Si ya existe el pago, usamos su adminId (no el del parámetro)
+                actualAdminId = existingPayment.getAdminId();
+                externalReference = existingPayment.getOrderId();
+                log.info("Pago existente encontrado en BD: adminId={}, orderId={}", actualAdminId, externalReference);
+            } else {
+                // Si no existe, necesitamos consultar MercadoPago
+                // Por ahora, si adminId es null (llamado desde webhook), lanzamos excepción
+                if (adminId == null) {
+                    log.error("No se puede procesar webhook sin adminId y sin pago existente para mpPaymentId: {}", mpPaymentId);
+                    throw new PaymentException("No se puede determinar el admin para este pago");
+                }
+                actualAdminId = adminId;
+                externalReference = null; // Se obtendrá de MercadoPago
+            }
+
+            // PASO 2: Obtener credenciales del admin REAL (no del parámetro)
+            AdminCredential credential = credentialService.getValidatedCredentials(actualAdminId);
             MercadoPagoConfig.setAccessToken(credential.getAccessToken());
 
-            // Consultar el estado del pago en MercadoPago
+            // PASO 3: Consultar el estado del pago en MercadoPago
             PaymentClient client = new PaymentClient();
-            com.mercadopago.resources.payment.Payment mpPayment = client.get(paymentId);
+            com.mercadopago.resources.payment.Payment mpPayment = client.get(mpPaymentId);
 
             log.info("Pago de MercadoPago obtenido: ID={}, Status={}, ExternalRef={}",
                     mpPayment.getId(), mpPayment.getStatus(), mpPayment.getExternalReference());
 
-            // Buscar el pago en nuestra BD por el external_reference (que es el orderId)
+            // PASO 4: Buscar el pago en nuestra BD por el external_reference (que es el orderId)
             Payment payment = paymentRepository
                     .findByOrderId(mpPayment.getExternalReference())
                     .orElseThrow(() -> new ResourceNotFoundException(
                             "Pago no encontrado para external_reference: " + mpPayment.getExternalReference()));
+
+            // SECURITY CHECK: Verificar que el adminId del pago coincide con el que obtuvimos
+            if (!payment.getAdminId().equals(actualAdminId)) {
+                log.error("SECURITY ALERT: AdminId mismatch. Payment.adminId={}, actualAdminId={}", 
+                    payment.getAdminId(), actualAdminId);
+                throw new PaymentException("Security validation failed: admin mismatch");
+            }
 
             // Guardar estado anterior para comparar
             Payment.PaymentStatus previousStatus = payment.getStatus();
