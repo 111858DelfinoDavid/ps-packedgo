@@ -2,6 +2,9 @@ package com.packed_go.event_service.dtos.event;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
+
+import com.packed_go.event_service.dtos.consumption.ConsumptionDTO;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -32,4 +35,7 @@ public class EventDTO {
     private Integer totalPasses;
     private Integer availablePasses;
     private Integer soldPasses;
+    
+    // Consumptions disponibles (nuevo campo)
+    private List<ConsumptionDTO> availableConsumptions;
 }

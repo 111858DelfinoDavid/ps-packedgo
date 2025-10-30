@@ -679,4 +679,34 @@ public boolean verifyEmail(String token) {
         
         return "Unknown Device";
     }
+
+    @Override
+    public void resendVerificationEmail(String email) {
+        log.debug("Resending verification email to: {}", email);
+        
+        // Buscar usuario por email
+        AuthUser user = authUserRepository.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with email: " + email));
+        
+        // Verificar si ya está verificado
+        if (user.getIsEmailVerified()) {
+            throw new BadRequestException("Email is already verified");
+        }
+        
+        // Invalidar token anterior si existe (aunque no esté expirado)
+        Optional<EmailVerificationToken> existingToken = 
+                emailVerificationTokenRepository.findByAuthUserIdAndIsVerifiedFalseAndExpiresAtAfter(
+                        user.getId(), LocalDateTime.now());
+        
+        if (existingToken.isPresent()) {
+            EmailVerificationToken token = existingToken.get();
+            token.setIsVerified(true);
+            emailVerificationTokenRepository.save(token);
+        }
+        
+        // Enviar nuevo email de verificación
+        sendVerificationEmail(user);
+        
+        log.info("Verification email resent successfully to: {}", email);
+    }
 }

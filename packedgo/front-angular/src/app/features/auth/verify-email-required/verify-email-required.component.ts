@@ -61,7 +61,13 @@ export class VerifyEmailRequiredComponent implements OnInit {
     this.resendError = '';
     this.resendSuccess = false;
 
-    this.authService.resendVerificationEmail().subscribe({
+    if (!this.email) {
+      this.resendError = 'No se pudo obtener el email del usuario.';
+      this.resending = false;
+      return;
+    }
+
+    this.authService.resendVerificationEmail(this.email).subscribe({
       next: () => {
         this.resendSuccess = true;
         this.resending = false;

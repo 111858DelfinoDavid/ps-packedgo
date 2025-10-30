@@ -81,7 +81,14 @@ export class CustomerLoginComponent {
     this.resendSuccess = false;
     this.errorMessage = '';
 
-    this.authService.resendVerificationEmail().subscribe({
+    const email = this.authService.getCurrentUser()?.email;
+    if (!email) {
+      this.errorMessage = 'No se pudo obtener el email del usuario.';
+      this.resendingEmail = false;
+      return;
+    }
+
+    this.authService.resendVerificationEmail(email).subscribe({
       next: () => {
         this.resendSuccess = true;
         this.resendingEmail = false;

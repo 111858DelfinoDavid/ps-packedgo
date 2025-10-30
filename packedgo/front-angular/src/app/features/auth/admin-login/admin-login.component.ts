@@ -1,7 +1,7 @@
 import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
-import { Router, RouterModule } from '@angular/router';
+import { Router, RouterModule, ActivatedRoute } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
 
 @Component({
@@ -14,6 +14,7 @@ export class AdminLoginComponent {
   private fb = inject(FormBuilder);
   private authService = inject(AuthService);
   private router = inject(Router);
+  private route = inject(ActivatedRoute);
 
   loginForm: FormGroup;
   isLoading = false;
@@ -22,11 +23,23 @@ export class AdminLoginComponent {
   showResendEmailButton = false;
   resendingEmail = false;
   resendSuccess = false;
+  emailVerifiedSuccess = false;
 
   constructor() {
     this.loginForm = this.fb.group({
       email: ['', [Validators.required, Validators.email]],
       password: ['', [Validators.required, Validators.minLength(6)]]
+    });
+
+    // Verificar si viene desde verificación de email
+    this.route.queryParams.subscribe(params => {
+      if (params['emailVerified'] === 'true') {
+        this.emailVerifiedSuccess = true;
+        // Ocultar mensaje después de 5 segundos
+        setTimeout(() => {
+          this.emailVerifiedSuccess = false;
+        }, 5000);
+      }
     });
   }
 
@@ -75,7 +88,14 @@ export class AdminLoginComponent {
     this.resendSuccess = false;
     this.errorMessage = '';
 
-    this.authService.resendVerificationEmail().subscribe({
+    const email = this.loginForm.get('email')?.value;
+    if (!email) {
+      this.errorMessage = 'Por favor, ingresa tu correo electrónico.';
+      this.resendingEmail = false;
+      return;
+    }
+
+    this.authService.resendVerificationEmail(email).subscribe({
       next: () => {
         this.resendSuccess = true;
         this.resendingEmail = false;

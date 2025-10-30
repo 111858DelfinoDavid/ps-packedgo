@@ -1,17 +1,22 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { RouterModule, Router } from '@angular/router';
 import { EventService } from '../../../core/services/event.service';
+import { AuthService } from '../../../core/services/auth.service';
 import { Consumption, ConsumptionCategory } from '../../../shared/models/event.model';
 
 @Component({
   selector: 'app-consumptions-management',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, RouterModule],
   templateUrl: './consumptions-management.component.html',
   styleUrls: ['./consumptions-management.component.css']
 })
 export class ConsumptionsManagementComponent implements OnInit {
+  private authService = inject(AuthService);
+  private router = inject(Router);
+
   // Consumptions
   consumptions: Consumption[] = [];
   filteredConsumptions: Consumption[] = [];
@@ -65,8 +70,10 @@ export class ConsumptionsManagementComponent implements OnInit {
   }
 
   loadCategories(): void {
+    // 🔒 Cargar TODAS las categorías del admin (para tab de gestión)
     this.eventService.getConsumptionCategories().subscribe({
       next: (data) => {
+        console.log('📦 Categorías cargadas (todas):', data);
         this.consumptionCategories = data;
       },
       error: (error) => {
@@ -74,11 +81,15 @@ export class ConsumptionsManagementComponent implements OnInit {
       }
     });
 
+    // 🔒 Cargar solo las ACTIVAS del admin (para select en modal de consumo)
     this.eventService.getActiveConsumptionCategories().subscribe({
       next: (data) => {
+        console.log('📦 Categorías activas cargadas:', data);
         this.activeConsumptionCategories = data;
       },
-      error: (error) => console.error('Error loading active categories', error)
+      error: (error) => {
+        console.error('Error loading active categories', error);
+      }
     });
   }
 
@@ -112,6 +123,7 @@ export class ConsumptionsManagementComponent implements OnInit {
 
     operation.subscribe({
       next: () => {
+        this.isLoading = false;
         this.showSuccess(
           this.isEditMode
             ? 'Consumo actualizado exitosamente'
@@ -119,11 +131,10 @@ export class ConsumptionsManagementComponent implements OnInit {
         );
         this.closeConsumptionModal();
         this.loadConsumptions();
-        this.isLoading = false;
       },
       error: (error) => {
-        this.showError('Error al guardar consumo: ' + error.message);
         this.isLoading = false;
+        this.showError('Error al guardar consumo: ' + error.message);
       }
     });
   }
@@ -178,6 +189,7 @@ export class ConsumptionsManagementComponent implements OnInit {
 
     operation.subscribe({
       next: () => {
+        this.isLoading = false;
         this.showSuccess(
           this.isEditMode
             ? 'Categoría actualizada exitosamente'
@@ -185,11 +197,10 @@ export class ConsumptionsManagementComponent implements OnInit {
         );
         this.closeCategoryModal();
         this.loadCategories();
-        this.isLoading = false;
       },
       error: (error) => {
-        this.showError('Error al guardar categoría: ' + error.message);
         this.isLoading = false;
+        this.showError('Error al guardar categoría: ' + error.message);
       }
     });
   }
@@ -211,12 +222,19 @@ export class ConsumptionsManagementComponent implements OnInit {
   }
 
   toggleCategoryStatus(id: number): void {
+    const category = this.consumptionCategories.find(c => c.id === id);
+    if (!category) return;
+    
+    console.log('🔄 Toggle status - Categoría actual:', category);
+    
     this.eventService.toggleConsumptionCategoryStatus(id).subscribe({
-      next: () => {
+      next: (updatedCategory) => {
+        console.log('✅ Toggle status - Categoría actualizada:', updatedCategory);
         this.showSuccess('Estado de categoría actualizado');
         this.loadCategories();
       },
       error: (error) => {
+        console.error('❌ Error toggle:', error);
         this.showError('Error al cambiar estado: ' + error.message);
       }
     });
@@ -312,5 +330,13 @@ export class ConsumptionsManagementComponent implements OnInit {
   handleImageError(event: any): void {
     event.target.style.display = 'none';
     event.target.parentElement.classList.add('image-error');
+  }
+
+  logout(): void {
+    this.authService.logout();
+  }
+
+  goBack(): void {
+    this.router.navigate(['/admin/dashboard']);
   }
 }

@@ -14,4 +14,7 @@ public class EventCategory {
     private Long id;
     private String name;
     private boolean active;
+    
+    @Column(name = "created_by")
+    private Long createdBy;
 }

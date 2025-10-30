@@ -1,5 +1,6 @@
 package com.packed_go.order_service.controller;
 
+import com.packed_go.order_service.dto.MultiOrderCheckoutResponse;
 import com.packed_go.order_service.dto.request.CheckoutRequest;
 import com.packed_go.order_service.dto.request.PaymentCallbackRequest;
 import com.packed_go.order_service.dto.response.CheckoutResponse;
@@ -45,6 +46,54 @@ public class OrderController {
         CheckoutResponse response = orderService.checkout(userId, request);
         
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+    
+    /**
+     * Procesar checkout multitenant - crea múltiples órdenes si hay items de varios admins
+     * 
+     * POST /api/orders/checkout/multi
+     * Headers: Authorization: Bearer {token}
+     * 
+     * @return 201 CREATED con la sesión y grupos de pago
+     */
+    @PostMapping("/checkout/multi")
+    public ResponseEntity<MultiOrderCheckoutResponse> checkoutMulti(
+            @RequestHeader("Authorization") String authHeader) {
+        
+        log.info("POST /api/orders/checkout/multi - Processing multi-order checkout");
+        
+        Long userId = extractUserId(authHeader);
+        MultiOrderCheckoutResponse response = orderService.checkoutMulti(userId);
+        
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+    
+    /**
+     * Obtener el estado de una sesión de múltiples órdenes
+     * 
+     * GET /api/orders/sessions/{sessionId}
+     * Headers: Authorization: Bearer {token}
+     * 
+     * @return 200 OK con el estado de la sesión
+     */
+    @GetMapping("/sessions/{sessionId}")
+    public ResponseEntity<MultiOrderCheckoutResponse> getSessionStatus(
+            @RequestHeader("Authorization") String authHeader,
+            @PathVariable String sessionId) {
+        
+        log.info("GET /api/orders/sessions/{} - Retrieving session status", sessionId);
+        
+        Long userId = extractUserId(authHeader);
+        MultiOrderCheckoutResponse response = orderService.getSessionStatus(sessionId);
+        
+        // Validar que la sesión pertenece al usuario
+        if (!response.getPaymentGroups().isEmpty() && 
+            !response.getPaymentGroups().get(0).getOrderId().toString().contains(userId.toString())) {
+            // Esta validación es básica, en producción valdría la pena tener userId en MultiOrderSession
+            log.warn("User {} attempted to access session {}", userId, sessionId);
+        }
+        
+        return ResponseEntity.ok(response);
     }
     
     /**

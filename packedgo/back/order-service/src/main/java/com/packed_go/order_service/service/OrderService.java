@@ -2,9 +2,11 @@ package com.packed_go.order_service.service;
 
 import java.util.List;
 
+import com.packed_go.order_service.dto.MultiOrderCheckoutResponse;
 import com.packed_go.order_service.dto.request.CheckoutRequest;
 import com.packed_go.order_service.dto.request.PaymentCallbackRequest;
 import com.packed_go.order_service.dto.response.CheckoutResponse;
+import com.packed_go.order_service.entity.MultiOrderSession;
 import com.packed_go.order_service.entity.Order;
 
 public interface OrderService {
@@ -13,6 +15,16 @@ public interface OrderService {
      * Procesa el checkout del carrito activo del usuario
      */
     CheckoutResponse checkout(Long userId, CheckoutRequest request);
+    
+    /**
+     * Procesa el checkout multitenant creando múltiples órdenes si hay items de varios admins
+     */
+    MultiOrderCheckoutResponse checkoutMulti(Long userId);
+    
+    /**
+     * Obtiene el estado de una sesión de múltiples órdenes
+     */
+    MultiOrderCheckoutResponse getSessionStatus(String sessionId);
     
     /**
      * Actualiza el estado de una orden basado en el callback del pago

@@ -1,0 +1,160 @@
+<div class="checkout-container">
+  <!-- Loading State -->
+  <div *ngIf="isLoading" class="loading-state">
+    <div class="spinner"></div>
+    <p>Procesando tu compra...</p>
+  </div>
+
+  <!-- Error State -->
+  <div *ngIf="errorMessage && !isLoading" class="error-container">
+    <div class="error-message">
+      <h3>⚠️ Error</h3>
+      <p>{{ errorMessage }}</p>
+      <button class="btn btn-primary" (click)="cancelCheckout()">
+        Volver al Carrito
+      </button>
+    </div>
+  </div>
+
+  <!-- Checkout Content -->
+  <div *ngIf="!isLoading && !errorMessage && checkoutResponse" class="checkout-content">
+    <!-- Header -->
+    <div class="checkout-header">
+      <h1>🛒 Resumen de tu Compra</h1>
+      <div class="session-info">
+        <span class="badge" [ngClass]="getSessionStatusBadgeClass(checkoutResponse.sessionStatus)">
+          {{ getSessionStatusText(checkoutResponse.sessionStatus) }}
+        </span>
+        <span class="timer" [class.timer-warning]="timeRemaining < 300">
+          ⏱️ {{ formatTimeRemaining() }}
+        </span>
+      </div>
+    </div>
+
+    <!-- Session Summary -->
+    <div class="session-summary">
+      <div class="summary-item">
+        <span class="label">Total a pagar:</span>
+        <span class="value total">${{ checkoutResponse.totalAmount | number:'1.2-2' }}</span>
+      </div>
+      <div class="summary-item">
+        <span class="label">Órdenes:</span>
+        <span class="value">{{ checkoutResponse.totalOrders }}</span>
+      </div>
+      <div class="summary-item">
+        <span class="label">Pagadas:</span>
+        <span class="value success">{{ checkoutResponse.paidOrders }} / {{ checkoutResponse.totalOrders }}</span>
+      </div>
+      <div class="summary-item">
+        <span class="label">Pendiente:</span>
+        <span class="value warning">${{ checkoutResponse.totalPending | number:'1.2-2' }}</span>
+      </div>
+    </div>
+
+    <!-- Warning Message -->
+    <div class="warning-box">
+      <p><strong>⚠️ Importante:</strong> Tu compra incluye eventos de {{ checkoutResponse.totalOrders }} organizador(es) diferente(s).</p>
+      <p>Deberás completar {{ checkoutResponse.totalOrders }} pago(s) separado(s) para confirmar tu compra.</p>
+    </div>
+
+    <!-- Payment Groups -->
+    <div class="payment-groups">
+      <h2>Pagos Requeridos</h2>
+
+      <div *ngFor="let group of paymentGroups; let i = index" class="payment-group-card">
+        <!-- Card Header -->
+        <div class="card-header">
+          <div class="header-left">
+            <h3>📦 Organizador #{{ i + 1 }}</h3>
+            <span class="order-number">Orden: {{ group.orderNumber }}</span>
+          </div>
+          <div class="header-right">
+            <span class="badge" [ngClass]="getStatusBadgeClass(group.status)">
+              {{ getStatusText(group.status) }}
+            </span>
+          </div>
+        </div>
+
+        <!-- Card Body -->
+        <div class="card-body">
+          <!-- Items List -->
+          <div class="items-list">
+            <h4>Items:</h4>
+            <div *ngFor="let item of group.items" class="item-row">
+              <span class="item-name">{{ item.eventName }}</span>
+              <span class="item-quantity">x{{ item.quantity }}</span>
+              <span class="item-price">${{ item.totalPrice | number:'1.2-2' }}</span>
+            </div>
+          </div>
+
+          <!-- Total -->
+          <div class="group-total">
+            <span class="total-label">Subtotal:</span>
+            <span class="total-amount">${{ group.amount | number:'1.2-2' }}</span>
+          </div>
+
+          <!-- Payment Actions -->
+          <div class="payment-actions" *ngIf="group.status !== 'PAID'">
+            <!-- Generating Payments State -->
+            <div *ngIf="isGeneratingPayments && !group.initPoint" class="generating-payment">
+              <div class="spinner-small"></div>
+              <span>Generando pago...</span>
+            </div>
+
+            <!-- Payment Buttons -->
+            <div *ngIf="!isGeneratingPayments && group.initPoint" class="payment-buttons">
+              <button 
+                class="btn btn-primary btn-pay" 
+                (click)="openPaymentCheckout(group)"
+                [disabled]="!group.initPoint">
+                💳 Pagar ${{ group.amount | number:'1.2-2' }}
+              </button>
+              
+              <button 
+                class="btn btn-secondary btn-qr" 
+                (click)="showQRCode(group)"
+                [disabled]="!group.qrUrl">
+                📱 Ver QR
+              </button>
+              
+              <button 
+                class="btn btn-link btn-refresh" 
+                (click)="refreshPaymentStatus(group)"
+                [disabled]="!group.paymentPreferenceId"
+                title="Verificar estado del pago">
+                🔄
+              </button>
+            </div>
+          </div>
+
+          <!-- Paid Status -->
+          <div class="paid-status" *ngIf="group.status === 'PAID'">
+            <p class="success-message">✅ Pago completado exitosamente</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Instructions -->
+    <div class="instructions">
+      <h3>📋 Instrucciones:</h3>
+      <ol>
+        <li>Haz clic en el botón "Pagar" de cada organizador para completar el pago.</li>
+        <li>Serás redirigido a Mercado Pago para realizar cada pago de forma segura.</li>
+        <li>También puedes escanear el código QR con tu app de Mercado Pago.</li>
+        <li>Una vez completados todos los pagos, recibirás la confirmación de tu compra.</li>
+        <li>Tienes {{ formatTimeRemaining() }} para completar todos los pagos.</li>
+      </ol>
+    </div>
+
+    <!-- Actions -->
+    <div class="checkout-actions">
+      <button class="btn btn-danger" (click)="cancelCheckout()">
+        Cancelar
+      </button>
+      <button class="btn btn-secondary" routerLink="/customer/dashboard">
+        Volver al Dashboard
+      </button>
+    </div>
+  </div>
+</div>

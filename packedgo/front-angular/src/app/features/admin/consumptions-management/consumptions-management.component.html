@@ -1,92 +1,123 @@
-<div class="consumptions-management">
-  <div class="header">
-    <h1>Gestión de Consumos</h1>
-    <p class="subtitle">Administra los consumos y sus categorías disponibles para los eventos</p>
-  </div>
+<div class="management-container">
+  <!-- Navbar -->
+  <nav class="navbar">
+    <div class="navbar-brand">
+      <button class="btn-back" routerLink="/admin/dashboard">
+        <i class="bi bi-arrow-left"></i>
+      </button>
+      <i class="bi bi-cup-hot-fill"></i>
+      <span>Gestión de Consumos</span>
+    </div>
+    <div class="navbar-user">
+      <button class="btn btn-logout" (click)="logout()">
+        <i class="bi bi-box-arrow-right"></i>
+        Cerrar Sesión
+      </button>
+    </div>
+  </nav>
 
-  <!-- Messages -->
-  <div *ngIf="successMessage" class="alert alert-success">
-    {{ successMessage }}
-  </div>
-  <div *ngIf="errorMessage" class="alert alert-error">
-    {{ errorMessage }}
-  </div>
+  <!-- Main Content -->
+  <div class="management-content">
+    
+    <!-- Success/Error Alerts -->
+    <div *ngIf="successMessage" class="alert alert-success alert-dismissible fade show" role="alert">
+      <i class="bi bi-check-circle-fill me-2"></i>
+      {{ successMessage }}
+      <button type="button" class="btn-close" (click)="successMessage = ''"></button>
+    </div>
 
-  <!-- Tabs -->
-  <div class="tabs">
-    <button 
-      class="tab-button" 
-      [class.active]="activeTab === 'consumptions'"
-      (click)="switchTab('consumptions')">
-      <span class="icon">🍔</span>
-      Consumos
-    </button>
-    <button 
-      class="tab-button" 
-      [class.active]="activeTab === 'categories'"
-      (click)="switchTab('categories')">
-      <span class="icon">📁</span>
-      Categorías
-    </button>
-  </div>
+    <div *ngIf="errorMessage" class="alert alert-danger alert-dismissible fade show" role="alert">
+      <i class="bi bi-exclamation-triangle-fill me-2"></i>
+      {{ errorMessage }}
+      <button type="button" class="btn-close" (click)="errorMessage = ''"></button>
+    </div>
 
-  <!-- CONSUMPTIONS TAB -->
-  <div *ngIf="activeTab === 'consumptions'" class="tab-content">
-    <div class="toolbar">
-      <div class="search-box">
-        <input 
-          type="text" 
-          [(ngModel)]="searchTerm" 
-          (input)="filterConsumptions()"
-          placeholder="Buscar consumos..."
-          class="search-input">
-        <span class="search-icon">🔍</span>
+    <!-- Header Section -->
+    <div class="header-section">
+      <div class="header-left">
+        <h1>Consumos</h1>
+        <p>Administra los consumos y sus categorías disponibles para los eventos</p>
       </div>
-      <button class="btn btn-primary" (click)="openConsumptionModal()">
-        <span class="icon">➕</span>
-        Nuevo Consumo
+    </div>
+
+    <!-- Tabs -->
+    <div class="tabs-container">
+      <button 
+        class="tab-button"
+        [class.active]="activeTab === 'consumptions'"
+        (click)="switchTab('consumptions')"
+      >
+        <i class="bi bi-cup-hot-fill"></i>
+        Consumos
+      </button>
+      <button 
+        class="tab-button"
+        [class.active]="activeTab === 'categories'"
+        (click)="switchTab('categories')"
+      >
+        <i class="bi bi-folder"></i>
+        Categorías
       </button>
     </div>
 
-    <div *ngIf="isLoading" class="loading">Cargando...</div>
+    <!-- CONSUMPTIONS TAB -->
+    <div *ngIf="activeTab === 'consumptions'" class="tab-content">
+      <div class="content-header">
+        <div class="search-wrapper">
+          <i class="bi bi-search"></i>
+          <input 
+            type="text" 
+            class="form-control search-input"
+            [(ngModel)]="searchTerm" 
+            (input)="filterConsumptions()"
+            placeholder="Buscar consumos..."
+          />
+        </div>
+        <button class="btn btn-create" (click)="openConsumptionModal()">
+          <i class="bi bi-plus-circle"></i>
+          Nuevo Consumo
+        </button>
+      </div>
 
-    <div *ngIf="!isLoading && filteredConsumptions.length === 0" class="empty-state">
-      <p>No hay consumos disponibles</p>
-      <button class="btn btn-primary" (click)="openConsumptionModal()">Crear primer consumo</button>
-    </div>
+      <div *ngIf="isLoading" class="loading">Cargando...</div>
 
-    <div *ngIf="!isLoading && filteredConsumptions.length > 0" class="consumptions-grid">
-      <div *ngFor="let consumption of filteredConsumptions" class="consumption-card">
-        <div class="card-image">
-          <img 
-            *ngIf="consumption.imageUrl"
-            [src]="consumption.imageUrl" 
-            [alt]="consumption.name"
-            (error)="handleImageError($event)">
-          <div *ngIf="!consumption.imageUrl" class="placeholder-icon">
-            🍔
+      <div *ngIf="!isLoading && filteredConsumptions.length === 0" class="empty-state">
+        <p>No hay consumos disponibles</p>
+        <button class="btn btn-primary" (click)="openConsumptionModal()">Crear primer consumo</button>
+      </div>
+
+      <div *ngIf="!isLoading && filteredConsumptions.length > 0" class="consumptions-grid">
+        <div *ngFor="let consumption of filteredConsumptions" class="consumption-card">
+          <div class="card-image">
+            <img 
+              *ngIf="consumption.imageUrl"
+              [src]="consumption.imageUrl" 
+              [alt]="consumption.name"
+              (error)="handleImageError($event)">
+            <div *ngIf="!consumption.imageUrl" class="placeholder-icon">
+              🍔
+            </div>
+            <span class="status-badge" [class.inactive]="!consumption.active">
+              {{ consumption.active ? 'Activo' : 'Inactivo' }}
+            </span>
           </div>
-          <span class="status-badge" [class.inactive]="!consumption.active">
-            {{ consumption.active ? 'Activo' : 'Inactivo' }}
-          </span>
-        </div>
-        <div class="card-body">
-          <h3 class="consumption-name">{{ consumption.name }}</h3>
-          <p class="consumption-category">{{ getCategoryName(consumption.categoryId) }}</p>
-          <p class="consumption-description">{{ consumption.description || 'Sin descripción' }}</p>
-          <div class="consumption-price">${{ consumption.price }}</div>
-        </div>
-        <div class="card-actions">
-          <button class="btn-icon btn-edit" (click)="openConsumptionModal(consumption)" title="Editar">
-            ✏️
-          </button>
-          <button class="btn-icon btn-delete" (click)="deleteConsumption(consumption.id!)" title="Eliminar">
-            🗑️
-          </button>
+          <div class="card-body">
+            <h3 class="consumption-name">{{ consumption.name }}</h3>
+            <p class="consumption-category">{{ getCategoryName(consumption.categoryId) }}</p>
+            <p class="consumption-description">{{ consumption.description || 'Sin descripción' }}</p>
+            <div class="consumption-price">${{ consumption.price }}</div>
+          </div>
+          <div class="card-actions">
+            <button class="btn-icon btn-edit" (click)="openConsumptionModal(consumption)" title="Editar">
+              ✏️
+            </button>
+            <button class="btn-icon btn-delete" (click)="deleteConsumption(consumption.id!)" title="Eliminar">
+              🗑️
+            </button>
+          </div>
         </div>
       </div>
     </div>
-  </div>
 
   <!-- CATEGORIES TAB -->
   <div *ngIf="activeTab === 'categories'" class="tab-content">
@@ -112,10 +143,10 @@
           <p>{{ category.description || 'Sin descripción' }}</p>
         </div>
         <div class="category-status">
-          <span class="status-indicator" [class.active]="category.active">
-            {{ category.active ? '●' : '○' }}
+          <span class="status-indicator" [class.active]="category.active === true">
+            {{ category.active === true ? '●' : '○' }}
           </span>
-          <span>{{ category.active ? 'Activa' : 'Inactiva' }}</span>
+          <span>{{ category.active === true ? 'Activa' : 'Inactiva' }}</span>
         </div>
         <div class="category-actions">
           <button class="btn-icon" (click)="toggleCategoryStatus(category.id!)" title="Cambiar estado">
@@ -131,9 +162,9 @@
       </div>
     </div>
   </div>
-
-  <!-- CONSUMPTION MODAL -->
-  <div *ngIf="showConsumptionModal" class="modal-overlay" (click)="closeConsumptionModal()">
+  
+<!-- CONSUMPTION MODAL -->
+<div *ngIf="showConsumptionModal" class="modal-overlay" (click)="closeConsumptionModal()">
     <div class="modal-content" (click)="$event.stopPropagation()">
       <div class="modal-header">
         <h2>{{ isEditMode ? 'Editar Consumo' : 'Nuevo Consumo' }}</h2>
@@ -275,4 +306,3 @@
       </div>
     </div>
   </div>
-</div>

@@ -51,14 +51,26 @@ public class EventCategoryServiceImpl implements EventCategoryService {
 
     @Override
     public EventCategoryDTO create(CreateEventCategoryDTO createEventCategoryDto) {
-        Optional<EventCategory> categoryExist = eventCategoryRepository.findByName(createEventCategoryDto.getName());
-        if (categoryExist.isPresent()) {
-            throw new RuntimeException("Event category ya existe");
+        // 🔒 Multitenant: Validar que no exista una categoría con el mismo nombre PARA ESTE ADMIN
+        Long createdBy = createEventCategoryDto.getCreatedBy();
+        if (createdBy != null) {
+            Optional<EventCategory> categoryExist = eventCategoryRepository
+                    .findByNameAndCreatedBy(createEventCategoryDto.getName(), createdBy);
+            if (categoryExist.isPresent()) {
+                throw new RuntimeException("Ya tienes una categoría de evento con este nombre");
+            }
         } else {
-            EventCategory entity = modelMapper.map(createEventCategoryDto, EventCategory.class);
-            entity.setActive(true);
-            return modelMapper.map(eventCategoryRepository.save(entity), EventCategoryDTO.class);
+            // Fallback: Si no hay createdBy, validar globalmente (legacy)
+            Optional<EventCategory> categoryExist = eventCategoryRepository
+                    .findByName(createEventCategoryDto.getName());
+            if (categoryExist.isPresent()) {
+                throw new RuntimeException("Event category ya existe");
+            }
         }
+        
+        EventCategory entity = modelMapper.map(createEventCategoryDto, EventCategory.class);
+        entity.setActive(true);
+        return modelMapper.map(eventCategoryRepository.save(entity), EventCategoryDTO.class);
     }
 
     @Override

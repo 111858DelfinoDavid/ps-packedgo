@@ -15,6 +15,8 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Index;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
@@ -65,6 +67,10 @@ public class Order {
 
     @Column(name = "admin_id")
     private Long adminId; // Admin del evento (para payment-service)
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "session_id")
+    private MultiOrderSession multiOrderSession; // Sesión de múltiples órdenes
 
     @Column(name = "created_at")
     private LocalDateTime createdAt;

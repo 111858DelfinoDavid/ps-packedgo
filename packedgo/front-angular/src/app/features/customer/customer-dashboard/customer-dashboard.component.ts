@@ -348,8 +348,8 @@ export class CustomerDashboardComponent implements OnInit, OnDestroy {
       return;
     }
     
-    // TODO: Implementar proceso de pago con MercadoPago
-    alert('Redirigiendo a pasarela de pago... (Por implementar)');
+    // Navegar al checkout multi-admin
+    this.router.navigate(['/customer/checkout']);
   }
 
   // ==================== TICKETS SECTION ====================

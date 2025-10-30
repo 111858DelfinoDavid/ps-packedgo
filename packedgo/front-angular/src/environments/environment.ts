@@ -5,4 +5,5 @@ export const environment = {
   usersServiceUrl: 'http://localhost:8082/api',
   eventsServiceUrl: 'http://localhost:8086/api',
   ordersServiceUrl: 'http://localhost:8084/api',
+  paymentsServiceUrl: 'http://localhost:8085/api', // Payment Service
 };

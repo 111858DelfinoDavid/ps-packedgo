@@ -195,6 +195,17 @@ public class AuthController {
         }
     }
 
+    @PostMapping("/resend-verification")
+    public ResponseEntity<ApiResponse<String>> resendVerificationEmail(
+            @Valid @RequestBody ResendVerificationRequest request) {
+        
+        log.info("Resending verification email to: {}", request.getEmail());
+        
+        authService.resendVerificationEmail(request.getEmail());
+        
+        return ResponseEntity.ok(ApiResponse.success(null, "Verification email resent successfully"));
+    }
+
     // Métodos de utilidad
     private String getClientIpAddress(HttpServletRequest request) {
         String xfHeader = request.getHeader("X-Forwarded-For");

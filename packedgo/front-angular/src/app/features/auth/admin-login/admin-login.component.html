@@ -11,6 +11,13 @@
     <p class="subtitle">Acceso exclusivo para personal autorizado</p>
   </div>
 
+  <!-- Email Verified Success Alert -->
+  <div *ngIf="emailVerifiedSuccess" class="alert alert-success alert-dismissible fade show" role="alert">
+    <i class="bi bi-check-circle-fill me-2"></i>
+    ✓ Email verificado exitosamente. Ahora puedes iniciar sesión.
+    <button type="button" class="btn-close" (click)="emailVerifiedSuccess = false" aria-label="Close"></button>
+  </div>
+
   <!-- Error Alert -->
   <div *ngIf="errorMessage" [class]="resendSuccess ? 'alert alert-success alert-dismissible fade show' : 'alert alert-danger alert-dismissible fade show'" role="alert">
     <i [class]="resendSuccess ? 'bi bi-check-circle-fill me-2' : 'bi bi-exclamation-triangle-fill me-2'"></i>

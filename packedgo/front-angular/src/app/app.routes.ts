@@ -44,6 +44,12 @@ export const routes: Routes = [
     loadComponent: () => import('./features/auth/verify-email-required/verify-email-required.component').then(m => m.VerifyEmailRequiredComponent)
   },
   
+  // Email verification (from email link)
+  {
+    path: 'verify-email',
+    loadComponent: () => import('./features/auth/verify-email/verify-email.component').then(m => m.VerifyEmailComponent)
+  },
+  
   // Admin routes (protected + email verified)
   {
     path: 'admin/dashboard',
@@ -53,11 +59,6 @@ export const routes: Routes = [
   {
     path: 'admin/events',
     loadComponent: () => import('./features/admin/events-management/events-management.component').then(m => m.EventsManagementComponent),
-    canActivate: [adminGuard, emailVerifiedGuard]
-  },
-  {
-    path: 'admin/categories',
-    loadComponent: () => import('./features/admin/categories-management/categories-management.component').then(m => m.CategoriesManagementComponent),
     canActivate: [adminGuard, emailVerifiedGuard]
   },
   {
@@ -75,6 +76,16 @@ export const routes: Routes = [
   {
     path: 'customer/events/:id',
     loadComponent: () => import('./features/customer/event-detail/event-detail.component').then(m => m.EventDetailComponent),
+    canActivate: [authGuard, emailVerifiedGuard]
+  },
+  {
+    path: 'customer/checkout',
+    loadComponent: () => import('./features/customer/checkout/checkout.component').then(m => m.CheckoutComponent),
+    canActivate: [authGuard, emailVerifiedGuard]
+  },
+  {
+    path: 'customer/orders/success',
+    loadComponent: () => import('./features/customer/order-success/order-success.component').then(m => m.OrderSuccessComponent),
     canActivate: [authGuard, emailVerifiedGuard]
   },
   

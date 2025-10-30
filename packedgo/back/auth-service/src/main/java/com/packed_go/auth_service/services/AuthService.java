@@ -54,4 +54,6 @@ public interface AuthService {
     AuthUser updateUserProfile(Long userId, UpdateAuthUserRequest request);
     
     boolean changePasswordLoggedUser(Long userId, ChangePasswordLoggedUserRequest request);
+    
+    void resendVerificationEmail(String email);
 }

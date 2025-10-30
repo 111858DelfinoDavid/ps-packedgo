@@ -14,4 +14,12 @@ public interface ConsumptionCategoryRepository extends JpaRepository<Consumption
     List<ConsumptionCategory> findByActiveIsTrue();
 
     Optional<ConsumptionCategory> findByName(String name);
+    
+    // 🔒 Multitenant: Buscar por nombre Y admin
+    Optional<ConsumptionCategory> findByNameAndCreatedBy(String name, Long createdBy);
+    
+    // 🔒 Multitenant: Obtener categorías del admin
+    List<ConsumptionCategory> findByCreatedBy(Long createdBy);
+    
+    List<ConsumptionCategory> findByActiveIsTrueAndCreatedBy(Long createdBy);
 }

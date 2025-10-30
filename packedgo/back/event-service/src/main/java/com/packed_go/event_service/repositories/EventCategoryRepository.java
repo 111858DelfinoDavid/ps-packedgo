@@ -14,4 +14,9 @@ public interface EventCategoryRepository extends JpaRepository<EventCategory, Lo
     List<EventCategory> findByActiveIsTrue();
 
     Optional<EventCategory> findByName(String name);
+
+    // 🔒 Multitenant methods - filter by createdBy
+    Optional<EventCategory> findByNameAndCreatedBy(String name, Long createdBy);
+    List<EventCategory> findByCreatedBy(Long createdBy);
+    List<EventCategory> findByActiveIsTrueAndCreatedBy(Long createdBy);
 }

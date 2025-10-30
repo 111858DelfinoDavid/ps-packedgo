@@ -7,4 +7,5 @@ import lombok.Setter;
 @Setter
 public class CreateConsumptionCategoryDTO {
     private String name;
+    private Long createdBy;
 }

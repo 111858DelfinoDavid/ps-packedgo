@@ -14,4 +14,7 @@ public class ConsumptionCategory {
     private Long id;
     private String name;
     private boolean active;
+    
+    @Column(name = "created_by")
+    private Long createdBy;
 }

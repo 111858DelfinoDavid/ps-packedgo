@@ -32,6 +32,9 @@ public class CartItem {
 
     @Column(name = "event_name", nullable = false)
     private String eventName;
+    
+    @Column(name = "admin_id", nullable = false)
+    private Long adminId; // ID del admin dueño del evento (para multitenant)
 
     @Column(nullable = false)
     private Integer quantity = 1;

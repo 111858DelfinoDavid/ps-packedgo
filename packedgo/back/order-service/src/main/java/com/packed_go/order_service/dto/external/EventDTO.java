@@ -41,4 +41,6 @@ public class EventDTO {
     private Integer availablePasses;
     
     private Integer totalPasses;
+    
+    private Long createdBy; // AdminId del organizador del evento
 }

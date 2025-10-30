@@ -8,13 +8,16 @@ import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import com.packed_go.event_service.dtos.consumption.ConsumptionDTO;
 import com.packed_go.event_service.dtos.event.CreateEventDTO;
 import com.packed_go.event_service.dtos.event.EventDTO;
 import com.packed_go.event_service.entities.Event;
 import com.packed_go.event_service.entities.EventCategory;
+import com.packed_go.event_service.entities.Consumption;
 import com.packed_go.event_service.exceptions.ResourceNotFoundException;
 import com.packed_go.event_service.repositories.EventCategoryRepository;
 import com.packed_go.event_service.repositories.EventRepository;
+import com.packed_go.event_service.repositories.ConsumptionRepository;
 import com.packed_go.event_service.services.EventService;
 
 import jakarta.transaction.Transactional;
@@ -32,13 +35,27 @@ public class EventServiceImpl implements EventService {
 
     @Autowired
     private final EventCategoryRepository eventCategoryRepository;
+    
+    @Autowired
+    private final ConsumptionRepository consumptionRepository;
 
     @Override
     public EventDTO findById(Long id) {
         Optional<Event> eventExist = eventRepository.findById(id);
         if (eventExist.isPresent()) {
-            EventDTO event = modelMapper.map(eventExist.get(), EventDTO.class);
-            return modelMapper.map(eventExist.get(), EventDTO.class);
+            Event event = eventExist.get();
+            EventDTO eventDTO = modelMapper.map(event, EventDTO.class);
+            
+            // Cargar las consumptions del admin que creó el evento
+            if (event.getCreatedBy() != null) {
+                List<Consumption> consumptions = consumptionRepository.findByCreatedByAndActiveIsTrue(event.getCreatedBy());
+                List<ConsumptionDTO> consumptionDTOs = consumptions.stream()
+                    .map(c -> modelMapper.map(c, ConsumptionDTO.class))
+                    .toList();
+                eventDTO.setAvailableConsumptions(consumptionDTOs);
+            }
+            
+            return eventDTO;
         } else {
             throw new RuntimeException("Event with id" + id + " not found");
         }
@@ -48,7 +65,18 @@ public class EventServiceImpl implements EventService {
     @Override
     public List<EventDTO> findAll() {
         List<Event> eventEntities = eventRepository.findAll();
-        return eventEntities.stream().map(entity -> modelMapper.map(entity, EventDTO.class)).toList();
+        return eventEntities.stream().map(entity -> {
+            EventDTO eventDTO = modelMapper.map(entity, EventDTO.class);
+            // Cargar las consumptions del admin que creó el evento
+            if (entity.getCreatedBy() != null) {
+                List<Consumption> consumptions = consumptionRepository.findByCreatedByAndActiveIsTrue(entity.getCreatedBy());
+                List<ConsumptionDTO> consumptionDTOs = consumptions.stream()
+                    .map(c -> modelMapper.map(c, ConsumptionDTO.class))
+                    .toList();
+                eventDTO.setAvailableConsumptions(consumptionDTOs);
+            }
+            return eventDTO;
+        }).toList();
     }
 
 

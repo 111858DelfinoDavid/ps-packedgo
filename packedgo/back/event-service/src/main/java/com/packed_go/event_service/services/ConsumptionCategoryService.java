@@ -10,6 +10,9 @@ public interface ConsumptionCategoryService {
     ConsumptionCategoryDTO findById(Long id);
 
     List<ConsumptionCategoryDTO> findByActiveIsTrue();
+    
+    // 🔒 Multitenant: Categorías activas del admin
+    List<ConsumptionCategoryDTO> findByActiveIsTrueAndCreatedBy(Long createdBy);
 
     List<ConsumptionCategoryDTO> findAll();
 

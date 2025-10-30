@@ -40,6 +40,14 @@ public class ConsumptionCategoryServiceImpl implements ConsumptionCategoryServic
                 .map(entity -> modelMapper.map(entity, ConsumptionCategoryDTO.class))
                 .toList();
     }
+    
+    @Override
+    public List<ConsumptionCategoryDTO> findByActiveIsTrueAndCreatedBy(Long createdBy) {
+        List<ConsumptionCategory> categoryEntities = consumptionCategoryRepository.findByActiveIsTrueAndCreatedBy(createdBy);
+        return categoryEntities.stream()
+                .map(entity -> modelMapper.map(entity, ConsumptionCategoryDTO.class))
+                .toList();
+    }
 
     @Override
     public List<ConsumptionCategoryDTO> findAll() {
@@ -51,14 +59,26 @@ public class ConsumptionCategoryServiceImpl implements ConsumptionCategoryServic
 
     @Override
     public ConsumptionCategoryDTO create(CreateConsumptionCategoryDTO createConsumptionCategoryDto) {
-        Optional<ConsumptionCategory> categoryExist = consumptionCategoryRepository.findByName(createConsumptionCategoryDto.getName());
-        if (categoryExist.isPresent()) {
-            throw new RuntimeException("Consumption category ya existe");
+        // 🔒 Multitenant: Validar que no exista una categoría con el mismo nombre PARA ESTE ADMIN
+        Long createdBy = createConsumptionCategoryDto.getCreatedBy();
+        if (createdBy != null) {
+            Optional<ConsumptionCategory> categoryExist = consumptionCategoryRepository
+                    .findByNameAndCreatedBy(createConsumptionCategoryDto.getName(), createdBy);
+            if (categoryExist.isPresent()) {
+                throw new RuntimeException("Ya tienes una categoría de consumo con este nombre");
+            }
         } else {
-            ConsumptionCategory entity = modelMapper.map(createConsumptionCategoryDto, ConsumptionCategory.class);
-            entity.setActive(true);
-            return modelMapper.map(consumptionCategoryRepository.save(entity), ConsumptionCategoryDTO.class);
+            // Fallback: Si no hay createdBy, validar globalmente (legacy)
+            Optional<ConsumptionCategory> categoryExist = consumptionCategoryRepository
+                    .findByName(createConsumptionCategoryDto.getName());
+            if (categoryExist.isPresent()) {
+                throw new RuntimeException("Consumption category ya existe");
+            }
         }
+        
+        ConsumptionCategory entity = modelMapper.map(createConsumptionCategoryDto, ConsumptionCategory.class);
+        entity.setActive(true);
+        return modelMapper.map(consumptionCategoryRepository.save(entity), ConsumptionCategoryDTO.class);
     }
 
     @Override

@@ -3,16 +3,26 @@ import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { Event, EventCategory, ConsumptionCategory, Consumption } from '../../shared/models/event.model';
 import { environment } from '../../../environments/environment';
+import { AuthService } from './auth.service';
 
 @Injectable({
   providedIn: 'root'
 })
 export class EventService {
   private http = inject(HttpClient);
+  private authService = inject(AuthService);
   private apiUrl = environment.eventsServiceUrl;
 
   // Event CRUD
   getEvents(): Observable<Event[]> {
+    const user = this.authService.getCurrentUser();
+    
+    // Si es ADMIN, traer solo sus eventos
+    if (user?.role === 'ADMIN') {
+      return this.http.get<Event[]>(`${this.apiUrl}/event-service/event/my-events`);
+    }
+    
+    // Si es CUSTOMER o público, traer todos los eventos
     return this.http.get<Event[]>(`${this.apiUrl}/event-service/event`);
   }
 

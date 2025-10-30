@@ -19,20 +19,38 @@ export class EventsManagementComponent implements OnInit {
   private authService = inject(AuthService);
   private router = inject(Router);
 
+  // Tab Management
+  activeTab: 'events' | 'categories' = 'events';
+  
+  // Events Tab
   events: Event[] = [];
-  categories: EventCategory[] = [];
-  consumptions: Consumption[] = [];
   filteredEvents: Event[] = [];
   selectedConsumptions: number[] = [];
-  
   eventForm: FormGroup;
-  isLoading = true;
-  isSubmitting = false;
+  searchTerm = '';
   showModal = false;
   isEditMode = false;
   currentEventId?: number;
   
-  searchTerm = '';
+  // Categories Tab
+  categories: EventCategory[] = [];
+  filteredCategories: EventCategory[] = [];
+  categorySearchTerm = '';
+  showCategoryModal = false;
+  isCategoryEditMode = false;
+  categoryForm: any = {
+    id: undefined,
+    name: '',
+    description: '',
+    active: true
+  };
+  
+  // Shared Data
+  consumptions: Consumption[] = [];
+  
+  // Loading & Messages
+  isLoading = true;
+  isSubmitting = false;
   errorMessage = '';
   successMessage = '';
 
@@ -269,6 +287,172 @@ export class EventsManagementComponent implements OnInit {
   getConsumptionCategoryName(categoryId: number): string {
     const consumption = this.consumptions.find(c => c.id === categoryId);
     return consumption?.categoryId ? `Categoría ${consumption.categoryId}` : 'Sin categoría';
+  }
+
+  // ===== TAB MANAGEMENT =====
+  switchTab(tab: 'events' | 'categories'): void {
+    this.activeTab = tab;
+    
+    // Limpiar mensajes
+    this.errorMessage = '';
+    this.successMessage = '';
+    
+    // Si cambiamos a categorías y no están cargadas, cargarlas
+    if (tab === 'categories') {
+      this.loadCategories();
+    }
+  }
+
+  // ===== CATEGORIES TAB METHODS =====
+  loadCategories(): void {
+    this.eventService.getEventCategories().subscribe({
+      next: (categories: any) => {
+        this.categories = categories;
+        this.filteredCategories = categories;
+      },
+      error: (error: any) => {
+        console.error('Error al cargar categorías:', error);
+        this.errorMessage = 'Error al cargar categorías. Por favor, intenta nuevamente.';
+      }
+    });
+  }
+
+  searchCategories(): void {
+    if (!this.categorySearchTerm.trim()) {
+      this.filteredCategories = this.categories;
+      return;
+    }
+
+    const term = this.categorySearchTerm.toLowerCase();
+    this.filteredCategories = this.categories.filter(category => 
+      category.name.toLowerCase().includes(term) ||
+      (category.description && category.description.toLowerCase().includes(term))
+    );
+  }
+
+  openCreateCategoryModal(): void {
+    this.isCategoryEditMode = false;
+    this.categoryForm = {
+      id: undefined,
+      name: '',
+      description: '',
+      active: true
+    };
+    this.showCategoryModal = true;
+    this.errorMessage = '';
+    this.successMessage = '';
+  }
+
+  openEditCategoryModal(category: EventCategory): void {
+    this.isCategoryEditMode = true;
+    this.categoryForm = { ...category };
+    this.showCategoryModal = true;
+    this.errorMessage = '';
+    this.successMessage = '';
+  }
+
+  closeCategoryModal(): void {
+    this.showCategoryModal = false;
+    this.categoryForm = {
+      id: undefined,
+      name: '',
+      description: '',
+      active: true
+    };
+    this.errorMessage = '';
+    this.successMessage = '';
+    this.isSubmitting = false;
+  }
+
+  onCategorySubmit(): void {
+    if (!this.categoryForm.name || this.categoryForm.name.trim() === '') {
+      this.errorMessage = 'El nombre de la categoría es obligatorio';
+      return;
+    }
+
+    this.isSubmitting = true;
+    this.errorMessage = '';
+
+    const categoryData = {
+      name: this.categoryForm.name.trim(),
+      description: this.categoryForm.description?.trim() || '',
+      active: this.categoryForm.active
+    };
+
+    if (this.isCategoryEditMode && this.categoryForm.id) {
+      // Actualizar categoría existente
+      this.eventService.updateEventCategory(this.categoryForm.id, categoryData).subscribe({
+        next: () => {
+          this.isSubmitting = false;
+          this.successMessage = 'Categoría actualizada exitosamente';
+          setTimeout(() => {
+            this.closeCategoryModal();
+            this.loadCategories();
+          }, 1500);
+        },
+        error: (error: any) => {
+          this.isSubmitting = false;
+          console.error('Error al actualizar categoría:', error);
+          this.errorMessage = error.error?.message || 'Error al actualizar la categoría. Por favor, intenta nuevamente.';
+        }
+      });
+    } else {
+      // Crear nueva categoría
+      this.eventService.createEventCategory(categoryData).subscribe({
+        next: () => {
+          this.isSubmitting = false;
+          this.successMessage = 'Categoría creada exitosamente';
+          setTimeout(() => {
+            this.closeCategoryModal();
+            this.loadCategories();
+          }, 1500);
+        },
+        error: (error: any) => {
+          this.isSubmitting = false;
+          console.error('Error al crear categoría:', error);
+          this.errorMessage = error.error?.message || 'Error al crear la categoría. Por favor, intenta nuevamente.';
+        }
+      });
+    }
+  }
+
+  deleteCategory(categoryId: number, categoryName: string): void {
+    if (!confirm(`¿Estás seguro de que deseas eliminar la categoría "${categoryName}"?`)) {
+      return;
+    }
+
+    this.eventService.deleteEventCategory(categoryId).subscribe({
+      next: () => {
+        this.successMessage = 'Categoría eliminada exitosamente';
+        this.loadCategories();
+        setTimeout(() => this.successMessage = '', 3000);
+      },
+      error: (error: any) => {
+        console.error('Error al eliminar categoría:', error);
+        this.errorMessage = error.error?.message || 'Error al eliminar la categoría. Por favor, intenta nuevamente.';
+        setTimeout(() => this.errorMessage = '', 3000);
+      }
+    });
+  }
+
+  toggleCategoryStatus(category: EventCategory): void {
+    const updatedCategory = {
+      ...category,
+      active: !category.active
+    };
+
+    this.eventService.updateEventCategory(category.id!, updatedCategory).subscribe({
+      next: () => {
+        this.successMessage = `Categoría ${updatedCategory.active ? 'activada' : 'desactivada'} exitosamente`;
+        this.loadCategories();
+        setTimeout(() => this.successMessage = '', 3000);
+      },
+      error: (error: any) => {
+        console.error('Error al cambiar estado de categoría:', error);
+        this.errorMessage = error.error?.message || 'Error al cambiar el estado de la categoría.';
+        setTimeout(() => this.errorMessage = '', 3000);
+      }
+    });
   }
 
   // Getters para validación en template

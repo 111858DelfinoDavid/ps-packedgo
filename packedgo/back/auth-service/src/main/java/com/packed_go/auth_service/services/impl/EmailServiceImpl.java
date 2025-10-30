@@ -1,6 +1,8 @@
 package com.packed_go.auth_service.services.impl;
 
 import com.packed_go.auth_service.services.EmailService;
+import jakarta.mail.MessagingException;
+import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -9,15 +11,13 @@ import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 
-import jakarta.mail.MessagingException;
-import jakarta.mail.internet.MimeMessage;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 
 @Service
-@RequiredArgsConstructor
 @Slf4j
+@RequiredArgsConstructor
 public class EmailServiceImpl implements EmailService {
 
     private final JavaMailSender mailSender;
@@ -46,30 +46,29 @@ public class EmailServiceImpl implements EmailService {
     @Override
     public void sendVerificationEmail(String email, String username, String verificationToken) {
         try {
-            log.info("Sending verification email - frontendBaseUrl: {}, email: {}, token: {}", 
-                frontendBaseUrl, email, verificationToken);
+            log.info("Sending verification email via Mailtrap - email: {}, token: {}", email, verificationToken);
                 
-            MimeMessage message = mailSender.createMimeMessage();
-            MimeMessageHelper helper = new MimeMessageHelper(message, true);
-
-            helper.setFrom(fromEmail);
-            helper.setTo(email);
-            helper.setSubject("Verificación de Email - PackedGo");
-            
             String verificationUrl = frontendBaseUrl + "/verify-email?token=" + verificationToken;
             log.info("Generated verification URL: {}", verificationUrl);
             
             String htmlContent = createVerificationEmailTemplate(username, verificationUrl, verificationToken);
+            
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+            
+            helper.setFrom(fromEmail);
+            helper.setTo(email);
+            helper.setSubject("Verificación de Email - PackedGo");
             helper.setText(htmlContent, true);
-
+            
             mailSender.send(message);
-            log.info("Verification email sent successfully to {}", email);
+            log.info("✅ Verification email sent successfully to {} via Mailtrap", email);
 
         } catch (MessagingException e) {
-            log.error("Failed to send verification email to {}: {}", email, e.getMessage(), e);
+            log.error("❌ Failed to send verification email to {}: {}", email, e.getMessage(), e);
             throw new RuntimeException("Failed to send verification email", e);
         } catch (Exception e) {
-            log.error("Unexpected error sending verification email to {}: {}", email, e.getMessage(), e);
+            log.error("❌ Unexpected error sending verification email to {}: {}", email, e.getMessage(), e);
             throw new RuntimeException("Failed to send verification email", e);
         }
     }
@@ -77,23 +76,27 @@ public class EmailServiceImpl implements EmailService {
     @Override
     public void sendPasswordResetEmail(String email, String username, String resetToken) {
         try {
+            log.info("Sending password reset email via Mailtrap - email: {}", email);
+            
+            String resetUrl = frontendBaseUrl + "/reset-password?token=" + resetToken;
+            String htmlContent = createPasswordResetEmailTemplate(username, resetUrl, resetToken);
+            
             MimeMessage message = mailSender.createMimeMessage();
-            MimeMessageHelper helper = new MimeMessageHelper(message, true);
-
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+            
             helper.setFrom(fromEmail);
             helper.setTo(email);
             helper.setSubject("Recuperación de Contraseña - PackedGo");
-            
-            String resetUrl = frontendBaseUrl + "/reset-password?token=" + resetToken;
-            
-            String htmlContent = createPasswordResetEmailTemplate(username, resetUrl, resetToken);
             helper.setText(htmlContent, true);
-
+            
             mailSender.send(message);
-            log.info("Password reset email sent successfully to {}", email);
+            log.info("✅ Password reset email sent successfully to {} via Mailtrap", email);
 
         } catch (MessagingException e) {
-            log.error("Failed to send password reset email to {}: {}", email, e.getMessage(), e);
+            log.error("❌ Failed to send password reset email to {}: {}", email, e.getMessage(), e);
+            throw new RuntimeException("Failed to send password reset email", e);
+        } catch (Exception e) {
+            log.error("❌ Unexpected error sending password reset email to {}: {}", email, e.getMessage(), e);
             throw new RuntimeException("Failed to send password reset email", e);
         }
     }

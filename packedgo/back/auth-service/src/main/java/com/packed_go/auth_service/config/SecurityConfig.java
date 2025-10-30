@@ -90,6 +90,7 @@ public class SecurityConfig {
                         .requestMatchers("/auth/forgot-password").permitAll()
                         .requestMatchers("/auth/reset-password").permitAll()
                         .requestMatchers("/auth/verify-email").permitAll()
+                        .requestMatchers("/auth/resend-verification").permitAll()
                         .requestMatchers("/users/exists/**").permitAll()
                         .requestMatchers("/actuator/**").permitAll()
                         .requestMatchers("/v3/api-docs/**", "/swagger-ui/**").permitAll()

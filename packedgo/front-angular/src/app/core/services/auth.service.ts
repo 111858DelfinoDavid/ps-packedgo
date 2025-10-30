@@ -140,13 +140,13 @@ export class AuthService {
   }
 
   // Resend verification email
-  resendVerificationEmail(): Observable<any> {
-    return this.http.post(`${this.apiUrl}/auth/resend-verification`, {});
+  resendVerificationEmail(email: string): Observable<any> {
+    return this.http.post(`${this.apiUrl}/auth/resend-verification`, { email });
   }
 
   // Verify email with token (cuando el usuario hace clic en el enlace del correo)
   verifyEmail(token: string): Observable<any> {
-    return this.http.post(`${this.apiUrl}/auth/verify-email`, { token });
+    return this.http.get(`${this.apiUrl}/auth/verify-email?token=${token}`);
   }
 
   // Change password for logged user

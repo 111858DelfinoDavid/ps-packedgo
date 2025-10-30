@@ -45,7 +45,7 @@ export class AdminDashboardComponent implements OnInit {
     {
       title: 'Gestionar Consumos',
       description: 'Administrar consumos y categorías',
-      icon: 'bi-cup-straw',
+      icon: 'bi-cup-hot-fill',
       route: '/admin/consumptions',
       color: 'danger'
     },
@@ -55,13 +55,6 @@ export class AdminDashboardComponent implements OnInit {
       icon: 'bi-people',
       route: '/admin/users',
       color: 'success'
-    },
-    {
-      title: 'Categorías',
-      description: 'Gestionar categorías de eventos',
-      icon: 'bi-tags',
-      route: '/admin/categories',
-      color: 'warning'
     },
     {
       title: 'Analíticas',

@@ -152,6 +152,68 @@
   margin: 0;
 }
 
+/* Tabs Navigation */
+.tabs-container {
+  display: flex;
+  gap: 15px;
+  margin-bottom: 30px;
+  padding-bottom: 0;
+  border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+  animation: fadeIn 0.5s ease-out;
+}
+
+.tab-button {
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.6);
+  padding: 12px 25px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-bottom: 3px solid transparent;
+  transition: all 0.3s ease;
+  position: relative;
+  bottom: -2px;
+}
+
+.tab-button:hover {
+  color: rgba(255, 255, 255, 0.9);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.tab-button.active {
+  color: white;
+  border-bottom-color: #ff6b6b;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.tab-button i {
+  font-size: 1.2rem;
+}
+
+/* Tab Content */
+.tab-content {
+  animation: fadeIn 0.5s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.create-button-container {
+  margin-bottom: 20px;
+  display: flex;
+  justify-content: flex-end;
+}
+
 .btn-create {
   background: linear-gradient(135deg, #52c234 0%, #44a127 100%);
   border: none;
@@ -832,4 +894,158 @@ textarea.form-control {
 
 .consumptions-selection::-webkit-scrollbar-thumb:hover {
   background: #ee5a52;
+}
+
+/* ===== CATEGORIES TAB STYLES ===== */
+
+/* Categories Grid */
+.categories-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 20px;
+  animation: fadeInUp 0.8s ease-out;
+}
+
+.category-card {
+  background: white;
+  border-radius: 15px;
+  padding: 20px;
+  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+  border: 2px solid transparent;
+}
+
+.category-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
+  border-color: #ff6b6b;
+}
+
+.category-card.inactive {
+  opacity: 0.6;
+  background: #f8f9fa;
+}
+
+.category-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  gap: 10px;
+}
+
+.category-header h3 {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: #2c3e50;
+  margin: 0;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.category-actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.btn-icon {
+  width: 35px;
+  height: 35px;
+  border-radius: 8px;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 1rem;
+}
+
+.btn-toggle {
+  background: #e3f2fd;
+  color: #2196f3;
+}
+
+.btn-toggle:hover {
+  background: #2196f3;
+  color: white;
+  transform: scale(1.1);
+}
+
+.btn-edit {
+  background: #fff3e0;
+  color: #ff9800;
+}
+
+.btn-edit:hover {
+  background: #ff9800;
+  color: white;
+  transform: scale(1.1);
+}
+
+.btn-delete {
+  background: #ffebee;
+  color: #f44336;
+}
+
+.btn-delete:hover {
+  background: #f44336;
+  color: white;
+  transform: scale(1.1);
+}
+
+.category-description {
+  color: #666;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  margin: 10px 0;
+  min-height: 45px;
+}
+
+.category-status {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 15px;
+}
+
+.badge {
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.badge-active {
+  background: linear-gradient(135deg, #52c234 0%, #44a127 100%);
+  color: white;
+}
+
+.badge-inactive {
+  background: #e0e0e0;
+  color: #666;
+}
+
+/* Modal Small (for categories) */
+.modal-sm {
+  max-width: 500px !important;
+}
+
+/* Responsive adjustments for categories */
+@media (max-width: 768px) {
+  .categories-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .category-header h3 {
+    font-size: 1.1rem;
+  }
+  
+  .btn-icon {
+    width: 30px;
+    height: 30px;
+    font-size: 0.9rem;
+  }
 }

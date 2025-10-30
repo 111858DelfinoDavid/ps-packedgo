@@ -113,6 +113,7 @@ public class CartServiceImpl implements CartService {
                     .cart(cart)
                     .eventId(request.getEventId())
                     .eventName(event.getName())
+                    .adminId(event.getCreatedBy()) // IMPORTANTE: AdminId para multitenant
                     .quantity(1)  // SIEMPRE 1 - cada item = 1 entrada = 1 QR
                     .unitPrice(event.getBasePrice())
                     .consumptions(new ArrayList<>())
