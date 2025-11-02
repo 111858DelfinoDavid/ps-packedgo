@@ -35,10 +35,10 @@ public class SecurityConfig {
                         .requestMatchers("/actuator/health").permitAll()
 
                         // Endpoints de admin credentials (temporal - agregar JWT en producción)
-                        .requestMatchers("/api/admin/credentials/**").permitAll()
+                        .requestMatchers("/admin/credentials/**").permitAll()
 
                         // Endpoint de creación de pagos (temporal para testing - agregar JWT en producción)
-                        .requestMatchers("/api/payments/create").permitAll()
+                        .requestMatchers("/payments/create").permitAll()
 
                         // Todos los demás endpoints requieren autenticación
                         // Aquí deberías implementar JWT o el método de autenticación que uses

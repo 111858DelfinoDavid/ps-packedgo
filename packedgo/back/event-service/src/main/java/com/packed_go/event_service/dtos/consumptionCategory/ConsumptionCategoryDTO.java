@@ -9,4 +9,8 @@ public class ConsumptionCategoryDTO {
     private Long id;
     private String name;
     private Long createdBy;
+
+    public Long getCreatedBy() {
+        return createdBy;
+    }
 }

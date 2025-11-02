@@ -12,11 +12,14 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 @RestController
 @RequestMapping("/event-service/consumption")
 @RequiredArgsConstructor
-@Slf4j
 public class ConsumptionController {
+    private static final Logger log = LoggerFactory.getLogger(ConsumptionController.class);
     private final ConsumptionServiceImpl service;
     private final JwtTokenValidator jwtValidator;
 

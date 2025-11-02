@@ -157,6 +157,49 @@ public class TicketConsumptionDetailServiceImpl implements TicketConsumptionDeta
         }
     }
 
+    @Override
+    @Transactional
+    @Retryable(value = {Exception.class}, maxAttempts = 3, backoff = @Backoff(delay = 100))
+    public TicketConsumptionDetailDTO redeemDetailPartial(Long detailId, Integer quantityToRedeem) {
+        // Buscar el detalle con bloqueo pesimista
+        TicketConsumptionDetail detail = ticketConsumptionDetailRepository.findByIdWithLock(detailId)
+                .orElseThrow(() -> new RuntimeException("TicketConsumptionDetail with id " + detailId + " not found"));
+
+        // Verificar que esté activo
+        if (!detail.isActive()) {
+            throw new RuntimeException("TicketConsumptionDetail is not active");
+        }
+
+        // Verificar que no esté completamente canjeado
+        if (detail.isRedeem()) {
+            throw new RuntimeException("TicketConsumptionDetail is already fully redeemed");
+        }
+
+        // Verificar que la cantidad a canjear sea válida
+        if (quantityToRedeem <= 0 || quantityToRedeem > detail.getQuantity()) {
+            throw new RuntimeException("Invalid quantity to redeem: " + quantityToRedeem + 
+                    ". Available: " + detail.getQuantity());
+        }
+
+        // Reducir la cantidad
+        detail.setQuantity(detail.getQuantity() - quantityToRedeem);
+
+        // Si la cantidad llega a 0, marcar como canjeado
+        if (detail.getQuantity() == 0) {
+            detail.setRedeem(true);
+        }
+
+        detail = ticketConsumptionDetailRepository.save(detail);
+        return modelMapper.map(detail, TicketConsumptionDetailDTO.class);
+    }
+
+    @Override
+    public TicketConsumptionDetailDTO findById(Long detailId) {
+        TicketConsumptionDetail detail = ticketConsumptionDetailRepository.findById(detailId)
+                .orElseThrow(() -> new RuntimeException("TicketConsumptionDetail with id " + detailId + " not found"));
+        return modelMapper.map(detail, TicketConsumptionDetailDTO.class);
+    }
+
     @Recover
     public RedeemTicketDetailDTO recoverRedeemDetail(Exception ex, Long detailId) {
         RedeemTicketDetailDTO response = new RedeemTicketDetailDTO();

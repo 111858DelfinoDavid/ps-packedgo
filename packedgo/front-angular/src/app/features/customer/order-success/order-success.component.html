@@ -65,6 +65,74 @@
       </div>
     </div>
 
+    <!-- QR Codes Section -->
+    <div class="tickets-section" *ngIf="tickets.length > 0">
+      <div class="section-header">
+        <h3>🎫 Tus Entradas con Código QR</h3>
+        <button class="btn btn-download-all" (click)="downloadAllQRCodes()" 
+                *ngIf="hasTicketsWithQR()">
+          <i class="bi bi-download"></i>
+          Descargar Todos los QR
+        </button>
+      </div>
+
+      <div class="tickets-grid">
+        <div *ngFor="let ticket of tickets" class="ticket-card">
+          <div class="ticket-header">
+            <h4>{{ ticket.eventName }}</h4>
+            <span class="badge badge-success" *ngIf="ticket.active && !ticket.redeemed">Activo</span>
+            <span class="badge badge-secondary" *ngIf="ticket.redeemed">Canjeado</span>
+          </div>
+
+          <div class="ticket-body">
+            <div class="qr-container" *ngIf="ticket.qrCode">
+              <img [src]="ticket.qrCode" [alt]="'QR Code for ' + ticket.eventName" class="qr-image">
+            </div>
+
+            <div class="ticket-info">
+              <div class="info-row">
+                <span class="label">Código:</span>
+                <span class="value">{{ ticket.passCode }}</span>
+              </div>
+              <div class="info-row">
+                <span class="label">Fecha:</span>
+                <span class="value">{{ ticket.eventDate | date:'dd/MM/yyyy HH:mm' }}</span>
+              </div>
+              <div class="info-row">
+                <span class="label">Ubicación:</span>
+                <span class="value">{{ ticket.eventLocation }}</span>
+              </div>
+            </div>
+
+            <!-- Consumptions -->
+            <div class="consumptions-section" *ngIf="ticket.ticketConsumption?.ticketDetails?.length">
+              <h5>Consumiciones incluidas:</h5>
+              <ul class="consumptions-list">
+                <li *ngFor="let detail of ticket.ticketConsumption.ticketDetails">
+                  <span>{{ detail.consumptionName }}</span>
+                  <span class="quantity">x{{ detail.quantity }}</span>
+                </li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="ticket-footer">
+            <button class="btn btn-sm btn-primary" (click)="downloadTicketQR(ticket)" 
+                    *ngIf="ticket.qrCode">
+              <i class="bi bi-download"></i>
+              Descargar QR
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Loading Tickets -->
+    <div class="tickets-loading" *ngIf="isLoadingTickets">
+      <div class="spinner-small"></div>
+      <p>Cargando tus entradas...</p>
+    </div>
+
     <!-- Next Steps -->
     <div class="next-steps">
       <h3>¿Qué sigue?</h3>

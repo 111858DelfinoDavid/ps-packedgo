@@ -10,14 +10,25 @@
     <div class="error-message">
       <h3>⚠️ Error</h3>
       <p>{{ errorMessage }}</p>
-      <button class="btn btn-primary" (click)="cancelCheckout()">
-        Volver al Carrito
+      <button class="btn btn-primary" routerLink="/customer/dashboard">
+        Volver al Dashboard
       </button>
     </div>
   </div>
 
   <!-- Checkout Content -->
   <div *ngIf="!isLoading && !errorMessage && checkoutResponse" class="checkout-content">
+    <!-- Mensaje de retorno de MercadoPago -->
+    <div *ngIf="paymentReturnMessage" 
+         class="payment-return-message"
+         [ngClass]="{
+           'alert-success': paymentReturnType === 'success',
+           'alert-warning': paymentReturnType === 'pending',
+           'alert-danger': paymentReturnType === 'error'
+         }">
+      {{ paymentReturnMessage }}
+    </div>
+
     <!-- Header -->
     <div class="checkout-header">
       <h1>🛒 Resumen de tu Compra</h1>
@@ -80,10 +91,23 @@
           <!-- Items List -->
           <div class="items-list">
             <h4>Items:</h4>
-            <div *ngFor="let item of group.items" class="item-row">
-              <span class="item-name">{{ item.eventName }}</span>
-              <span class="item-quantity">x{{ item.quantity }}</span>
-              <span class="item-price">${{ item.totalPrice | number:'1.2-2' }}</span>
+            <div *ngFor="let item of group.items" class="item-group">
+              <!-- Evento principal -->
+              <div class="item-row main-item">
+                <span class="item-name">{{ item.eventName }}</span>
+                <span class="item-quantity">x{{ item.quantity }}</span>
+                <span class="item-price">${{ item.price | number:'1.2-2' }}</span>
+              </div>
+              
+              <!-- Consumiciones del evento -->
+              <div *ngIf="item.consumptions && item.consumptions.length > 0" class="consumptions-list">
+                <div *ngFor="let consumption of item.consumptions" class="consumption-row">
+                  <span class="consumption-indent">└─</span>
+                  <span class="consumption-name">{{ consumption.name }}</span>
+                  <span class="consumption-quantity">x{{ consumption.quantity }}</span>
+                  <span class="consumption-price">${{ consumption.subtotal | number:'1.2-2' }}</span>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -149,11 +173,11 @@
 
     <!-- Actions -->
     <div class="checkout-actions">
-      <button class="btn btn-danger" (click)="cancelCheckout()">
-        Cancelar
-      </button>
-      <button class="btn btn-secondary" routerLink="/customer/dashboard">
-        Volver al Dashboard
+      <button 
+        class="btn" 
+        [ngClass]="canAbandonSession ? 'btn-warning' : 'btn-secondary'"
+        (click)="handleCancelClick()">
+        {{ cancelButtonText }}
       </button>
     </div>
   </div>

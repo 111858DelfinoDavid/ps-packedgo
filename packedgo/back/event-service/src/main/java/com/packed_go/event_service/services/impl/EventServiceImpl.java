@@ -19,6 +19,7 @@ import com.packed_go.event_service.repositories.EventCategoryRepository;
 import com.packed_go.event_service.repositories.EventRepository;
 import com.packed_go.event_service.repositories.ConsumptionRepository;
 import com.packed_go.event_service.services.EventService;
+import com.packed_go.event_service.services.PassGenerationService;
 
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -38,6 +39,7 @@ public class EventServiceImpl implements EventService {
     
     @Autowired
     private final ConsumptionRepository consumptionRepository;
+    private final PassGenerationService passGenerationService;
 
     @Override
     public EventDTO findById(Long id) {
@@ -140,6 +142,11 @@ public class EventServiceImpl implements EventService {
 
         Event savedEvent = eventRepository.save(event);
 
+        // Generate passes for the event
+        if (savedEvent.getMaxCapacity() != null && savedEvent.getMaxCapacity() > 0) {
+            passGenerationService.generatePassesForEvent(savedEvent.getId(), savedEvent.getMaxCapacity());
+        }
+
         return modelMapper.map(savedEvent, EventDTO.class);
     }
 
@@ -205,7 +212,20 @@ public class EventServiceImpl implements EventService {
         } else {
             throw new RuntimeException("Event con id" + id + " no encontrado");
         }
-
     }
 
+    @Override
+    public List<ConsumptionDTO> getEventConsumptions(Long eventId) {
+        // Verificar que el evento existe
+        Event event = eventRepository.findById(eventId)
+                .orElseThrow(() -> new ResourceNotFoundException("Event with id " + eventId + " not found"));
+        
+        // Obtener las consumiciones activas del creador del evento
+        List<Consumption> consumptions = consumptionRepository.findByCreatedByAndActiveIsTrue(event.getCreatedBy());
+        
+        // Mapear a DTOs
+        return consumptions.stream()
+                .map(consumption -> modelMapper.map(consumption, ConsumptionDTO.class))
+                .toList();
+    }
 }

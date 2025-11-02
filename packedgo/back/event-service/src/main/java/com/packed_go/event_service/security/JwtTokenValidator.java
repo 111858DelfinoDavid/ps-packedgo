@@ -16,9 +16,12 @@ import java.util.List;
  * JWT Utility compartida entre microservicios
  * Permite validar tokens generados por auth-service
  */
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 @Component
-@Slf4j
 public class JwtTokenValidator {
+    private static final Logger log = LoggerFactory.getLogger(JwtTokenValidator.class);
 
     @Value("${app.jwt.secret}")
     private String jwtSecret;

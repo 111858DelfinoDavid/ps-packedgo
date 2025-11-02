@@ -45,7 +45,7 @@ public class CustomUserDetailsService implements UserDetailsService {
     }
 
     private CustomUserDetails createUserDetails(AuthUser user) {
-        // Verificar si la cuenta est· bloqueada
+        // Verificar si la cuenta est√° bloqueada
         boolean isAccountNonLocked = user.getLockedUntil() == null || 
                                    user.getLockedUntil().isBefore(LocalDateTime.now());
 

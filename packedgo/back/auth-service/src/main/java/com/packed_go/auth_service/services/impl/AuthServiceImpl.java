@@ -57,34 +57,45 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public LoginResponse loginAdmin(AdminLoginRequest request, String ipAddress, String userAgent) {
-        //log.debug("Admin login attempt for email: {}", request.getEmail());
+        log.info("Admin login attempt for email: {}", request.getEmail());
         
         // Buscar usuario por email y tipo de login ADMIN
+        log.info("Searching for admin user by email: {}", request.getEmail());
         AuthUser user = authUserRepository.findByEmailAndLoginType(request.getEmail(), "EMAIL")
             .orElseThrow(() -> {
+                log.error("Admin user not found with email: {}", request.getEmail());
                 recordFailedLogin(request.getEmail(), "EMAIL", ipAddress, userAgent, "User not found");
                 return new UnauthorizedException("Invalid credentials");
             });
+        log.info("Admin user found with ID: {}", user.getId());
 
         // Verificar si es admin
         if (!"ADMIN".equals(user.getRole()) && !"SUPER_ADMIN".equals(user.getRole())) {
+            log.error("User {} is not an admin", user.getId());
             recordFailedLogin(request.getEmail(), "EMAIL", ipAddress, userAgent, "Not an admin");
             throw new UnauthorizedException("Access denied");
         }
+        log.info("User {} is an admin", user.getId());
 
         // Verificar si la cuenta está bloqueada
         if (user.getLockedUntil() != null && user.getLockedUntil().isAfter(LocalDateTime.now())) {
+            log.error("Admin account is locked for user: {}", user.getId());
             recordFailedLogin(request.getEmail(), "EMAIL", ipAddress, userAgent, "Account locked");
             throw new UnauthorizedException("Account is locked until " + user.getLockedUntil());
         }
+        log.info("Admin account is not locked for user: {}", user.getId());
 
         // Verificar contraseña
+        log.info("Verifying password for admin user: {}", user.getId());
         if (!passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
+            log.error("Invalid password for admin user: {}", user.getId());
             handleFailedLogin(user, request.getEmail(), "EMAIL", ipAddress, userAgent);
             throw new UnauthorizedException("Invalid credentials");
         }
+        log.info("Password verified for admin user: {}", user.getId());
 
         // Login exitoso
+        log.info("Processing successful login for admin user: {}", user.getId());
         return processSuccessfulLogin(user, ipAddress, userAgent);
     }
 

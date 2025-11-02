@@ -60,8 +60,9 @@ public class CartServiceImpl implements CartService {
         }
         
         // 2. Obtener o crear carrito activo para el usuario (con items cargados)
-        ShoppingCart cart = cartRepository.findByUserIdAndStatusWithItems(userId, "ACTIVE")
-                .orElse(null);
+        // Toma el más reciente si hay múltiples (por updatedAt DESC)
+        List<ShoppingCart> activeCarts = cartRepository.findByUserIdAndStatusWithItems(userId, "ACTIVE");
+        ShoppingCart cart = activeCarts.isEmpty() ? null : activeCarts.get(0);
         
         // 3. Verificar si el carrito existe y si expiró
         if (cart != null && cart.isExpired()) {
@@ -181,8 +182,8 @@ public class CartServiceImpl implements CartService {
     public CartDTO getActiveCart(Long userId) {
         log.info("Retrieving active cart for user {}", userId);
         
-        ShoppingCart cart = cartRepository.findByUserIdAndStatusWithItems(userId, "ACTIVE")
-                .orElse(null);
+        List<ShoppingCart> activeCarts = cartRepository.findByUserIdAndStatusWithItems(userId, "ACTIVE");
+        ShoppingCart cart = activeCarts.isEmpty() ? null : activeCarts.get(0);
         
         // Si no hay carrito o expiró, crear uno nuevo
         if (cart == null) {
@@ -203,8 +204,11 @@ public class CartServiceImpl implements CartService {
     public CartDTO removeCartItem(Long userId, Long itemId) {
         log.info("Removing item {} from cart for user {}", itemId, userId);
         
-        ShoppingCart cart = cartRepository.findByUserIdAndStatusWithItems(userId, "ACTIVE")
-                .orElseThrow(() -> new CartNotFoundException(userId));
+        List<ShoppingCart> activeCarts = cartRepository.findByUserIdAndStatusWithItems(userId, "ACTIVE");
+        if (activeCarts.isEmpty()) {
+            throw new CartNotFoundException(userId);
+        }
+        ShoppingCart cart = activeCarts.get(0);
         
         // Verificar si expiró
         if (cart.isExpired()) {
@@ -240,8 +244,11 @@ public class CartServiceImpl implements CartService {
     public void clearCart(Long userId) {
         log.info("Clearing cart for user {}", userId);
         
-        ShoppingCart cart = cartRepository.findByUserIdAndStatusWithItems(userId, "ACTIVE")
-                .orElseThrow(() -> new CartNotFoundException(userId));
+        List<ShoppingCart> activeCarts = cartRepository.findByUserIdAndStatusWithItems(userId, "ACTIVE");
+        if (activeCarts.isEmpty()) {
+            throw new CartNotFoundException(userId);
+        }
+        ShoppingCart cart = activeCarts.get(0);
         
         cartRepository.delete(cart);
         log.info("Cart {} cleared successfully", cart.getId());
@@ -259,8 +266,11 @@ public class CartServiceImpl implements CartService {
             throw new IllegalArgumentException("Quantity must be 1. Use add/remove methods to manage cart items.");
         }
         
-        ShoppingCart cart = cartRepository.findByUserIdAndStatusWithItems(userId, "ACTIVE")
-                .orElseThrow(() -> new CartNotFoundException(userId));
+        List<ShoppingCart> activeCarts = cartRepository.findByUserIdAndStatusWithItems(userId, "ACTIVE");
+        if (activeCarts.isEmpty()) {
+            throw new CartNotFoundException(userId);
+        }
+        ShoppingCart cart = activeCarts.get(0);
         
         // Verificar si expiró
         if (cart.isExpired()) {
@@ -291,8 +301,11 @@ public class CartServiceImpl implements CartService {
         log.info("Updating consumption {} quantity to {} in item {} for user {}", 
                 consumptionId, newQuantity, itemId, userId);
         
-        ShoppingCart cart = cartRepository.findByUserIdAndStatusWithItems(userId, "ACTIVE")
-                .orElseThrow(() -> new CartNotFoundException(userId));
+        List<ShoppingCart> activeCarts = cartRepository.findByUserIdAndStatusWithItems(userId, "ACTIVE");
+        if (activeCarts.isEmpty()) {
+            throw new CartNotFoundException(userId);
+        }
+        ShoppingCart cart = activeCarts.get(0);
         
         // Verificar si expiró
         if (cart.isExpired()) {
@@ -348,8 +361,11 @@ public class CartServiceImpl implements CartService {
                 request.getConsumptionId(), request.getQuantity(), itemId, userId);
         
         // 1. Obtener carrito activo
-        ShoppingCart cart = cartRepository.findByUserIdAndStatusWithItems(userId, "ACTIVE")
-                .orElseThrow(() -> new CartNotFoundException(userId));
+        List<ShoppingCart> activeCarts = cartRepository.findByUserIdAndStatusWithItems(userId, "ACTIVE");
+        if (activeCarts.isEmpty()) {
+            throw new CartNotFoundException(userId);
+        }
+        ShoppingCart cart = activeCarts.get(0);
         
         // Verificar si expiró
         if (cart.isExpired()) {
@@ -449,8 +465,11 @@ public class CartServiceImpl implements CartService {
         log.info("Removing consumption {} from item {} for user {}", consumptionId, itemId, userId);
         
         // 1. Obtener carrito activo
-        ShoppingCart cart = cartRepository.findByUserIdAndStatusWithItems(userId, "ACTIVE")
-                .orElseThrow(() -> new CartNotFoundException(userId));
+        List<ShoppingCart> activeCarts = cartRepository.findByUserIdAndStatusWithItems(userId, "ACTIVE");
+        if (activeCarts.isEmpty()) {
+            throw new CartNotFoundException(userId);
+        }
+        ShoppingCart cart = activeCarts.get(0);
         
         // Verificar si expiró
         if (cart.isExpired()) {

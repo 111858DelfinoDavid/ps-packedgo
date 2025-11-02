@@ -22,7 +22,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 
 @RestController
-@RequestMapping("/api/event-service/ticket-consumption")
+@RequestMapping("/event-service/ticket-consumption")
 @RequiredArgsConstructor
 @Slf4j
 public class TicketConsumptionController {
@@ -58,6 +58,30 @@ public class TicketConsumptionController {
         log.info("Canjeando detalle del ticket con ID: {}", detailId);
         RedeemTicketDetailDTO result = ticketDetailService.redeemDetail(detailId);
         return ResponseEntity.ok(result);
+    }
+
+    /**
+     * Endpoint para canjear parcialmente una consumición.
+     * Usado por consumption-service al validar QRs de consumición con cantidad.
+     */
+    @PutMapping("/detail/{detailId}/redeem-partial")
+    public ResponseEntity<TicketConsumptionDetailDTO> redeemTicketDetailPartial(
+            @PathVariable Long detailId,
+            @RequestParam Integer quantityToRedeem) {
+        log.info("Canjeando parcialmente detalle del ticket {} con cantidad: {}", detailId, quantityToRedeem);
+        TicketConsumptionDetailDTO result = ticketDetailService.redeemDetailPartial(detailId, quantityToRedeem);
+        return ResponseEntity.ok(result);
+    }
+
+    /**
+     * Endpoint para obtener un detalle de consumición específico.
+     * Usado por consumption-service al validar QRs.
+     */
+    @GetMapping("/detail/{detailId}")
+    public ResponseEntity<TicketConsumptionDetailDTO> getTicketDetail(@PathVariable Long detailId) {
+        log.info("Obteniendo detalle de consumición con ID: {}", detailId);
+        TicketConsumptionDetailDTO detail = ticketDetailService.findById(detailId);
+        return ResponseEntity.ok(detail);
     }
 
     @GetMapping("/{ticketId}/details")

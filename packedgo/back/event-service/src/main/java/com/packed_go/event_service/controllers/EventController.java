@@ -1,5 +1,6 @@
 package com.packed_go.event_service.controllers;
 
+import com.packed_go.event_service.dtos.consumption.ConsumptionDTO;
 import com.packed_go.event_service.dtos.event.CreateEventDTO;
 import com.packed_go.event_service.dtos.event.EventDTO;
 import com.packed_go.event_service.dtos.eventCategory.EventCategoryDTO;
@@ -163,11 +164,10 @@ public class EventController {
 
     /**
      * 🔓 GET /event/{eventId}/consumptions - Obtener consumiciones de un evento (público)
-     * TODO: Fix this endpoint - EventDTO doesn't have getAvailableConsumptions() method
      */
-    // @GetMapping("/{eventId}/consumptions")
-    // public ResponseEntity<List<ConsumptionDTO>> getEventConsumptions(@PathVariable Long eventId) {
-    //     EventDTO event = service.findById(eventId);
-    //     return ResponseEntity.ok(event.getAvailableConsumptions());
-    // }
+    @GetMapping("/{eventId}/consumptions")
+    public ResponseEntity<List<ConsumptionDTO>> getEventConsumptions(@PathVariable Long eventId) {
+        List<ConsumptionDTO> consumptions = service.getEventConsumptions(eventId);
+        return ResponseEntity.ok(consumptions);
+    }
 }

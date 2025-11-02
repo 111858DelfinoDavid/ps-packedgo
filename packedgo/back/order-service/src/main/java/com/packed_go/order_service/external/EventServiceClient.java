@@ -1,7 +1,9 @@
 package com.packed_go.order_service.external;
 
 import com.packed_go.order_service.dto.external.ConsumptionDTO;
+import com.packed_go.order_service.dto.external.CreateTicketWithConsumptionsRequest;
 import com.packed_go.order_service.dto.external.EventDTO;
+import com.packed_go.order_service.dto.external.TicketWithConsumptionsResponse;
 import com.packed_go.order_service.exception.EventNotFoundException;
 import com.packed_go.order_service.exception.ServiceCommunicationException;
 import lombok.RequiredArgsConstructor;
@@ -130,4 +132,37 @@ public class EventServiceClient {
                 .doOnSuccess(event -> log.info("Successfully fetched event: {}", event.getName()))
                 .doOnError(error -> log.error("Error fetching event: {}", eventId, error));
     }
+
+    /**
+     * Crea un ticket con consumiciones para un usuario en un evento
+     * Este método es llamado cuando una orden es pagada exitosamente
+     */
+    public TicketWithConsumptionsResponse createTicketWithConsumptions(CreateTicketWithConsumptionsRequest request) {
+        try {
+            log.info("Creating ticket with consumptions for userId: {}, eventId: {}", 
+                    request.getUserId(), request.getEventId());
+            
+            TicketWithConsumptionsResponse response = webClient.post()
+                    .uri("/event-service/tickets/create-with-consumptions")
+                    .bodyValue(request)
+                    .retrieve()
+                    .bodyToMono(TicketWithConsumptionsResponse.class)
+                    .timeout(Duration.ofSeconds(15))
+                    .block();
+            
+            log.info("Successfully created ticket with ID: {} for userId: {}", 
+                    response.getTicketId(), request.getUserId());
+            return response;
+            
+        } catch (WebClientResponseException e) {
+            log.error("Error creating ticket with consumptions. Status: {}, Body: {}", 
+                    e.getStatusCode(), e.getResponseBodyAsString());
+            throw new ServiceCommunicationException("Failed to create ticket in EVENT-SERVICE: " + e.getMessage(), e);
+        } catch (Exception e) {
+            log.error("Error creating ticket with consumptions for userId: {}, eventId: {}", 
+                    request.getUserId(), request.getEventId(), e);
+            throw new ServiceCommunicationException("Failed to create ticket with consumptions", e);
+        }
+    }
 }
+

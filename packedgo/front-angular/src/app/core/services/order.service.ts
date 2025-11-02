@@ -63,6 +63,25 @@ export class OrderService {
   }
 
   /**
+   * Abandona una sesión de checkout y devuelve los items al carrito
+   * Solo funciona si no hay pagos completados en la sesión
+   * @param sessionId ID de la sesión a abandonar
+   * @returns Observable con el resultado de la operación
+   */
+  abandonSession(sessionId: string): Observable<{ message: string }> {
+    return this.http.post<{ message: string }>(
+      `${this.apiUrl}/orders/sessions/${sessionId}/abandon`,
+      {}, // Body vacío
+      { headers: this.getHeaders() }
+    ).pipe(
+      tap(response => {
+        console.log('Sesión abandonada:', response);
+      }),
+      catchError(this.handleError)
+    );
+  }
+
+  /**
    * Obtiene todas las órdenes del usuario actual
    * @returns Observable con el array de órdenes
    */

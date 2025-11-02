@@ -406,6 +406,32 @@
   color: #667eea;
 }
 
+/* Botón para eliminar consumición */
+.btn-remove-consumption {
+  padding: 6px 10px;
+  background: linear-gradient(135deg, #ff6b6b 0%, #ee5a52 100%);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  min-width: 36px;
+  height: 36px;
+}
+
+.btn-remove-consumption:hover {
+  transform: scale(1.1);
+  box-shadow: 0 4px 12px rgba(255, 107, 107, 0.4);
+}
+
+.btn-remove-consumption i {
+  font-size: 1rem;
+}
+
 .detail-row.total {
   margin-top: 15px;
   padding-top: 15px;
@@ -741,5 +767,60 @@
 .btn-warning:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+}
+
+/* ==================== QR MODAL STYLES ==================== */
+.qr-modal {
+  max-width: 500px !important;
+}
+
+.qr-container {
+  text-align: center;
+  padding: 20px;
+}
+
+.qr-container h4 {
+  color: #333;
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: 10px;
+}
+
+.qr-code-display {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 40px 20px;
+  border-radius: 15px;
+  margin: 20px 0;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+}
+
+.qr-placeholder {
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin-bottom: 10px;
+}
+
+.qr-placeholder strong {
+  font-size: 1.8rem;
+  display: block;
+  margin-top: 10px;
+  letter-spacing: 2px;
+}
+
+.ticket-info {
+  background: #f8f9fa;
+  padding: 15px;
+  border-radius: 10px;
+  text-align: left;
+}
+
+.ticket-info p {
+  margin-bottom: 10px;
+  color: #555;
+}
+
+.ticket-info p:last-child {
+  margin-bottom: 0;
 }
 

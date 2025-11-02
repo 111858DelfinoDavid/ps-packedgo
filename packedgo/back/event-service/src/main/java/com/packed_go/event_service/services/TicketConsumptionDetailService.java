@@ -23,4 +23,9 @@ public interface TicketConsumptionDetailService {
     @Transactional
     RedeemTicketDetailDTO redeemDetail(Long detailId);
 
+    @Transactional
+    TicketConsumptionDetailDTO redeemDetailPartial(Long detailId, Integer quantityToRedeem);
+
+    TicketConsumptionDetailDTO findById(Long detailId);
+
 }

@@ -12,6 +12,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Index;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
@@ -51,7 +52,7 @@ public class MultiOrderSession {
 
     @Builder.Default
     @Column(name = "session_status", nullable = false, length = 30)
-    private String sessionStatus = "PENDING"; // PENDING, PARTIAL, COMPLETED, EXPIRED
+    private String sessionStatus = "PENDING"; // PENDING, PARTIAL, COMPLETED, EXPIRED, CANCELLED
 
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
@@ -64,6 +65,7 @@ public class MultiOrderSession {
 
     @Builder.Default
     @OneToMany(mappedBy = "multiOrderSession", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @JsonManagedReference
     private List<Order> orders = new ArrayList<>();
 
     @PrePersist

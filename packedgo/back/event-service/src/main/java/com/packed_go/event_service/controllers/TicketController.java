@@ -1,30 +1,48 @@
 package com.packed_go.event_service.controllers;
 
+import com.packed_go.event_service.dtos.event.EventDTO;
 import com.packed_go.event_service.dtos.ticket.CreateTicketDTO;
+import com.packed_go.event_service.dtos.ticket.CreateTicketWithConsumptionsRequest;
 import com.packed_go.event_service.dtos.ticket.TicketDTO;
+import com.packed_go.event_service.dtos.ticket.TicketWithConsumptionsResponse;
 import com.packed_go.event_service.security.JwtTokenValidator;
+import com.packed_go.event_service.services.EventService;
 import com.packed_go.event_service.services.TicketService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/event-service/tickets")
+@RequestMapping("/event-service/tickets")
 @RequiredArgsConstructor
-@Slf4j
 public class TicketController {
 
+    private static final Logger log = LoggerFactory.getLogger(TicketController.class);
+
     private final TicketService ticketService;
-    private final JwtTokenValidator jwtTokenValidator;
+    private final EventService eventService;
+    private final JwtTokenValidator jwtValidator;
 
     @PostMapping
     public ResponseEntity<TicketDTO> createTicket(@RequestBody CreateTicketDTO createTicketDTO) {
         log.info("Creando ticket para usuario: {} con pass: {}", createTicketDTO.getUserId(), createTicketDTO.getPassCode());
         TicketDTO ticket = ticketService.createTicket(createTicketDTO);
         return ResponseEntity.ok(ticket);
+    }
+
+    @PostMapping("/create-with-consumptions")
+    public ResponseEntity<TicketWithConsumptionsResponse> createTicketWithConsumptions(
+            @Valid @RequestBody CreateTicketWithConsumptionsRequest request) {
+        log.info("Creando ticket con consumiciones para usuario: {}, evento: {}", 
+                request.getUserId(), request.getEventId());
+        TicketWithConsumptionsResponse response = ticketService.createTicketWithConsumptions(request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     @PostMapping("/purchase")
@@ -123,18 +141,42 @@ public class TicketController {
         return ResponseEntity.ok(isRedeemed);
     }
 
-    // Helper method para validar JWT y verificar que el usuario solo acceda a sus propios recursos
+    @GetMapping("/{ticketId}/full")
+    public ResponseEntity<TicketWithConsumptionsResponse> getTicketWithConsumptions(@PathVariable Long ticketId) {
+        log.info("Obteniendo ticket completo con consumiciones: {}", ticketId);
+        TicketDTO ticketDTO = ticketService.findById(ticketId);
+        EventDTO eventDTO = eventService.findById(ticketDTO.getPass().getEventId());
+
+        TicketWithConsumptionsResponse response = TicketWithConsumptionsResponse.builder()
+                .ticketId(ticketDTO.getId())
+                .userId(ticketDTO.getUserId())
+                .passCode(ticketDTO.getPass().getCode())
+                .passId(ticketDTO.getPass().getId())
+                .eventId(eventDTO.getId())
+                .eventName(eventDTO.getName())
+                .eventDate(eventDTO.getEventDate())
+                .active(ticketDTO.isActive())
+                .redeemed(ticketDTO.isRedeemed())
+                .createdAt(ticketDTO.getCreatedAt())
+                .purchasedAt(ticketDTO.getPurchasedAt())
+                .redeemedAt(ticketDTO.getRedeemedAt())
+                .ticketConsumption(ticketDTO.getTicketConsumption())
+                .build();
+        
+        return ResponseEntity.ok(response);
+    }
+
     private Long validateAndExtractUserId(String authHeader, Long requestedUserId) {
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             throw new RuntimeException("Missing or invalid Authorization header");
         }
         
         String token = authHeader.substring(7);
-        if (!jwtTokenValidator.validateToken(token)) {
+        if (!jwtValidator.validateToken(token)) {
             throw new RuntimeException("Invalid JWT token");
         }
         
-        Long tokenUserId = jwtTokenValidator.getUserIdFromToken(token);
+        Long tokenUserId = jwtValidator.getUserIdFromToken(token);
         if (!tokenUserId.equals(requestedUserId)) {
             throw new RuntimeException("Cannot access other user's resources");
         }

@@ -8,4 +8,12 @@ import lombok.Setter;
 public class CreateConsumptionCategoryDTO {
     private String name;
     private Long createdBy;
+
+    public String getName() {
+        return name;
+    }
+
+    public Long getCreatedBy() {
+        return createdBy;
+    }
 }

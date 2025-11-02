@@ -7,6 +7,7 @@ import { AuthService } from '../../../core/services/auth.service';
 import { EventService } from '../../../core/services/event.service';
 import { UserService } from '../../../core/services/user.service';
 import { CartService } from '../../../core/services/cart.service';
+import { TicketService, Ticket } from '../../../core/services/ticket.service';
 import { Event } from '../../../shared/models/event.model';
 import { Cart } from '../../../shared/models/cart.model';
 
@@ -23,6 +24,7 @@ export class CustomerDashboardComponent implements OnInit, OnDestroy {
   private eventService = inject(EventService);
   private userService = inject(UserService);
   private cartService = inject(CartService);
+  private ticketService = inject(TicketService);
   private router = inject(Router);
   private fb = inject(FormBuilder);
 
@@ -38,14 +40,13 @@ export class CustomerDashboardComponent implements OnInit, OnDestroy {
 
   // Cart Section
   cart: Cart | null = null;
-  timeRemaining = 0;
-  private previousTimeRemaining = 0;
   private cartSubscription?: Subscription;
-  private timerSubscription?: Subscription;
 
   // Tickets Section
   isLoadingTickets = false;
-  myTickets: any[] = [];
+  myTickets: Ticket[] = [];
+  showQrModal = false;
+  selectedTicket: Ticket | null = null;
 
   // Profile Section
   isLoadingProfile = false;
@@ -89,21 +90,9 @@ export class CustomerDashboardComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.loadEvents();
     
-    // Suscribirse a cambios del carrito PRIMERO
+    // Suscribirse a cambios del carrito
     this.cartSubscription = this.cartService.cart$.subscribe(cart => {
       this.cart = cart;
-    });
-    
-    // Suscribirse a cambios del timer
-    this.timerSubscription = this.cartService.timeRemaining$.subscribe(seconds => {
-      // Detectar transición de tiempo > 0 a 0 (verdadera expiración)
-      if (this.previousTimeRemaining > 0 && seconds === 0 && this.cart && this.cart.items && this.cart.items.length > 0) {
-        alert('El tiempo de reserva ha expirado. Tu carrito ha sido vaciado.');
-        this.cart = null;
-      }
-      
-      this.previousTimeRemaining = this.timeRemaining;
-      this.timeRemaining = seconds;
     });
     
     // SIEMPRE cargar el carrito del backend al iniciar el dashboard
@@ -168,10 +157,6 @@ export class CustomerDashboardComponent implements OnInit, OnDestroy {
 
   get cartTotal(): number {
     return this.cart ? this.cart.totalAmount : 0;
-  }
-
-  getTimerDisplay(): string {
-    return this.cartService.formatTimeRemaining(this.timeRemaining);
   }
 
   removeFromCart(itemId: number): void {
@@ -241,24 +226,16 @@ export class CustomerDashboardComponent implements OnInit, OnDestroy {
 
   /**
    * Decrementa la cantidad de una consumición específica
-   * Si la cantidad es 1, elimina la consumición
+   * Si llega a 0, elimina la consumición automáticamente
    */
   decrementConsumption(itemId: number, consumption: any): void {
-    if (consumption.quantity <= 1) {
-      // Si la cantidad es 1, eliminar la consumición
-      this.cartService.removeConsumptionFromItem(itemId, consumption.consumptionId).subscribe({
-        next: () => {
-          console.log('Consumption removed successfully');
-        },
-        error: (error) => {
-          console.error('Error removing consumption:', error);
-          alert(error.error?.message || 'Error al eliminar la consumición');
-        }
-      });
+    const newQuantity = consumption.quantity - 1;
+    
+    // Si la nueva cantidad es 0 o menos, eliminar la consumición
+    if (newQuantity <= 0) {
+      this.removeConsumption(itemId, consumption);
       return;
     }
-    
-    const newQuantity = consumption.quantity - 1;
     
     this.cartService.updateConsumptionQuantity(itemId, consumption.consumptionId, newQuantity).subscribe({
       next: () => {
@@ -267,6 +244,25 @@ export class CustomerDashboardComponent implements OnInit, OnDestroy {
       error: (error) => {
         console.error('Error decrementing consumption:', error);
         alert(error.error?.message || 'Error al actualizar la cantidad de consumición');
+      }
+    });
+  }
+
+  /**
+   * Elimina una consumición específica del item del carrito
+   */
+  removeConsumption(itemId: number, consumption: any): void {
+    if (!confirm(`¿Eliminar "${consumption.consumptionName}" del carrito?`)) {
+      return;
+    }
+
+    this.cartService.removeConsumptionFromItem(itemId, consumption.consumptionId).subscribe({
+      next: () => {
+        console.log('Consumption removed successfully');
+      },
+      error: (error) => {
+        console.error('Error removing consumption:', error);
+        alert(error.error?.message || 'Error al eliminar la consumición');
       }
     });
   }
@@ -355,11 +351,42 @@ export class CustomerDashboardComponent implements OnInit, OnDestroy {
   // ==================== TICKETS SECTION ====================
   loadMyTickets(): void {
     this.isLoadingTickets = true;
-    // TODO: Llamar al servicio de orders para obtener las entradas del usuario
-    setTimeout(() => {
-      this.myTickets = []; // Mock data
+    const userId = this.currentUser?.id;
+    
+    if (!userId) {
+      console.error('No se pudo obtener el ID del usuario');
       this.isLoadingTickets = false;
-    }, 1000);
+      return;
+    }
+    
+    console.log('🎟️ Cargando tickets para usuario:', userId);
+    
+    this.ticketService.getUserTickets(userId).subscribe({
+      next: (tickets) => {
+        console.log('✅ Tickets cargados:', tickets);
+        this.myTickets = tickets;
+        this.isLoadingTickets = false;
+      },
+      error: (error) => {
+        console.error('❌ Error cargando tickets:', error);
+        this.myTickets = [];
+        this.isLoadingTickets = false;
+        alert('Error al cargar tus entradas: ' + (error.error?.message || error.message));
+      }
+    });
+  }
+
+  showTicketQR(ticket: Ticket): void {
+    console.log('🎟️ Mostrando QR para ticket:', ticket);
+    this.selectedTicket = ticket;
+    this.showQrModal = true;
+    console.log('showQrModal:', this.showQrModal);
+  }
+
+  closeQrModal(): void {
+    console.log('❌ Cerrando modal QR');
+    this.showQrModal = false;
+    this.selectedTicket = null;
   }
 
   // ==================== PROFILE SECTION ====================
@@ -489,9 +516,6 @@ export class CustomerDashboardComponent implements OnInit, OnDestroy {
     // Limpiar suscripciones para evitar memory leaks
     if (this.cartSubscription) {
       this.cartSubscription.unsubscribe();
-    }
-    if (this.timerSubscription) {
-      this.timerSubscription.unsubscribe();
     }
   }
 }

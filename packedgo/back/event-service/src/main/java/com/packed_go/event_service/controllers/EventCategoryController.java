@@ -13,11 +13,14 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 @RestController
 @RequestMapping("/event-service/category")
 @RequiredArgsConstructor
-@Slf4j
 public class EventCategoryController {
+    private static final Logger log = LoggerFactory.getLogger(EventCategoryController.class);
     private final EventCategoryService eventCategoryService;
     private final ModelMapper modelMapper;
     private final JwtTokenValidator jwtValidator;

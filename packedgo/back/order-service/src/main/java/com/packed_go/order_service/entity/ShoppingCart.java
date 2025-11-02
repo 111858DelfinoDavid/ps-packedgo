@@ -28,7 +28,7 @@ public class ShoppingCart {
 
     @Builder.Default
     @Column(length = 20)
-    private String status = "ACTIVE"; // ACTIVE, EXPIRED, CHECKED_OUT
+    private String status = "ACTIVE"; // ACTIVE, IN_CHECKOUT, EXPIRED, CHECKED_OUT
 
     @Column(name = "expires_at", nullable = false)
     private LocalDateTime expiresAt;
@@ -113,10 +113,26 @@ public class ShoppingCart {
     }
 
     /**
+     * Marca el carrito como en proceso de checkout
+     */
+    public void markAsInCheckout() {
+        this.status = "IN_CHECKOUT";
+    }
+
+    /**
      * Marca el carrito como checkout (convertido en orden)
      */
     public void markAsCheckedOut() {
         this.status = "CHECKED_OUT";
+    }
+
+    /**
+     * Reactiva el carrito desde IN_CHECKOUT a ACTIVE
+     */
+    public void reactivate() {
+        this.status = "ACTIVE";
+        // Extender el tiempo de expiración al reactivar
+        this.expiresAt = LocalDateTime.now().plusMinutes(30);
     }
 
     /**

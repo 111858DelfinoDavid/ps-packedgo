@@ -97,6 +97,39 @@ public class OrderController {
     }
     
     /**
+     * Abandonar una sesión de checkout y devolver items al carrito
+     * Solo funciona si no hay pagos completados
+     * 
+     * POST /api/orders/sessions/{sessionId}/abandon
+     * Headers: Authorization: Bearer {token}
+     * 
+     * @return 200 OK si se abandonó exitosamente
+     */
+    @PostMapping("/sessions/{sessionId}/abandon")
+    public ResponseEntity<?> abandonSession(
+            @RequestHeader("Authorization") String authHeader,
+            @PathVariable String sessionId) {
+        
+        log.info("POST /api/orders/sessions/{}/abandon - Abandoning session", sessionId);
+        
+        try {
+            Long userId = extractUserId(authHeader);
+            orderService.abandonSession(sessionId, userId);
+            
+            return ResponseEntity.ok()
+                    .body(new MessageResponse("Session abandoned successfully. Items returned to cart."));
+        } catch (IllegalStateException e) {
+            log.warn("Cannot abandon session {}: {}", sessionId, e.getMessage());
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                    .body(new MessageResponse(e.getMessage()));
+        } catch (RuntimeException e) {
+            log.error("Error abandoning session {}: {}", sessionId, e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(new MessageResponse(e.getMessage()));
+        }
+    }
+    
+    /**
      * Callback para actualizar orden después del pago
      * Este endpoint es llamado por payment-service después del webhook
      * 
@@ -176,4 +209,32 @@ public class OrderController {
         
         return jwtTokenValidator.getUserIdFromToken(token);
     }
+    
+    /**
+     * Simple response class for messages
+     */
+    private record MessageResponse(String message) {}
+
+
+
+    // DEPRECATED: Este endpoint ha sido reemplazado por /payment-callback
+    // que recibe notificaciones del payment-service
+    /*
+    @PutMapping("/{orderNumber}/status/paid")
+    public ResponseEntity<String> markOrderAsPaid(
+            @PathVariable String orderNumber,
+            @RequestHeader("X-Internal-Call") String internalCallHeader) {
+        
+        log.info("🔄 Marcando orden {} como PAID (llamada interna)", orderNumber);
+        
+        try {
+            orderService.updateOrderStatus(orderNumber, "PAID");
+            return ResponseEntity.ok("Orden marcada como PAID");
+        } catch (Exception e) {
+            log.error("Error marcando orden como PAID: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Error: " + e.getMessage());
+        }
+    }
+    */
 }

@@ -1,21 +1,27 @@
 package com.packed_go.order_service.service.impl;
 
 import com.packed_go.order_service.client.PaymentServiceClient;
+import com.packed_go.order_service.dto.ConsumptionDTO;
 import com.packed_go.order_service.dto.MultiOrderCheckoutResponse;
 import com.packed_go.order_service.dto.OrderItemDTO;
 import com.packed_go.order_service.dto.PaymentGroupDTO;
+import com.packed_go.order_service.dto.external.CreateTicketWithConsumptionsRequest;
 import com.packed_go.order_service.dto.external.PaymentServiceRequest;
 import com.packed_go.order_service.dto.external.PaymentServiceResponse;
+import com.packed_go.order_service.dto.external.TicketConsumptionDTO;
+import com.packed_go.order_service.dto.external.TicketWithConsumptionsResponse;
 import com.packed_go.order_service.dto.request.CheckoutRequest;
 import com.packed_go.order_service.dto.request.PaymentCallbackRequest;
 import com.packed_go.order_service.dto.response.CheckoutResponse;
 import com.packed_go.order_service.entity.CartItem;
+import com.packed_go.order_service.entity.CartItemConsumption;
 import com.packed_go.order_service.entity.MultiOrderSession;
 import com.packed_go.order_service.entity.Order;
 import com.packed_go.order_service.entity.OrderItem;
 import com.packed_go.order_service.entity.ShoppingCart;
 import com.packed_go.order_service.exception.CartExpiredException;
 import com.packed_go.order_service.exception.CartNotFoundException;
+import com.packed_go.order_service.external.EventServiceClient;
 import com.packed_go.order_service.repository.MultiOrderSessionRepository;
 import com.packed_go.order_service.repository.OrderRepository;
 import com.packed_go.order_service.repository.ShoppingCartRepository;
@@ -41,15 +47,19 @@ public class OrderServiceImpl implements OrderService {
     private final ShoppingCartRepository cartRepository;
     private final MultiOrderSessionRepository sessionRepository;
     private final PaymentServiceClient paymentServiceClient;
+    private final EventServiceClient eventServiceClient;
     
     @Override
     @Transactional
     public CheckoutResponse checkout(Long userId, CheckoutRequest request) {
         log.info("Processing checkout for user: {}", userId);
         
-        // 1. Obtener carrito activo del usuario
-        ShoppingCart cart = cartRepository.findByUserIdAndStatus(userId, "ACTIVE")
-                .orElseThrow(() -> new CartNotFoundException("No active cart found for user"));
+        // 1. Obtener carrito activo del usuario (con items eager loaded)
+        List<ShoppingCart> activeCarts = cartRepository.findByUserIdAndStatusWithItems(userId, "ACTIVE");
+        if (activeCarts.isEmpty()) {
+            throw new CartNotFoundException("No active cart found for user");
+        }
+        ShoppingCart cart = activeCarts.get(0); // Tomar el más reciente (por updatedAt DESC)
         
         // 2. Validar que el carrito no esté expirado
         if (cart.isExpired()) {
@@ -119,6 +129,15 @@ public class OrderServiceImpl implements OrderService {
             case "APPROVED":
                 order.markAsPaid();
                 log.info("Order {} marked as PAID", order.getOrderNumber());
+                
+                // 🎟️ GENERAR TICKETS cuando el pago es aprobado
+                try {
+                    generateTicketsForOrder(order);
+                } catch (Exception e) {
+                    log.error("Failed to generate tickets for order {}: {}", order.getOrderNumber(), e.getMessage(), e);
+                    // No lanzamos excepción para no revertir la transacción de la orden
+                    // Los tickets se pueden generar manualmente después si es necesario
+                }
                 break;
             case "REJECTED":
             case "CANCELLED":
@@ -142,6 +161,16 @@ public class OrderServiceImpl implements OrderService {
             session.updateSessionStatus();
             sessionRepository.save(session);
             log.info("Updated session {} status to: {}", session.getSessionId(), session.getSessionStatus());
+            
+            // Si la sesión está COMPLETA, marcar el carrito como CHECKED_OUT definitivamente
+            if ("COMPLETED".equals(session.getSessionStatus())) {
+                ShoppingCart cart = cartRepository.findById(session.getCartId()).orElse(null);
+                if (cart != null && "IN_CHECKOUT".equals(cart.getStatus())) {
+                    cart.markAsCheckedOut();
+                    cartRepository.save(cart);
+                    log.info("✅ All payments completed. Cart {} marked as CHECKED_OUT", cart.getId());
+                }
+            }
         }
     }
     
@@ -167,9 +196,12 @@ public class OrderServiceImpl implements OrderService {
     public MultiOrderCheckoutResponse checkoutMulti(Long userId) {
         log.info("Processing multi-order checkout for user: {}", userId);
         
-        // 1. Obtener carrito activo del usuario
-        ShoppingCart cart = cartRepository.findByUserIdAndStatus(userId, "ACTIVE")
-                .orElseThrow(() -> new CartNotFoundException("No active cart found for user"));
+        // 1. Obtener carrito activo del usuario (con items eager loaded)
+        List<ShoppingCart> activeCarts = cartRepository.findByUserIdAndStatusWithItems(userId, "ACTIVE");
+        if (activeCarts.isEmpty()) {
+            throw new CartNotFoundException("No active cart found for user");
+        }
+        ShoppingCart cart = activeCarts.get(0); // Tomar el más reciente (por updatedAt DESC)
         
         // 2. Validar que el carrito no esté expirado
         if (cart.isExpired()) {
@@ -205,9 +237,10 @@ public class OrderServiceImpl implements OrderService {
             Long adminId = entry.getKey();
             List<CartItem> adminItems = entry.getValue();
             
-            // Calcular total para este admin
+            // Calcular total para este admin (incluyendo consumiciones)
             BigDecimal adminTotal = adminItems.stream()
-                    .map(item -> item.getUnitPrice().multiply(BigDecimal.valueOf(item.getQuantity())))
+                    .map(CartItem::getSubtotal) // Usa subtotal que incluye consumiciones
+                    .filter(subtotal -> subtotal != null) // Validación por seguridad
                     .reduce(BigDecimal.ZERO, BigDecimal::add);
             
             // Crear orden
@@ -237,8 +270,8 @@ public class OrderServiceImpl implements OrderService {
         // 7. Actualizar sesión con órdenes
         sessionRepository.save(session);
         
-        // 8. Marcar carrito como CHECKED_OUT
-        cart.markAsCheckedOut();
+        // 8. Marcar carrito como IN_CHECKOUT (no CHECKED_OUT para permitir recuperación)
+        cart.markAsInCheckout();
         cartRepository.save(cart);
         
         // 9. Construir respuesta
@@ -260,6 +293,57 @@ public class OrderServiceImpl implements OrderService {
         return buildMultiOrderResponse(session, orders);
     }
     
+    @Override
+    @Transactional
+    public void abandonSession(String sessionId, Long userId) {
+        log.info("Abandoning session: {} for user: {}", sessionId, userId);
+        
+        // 1. Obtener la sesión
+        MultiOrderSession session = sessionRepository.findBySessionId(sessionId)
+                .orElseThrow(() -> new RuntimeException("Session not found: " + sessionId));
+        
+        // 2. Verificar que la sesión pertenece al usuario
+        if (!session.getUserId().equals(userId)) {
+            throw new RuntimeException("Session does not belong to user");
+        }
+        
+        // 3. Verificar que no hay pagos completados
+        List<Order> orders = session.getOrders();
+        boolean hasAnyPaidOrder = orders.stream()
+                .anyMatch(order -> order.getStatus() == Order.OrderStatus.PAID);
+        
+        if (hasAnyPaidOrder) {
+            throw new IllegalStateException("Cannot abandon session with paid orders. Please complete the checkout or navigate away.");
+        }
+        
+        // 4. Obtener el carrito asociado
+        ShoppingCart cart = cartRepository.findById(session.getCartId())
+                .orElseThrow(() -> new RuntimeException("Cart not found"));
+        
+        // 5. Verificar que el carrito está en IN_CHECKOUT
+        if (!"IN_CHECKOUT".equals(cart.getStatus())) {
+            log.warn("Cart {} is not in IN_CHECKOUT status (current: {})", cart.getId(), cart.getStatus());
+        }
+        
+        // 6. Reactivar el carrito (volver a ACTIVE y extender expiración)
+        cart.reactivate();
+        cartRepository.save(cart);
+        
+        // 7. Marcar la sesión como cancelada
+        session.setSessionStatus("CANCELLED");
+        sessionRepository.save(session);
+        
+        // 8. Cancelar todas las órdenes pendientes
+        orders.forEach(order -> {
+            if (order.getStatus() == Order.OrderStatus.PENDING_PAYMENT) {
+                order.setStatus(Order.OrderStatus.CANCELLED);
+                orderRepository.save(order);
+            }
+        });
+        
+        log.info("Session {} abandoned successfully. Cart {} reactivated.", sessionId, cart.getId());
+    }
+    
     // ============================================
     // Helper Methods
     // ============================================
@@ -271,13 +355,27 @@ public class OrderServiceImpl implements OrderService {
         List<PaymentGroupDTO> paymentGroups = orders.stream()
                 .map(order -> {
                     List<OrderItemDTO> itemDTOs = order.getItems().stream()
-                            .map(item -> OrderItemDTO.builder()
-                                    .eventId(item.getEventId())
-                                    .eventName(item.getEventName())
-                                    .quantity(item.getQuantity())
-                                    .price(item.getUnitPrice())
-                                    .totalPrice(item.getUnitPrice().multiply(BigDecimal.valueOf(item.getQuantity())))
-                                    .build())
+                            .map(item -> {
+                                // Mapear consumiciones
+                                List<ConsumptionDTO> consumptionDTOs = item.getConsumptions().stream()
+                                        .map(cons -> ConsumptionDTO.builder()
+                                                .consumptionId(cons.getConsumptionId())
+                                                .name(cons.getConsumptionName())
+                                                .quantity(cons.getQuantity())
+                                                .price(cons.getUnitPrice())
+                                                .subtotal(cons.getSubtotal())
+                                                .build())
+                                        .toList();
+                                
+                                return OrderItemDTO.builder()
+                                        .eventId(item.getEventId())
+                                        .eventName(item.getEventName())
+                                        .quantity(item.getQuantity())
+                                        .price(item.getUnitPrice())
+                                        .totalPrice(item.getSubtotal()) // Usar subtotal que incluye consumiciones
+                                        .consumptions(consumptionDTOs)
+                                        .build();
+                            })
                             .collect(Collectors.toList());
                     
                     return PaymentGroupDTO.builder()
@@ -331,4 +429,70 @@ public class OrderServiceImpl implements OrderService {
         
         return order;
     }
+
+    /**
+     * Genera tickets en event-service para cada entrada de la orden
+     * Se ejecuta automáticamente cuando una orden es marcada como PAID
+     */
+    private void generateTicketsForOrder(Order order) {
+        log.info("🎟️ Generating tickets for order: {}", order.getOrderNumber());
+        
+        int ticketsGenerated = 0;
+        int ticketsFailed = 0;
+        
+        // Por cada OrderItem (que representa entradas de un evento)
+        for (OrderItem orderItem : order.getItems()) {
+            Long eventId = orderItem.getEventId();
+            Integer quantity = orderItem.getQuantity();
+            
+            log.info("Generating {} ticket(s) for event: {}", quantity, eventId);
+            
+            // Generar un ticket por cada entrada
+            for (int i = 0; i < quantity; i++) {
+                try {
+                    // Preparar las consumiciones si existen
+                    List<TicketConsumptionDTO> consumptions = new ArrayList<>();
+                    if (orderItem.getConsumptions() != null && !orderItem.getConsumptions().isEmpty()) {
+                        consumptions = orderItem.getConsumptions().stream()
+                                .map(cons -> TicketConsumptionDTO.builder()
+                                        .ticketConsumptionId(cons.getConsumptionId())
+                                        .quantity(cons.getQuantity())
+                                        .build())
+                                .collect(Collectors.toList());
+                    }
+                    
+                    // Crear ticket con consumiciones
+                    CreateTicketWithConsumptionsRequest ticketRequest = CreateTicketWithConsumptionsRequest.builder()
+                            .userId(order.getUserId())
+                            .eventId(eventId)
+                            .consumptions(consumptions)
+                            .build();
+                    
+                    TicketWithConsumptionsResponse response = eventServiceClient.createTicketWithConsumptions(ticketRequest);
+                    
+                    if (response.getSuccess()) {
+                        ticketsGenerated++;
+                        log.info("✅ Ticket #{} generated: ID={}, QR={}", 
+                                (i + 1), response.getTicketId(), response.getQrCode());
+                    } else {
+                        ticketsFailed++;
+                        log.error("❌ Failed to generate ticket #{}: {}", (i + 1), response.getMessage());
+                    }
+                    
+                } catch (Exception e) {
+                    ticketsFailed++;
+                    log.error("❌ Error generating ticket #{} for event {}: {}", 
+                            (i + 1), eventId, e.getMessage(), e);
+                }
+            }
+        }
+        
+        log.info("🎟️ Ticket generation completed for order {}: {} successful, {} failed",
+                order.getOrderNumber(), ticketsGenerated, ticketsFailed);
+        
+        if (ticketsFailed > 0) {
+            log.warn("⚠️ Some tickets failed to generate. Manual intervention may be required.");
+        }
+    }
 }
+

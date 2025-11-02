@@ -28,7 +28,7 @@ import lombok.extern.slf4j.Slf4j;
  * solo pueda modificar sus propias credenciales
  */
 @RestController
-@RequestMapping("/api/admin/credentials")
+@RequestMapping("/admin/credentials")
 @RequiredArgsConstructor
 @Slf4j
 public class AdminCredentialController {

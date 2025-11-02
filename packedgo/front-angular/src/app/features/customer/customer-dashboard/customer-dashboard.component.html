@@ -134,10 +134,6 @@
       <div class="cart-section">
         <div class="section-header">
           <h2><i class="bi bi-cart me-2"></i>Mi Carrito de Compras</h2>
-          <div class="timer-badge" *ngIf="cart && cart.items.length > 0">
-            <i class="bi bi-clock"></i>
-            Tiempo restante: <strong>{{ getTimerDisplay() }}</strong>
-          </div>
         </div>
 
         <div *ngIf="!cart || cart.items.length === 0" class="empty-cart">
@@ -200,8 +196,7 @@
                     <div class="consumption-controls">
                       <div class="quantity-controls">
                         <button class="btn-quantity" 
-                                (click)="decrementConsumption(item.id, consumption)" 
-                                [disabled]="consumption.quantity <= 1"
+                                (click)="decrementConsumption(item.id, consumption)"
                                 title="Disminuir cantidad">
                           <i class="bi bi-dash"></i>
                         </button>
@@ -213,6 +208,11 @@
                         </button>
                       </div>
                       <span class="consumption-subtotal">{{ consumption.subtotal | currency: 'USD':'symbol':'1.2-2' }}</span>
+                      <button class="btn-remove-consumption" 
+                              (click)="removeConsumption(item.id, consumption)" 
+                              title="Eliminar consumición">
+                        <i class="bi bi-trash"></i>
+                      </button>
                     </div>
                   </div>
                   <div class="detail-row subtotal-row">
@@ -287,22 +287,75 @@
           <div *ngFor="let ticket of myTickets" class="ticket-card">
             <div class="ticket-header">
               <h4>{{ ticket.eventName }}</h4>
-              <span class="ticket-status" [class]="ticket.status">{{ ticket.status }}</span>
-            </div>
-            <div class="ticket-qr">
-              <img [src]="ticket.qrCode" alt="QR Code" />
+              <span class="ticket-status" [class.active]="ticket.active" [class.redeemed]="ticket.redeemed">
+                {{ ticket.redeemed ? 'Canjeado' : (ticket.active ? 'Activo' : 'Inactivo') }}
+              </span>
             </div>
             <div class="ticket-details">
-              <p><strong>Fecha:</strong> {{ ticket.eventDate | date: 'dd/MM/yyyy HH:mm' }}</p>
-              <p><strong>Orden:</strong> #{{ ticket.orderId }}</p>
-              <p><strong>Consumiciones incluidas:</strong></p>
-              <ul>
-                <li *ngFor="let consumption of ticket.consumptions">
-                  {{ consumption.name }} (x{{ consumption.quantity }})
-                </li>
-              </ul>
+              <p><strong>Fecha del evento:</strong> {{ ticket.eventDate | date: 'dd/MM/yyyy HH:mm' }}</p>
+              <p><strong>Ubicación:</strong> {{ ticket.eventLocation }}</p>
+              <p><strong>Código de pase:</strong> {{ ticket.passCode }}</p>
+              <p><strong>Comprado el:</strong> {{ ticket.purchasedAt | date: 'dd/MM/yyyy HH:mm' }}</p>
+              
+              <div *ngIf="ticket.ticketConsumption && ticket.ticketConsumption.ticketDetails && ticket.ticketConsumption.ticketDetails.length > 0">
+                <p><strong>Consumiciones incluidas:</strong></p>
+                <ul>
+                  <li *ngFor="let detail of ticket.ticketConsumption.ticketDetails">
+                    {{ detail.consumptionName }} (x{{ detail.quantity }})
+                    <span *ngIf="detail.redeem" class="badge bg-success ms-2">Canjeado</span>
+                  </li>
+                </ul>
+              </div>
+              
+              <div *ngIf="!ticket.ticketConsumption || !ticket.ticketConsumption.ticketDetails || ticket.ticketConsumption.ticketDetails.length === 0">
+                <p class="text-muted"><em>Sin consumiciones</em></p>
+              </div>
+            </div>
+            
+            <div class="ticket-actions">
+              <button class="btn btn-sm btn-primary" *ngIf="ticket.active && !ticket.redeemed" (click)="showTicketQR(ticket)">
+                <i class="bi bi-qr-code me-1"></i>Ver QR
+              </button>
             </div>
           </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== QR CODE MODAL ==================== -->
+    <div *ngIf="showQrModal" class="modal-overlay" (click)="closeQrModal()">
+      <div class="modal-content qr-modal" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <h3><i class="bi bi-qr-code me-2"></i>Código QR de tu Entrada</h3>
+          <button class="btn-close" (click)="closeQrModal()">
+            <i class="bi bi-x-lg"></i>
+          </button>
+        </div>
+        
+        <div class="modal-body" *ngIf="selectedTicket">
+          <div class="qr-container">
+            <h4>{{ selectedTicket.eventName }}</h4>
+            <p class="text-muted mb-3">{{ selectedTicket.eventDate | date: 'dd/MM/yyyy HH:mm' }}</p>
+            
+            <!-- Aquí iría el QR Code generado -->
+            <div class="qr-code-display">
+              <p class="qr-placeholder">Código de Pase: <strong>{{ selectedTicket.passCode }}</strong></p>
+              <p class="text-muted small">Muestra este código en la entrada del evento</p>
+            </div>
+            
+            <div class="ticket-info mt-3">
+              <p><strong>Usuario:</strong> {{ currentUser?.username }}</p>
+              <p><strong>Estado:</strong> 
+                <span class="badge" [class.bg-success]="selectedTicket.active" [class.bg-secondary]="!selectedTicket.active">
+                  {{ selectedTicket.active ? 'Activo' : 'Inactivo' }}
+                </span>
+              </p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="modal-footer">
+          <button class="btn btn-secondary" (click)="closeQrModal()">Cerrar</button>
         </div>
       </div>
     </div>

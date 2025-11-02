@@ -20,13 +20,15 @@ public interface ShoppingCartRepository extends JpaRepository<ShoppingCart, Long
     
     /**
      * Busca el carrito activo de un usuario con items cargados (EAGER)
+     * Retorna el más reciente si hay múltiples (por updatedAt DESC)
      * Nota: No se pueden hacer fetch de múltiples colecciones con ORDER BY en Hibernate
      * El ordenamiento se debe hacer en la capa de servicio si es necesario
      */
     @Query("SELECT DISTINCT c FROM ShoppingCart c " +
            "LEFT JOIN FETCH c.items " +
-           "WHERE c.userId = :userId AND c.status = :status")
-    Optional<ShoppingCart> findByUserIdAndStatusWithItems(@Param("userId") Long userId, @Param("status") String status);
+           "WHERE c.userId = :userId AND c.status = :status " +
+           "ORDER BY c.updatedAt DESC")
+    List<ShoppingCart> findByUserIdAndStatusWithItems(@Param("userId") Long userId, @Param("status") String status);
 
     /**
      * Busca todos los carritos de un usuario

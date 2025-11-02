@@ -24,5 +24,31 @@ public class CreateConsumptionDTO {
     private LocalDateTime updatedAt = LocalDateTime.now();
     private boolean active=true;
 
+    public Long getCategoryId() {
+        return categoryId;
+    }
 
+    public String getName() {
+        return name;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public BigDecimal getPrice() {
+        return price;
+    }
+
+    public String getImageUrl() {
+        return imageUrl;
+    }
+
+    public boolean isActive() {
+        return active;
+    }
+
+    public Long getCreatedBy() {
+        return createdBy;
+    }
 }

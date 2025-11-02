@@ -27,6 +27,11 @@ public interface OrderService {
     MultiOrderCheckoutResponse getSessionStatus(String sessionId);
     
     /**
+     * Abandona una sesión de checkout y devuelve items al carrito si no hay pagos completados
+     */
+    void abandonSession(String sessionId, Long userId);
+    
+    /**
      * Actualiza el estado de una orden basado en el callback del pago
      */
     void updateOrderFromPaymentCallback(PaymentCallbackRequest request);

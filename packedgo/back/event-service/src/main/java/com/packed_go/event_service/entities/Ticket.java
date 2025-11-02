@@ -33,6 +33,9 @@ public class Ticket {
     @Column(nullable = false)
     private boolean redeemed = false;
 
+    @Column(columnDefinition = "TEXT")
+    private String qrCode;
+
     private LocalDateTime createdAt = LocalDateTime.now();
     private LocalDateTime purchasedAt;
     private LocalDateTime redeemedAt;

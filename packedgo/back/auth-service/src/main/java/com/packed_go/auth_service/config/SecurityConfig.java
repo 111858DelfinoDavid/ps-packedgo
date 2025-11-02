@@ -78,22 +78,7 @@ public class SecurityConfig {
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(authz -> authz
                         // Authentication endpoints - Public
-                        .requestMatchers("/auth/admin/login").permitAll()
-                        .requestMatchers("/auth/customer/login").permitAll()
-                        .requestMatchers("/auth/customer/register").permitAll()
-                        .requestMatchers("/auth/admin/register").permitAll()
-                        .requestMatchers("/auth/validate").permitAll()
-                        .requestMatchers("/auth/refresh").permitAll()
-                        .requestMatchers("/auth/logout").permitAll()
-                        .requestMatchers("/auth/password/reset").permitAll()
-                        .requestMatchers("/auth/password/change").permitAll()
-                        .requestMatchers("/auth/forgot-password").permitAll()
-                        .requestMatchers("/auth/reset-password").permitAll()
-                        .requestMatchers("/auth/verify-email").permitAll()
-                        .requestMatchers("/auth/resend-verification").permitAll()
-                        .requestMatchers("/users/exists/**").permitAll()
-                        .requestMatchers("/actuator/**").permitAll()
-                        .requestMatchers("/v3/api-docs/**", "/swagger-ui/**").permitAll()
+                        .requestMatchers("/auth/admin/login", "/auth/customer/login", "/auth/customer/register", "/auth/admin/register", "/auth/validate", "/auth/refresh", "/auth/logout", "/auth/password/reset", "/auth/password/change", "/auth/forgot-password", "/auth/reset-password", "/auth/verify-email", "/auth/resend-verification", "/users/exists/**", "/actuator/**", "/v3/api-docs/**", "/swagger-ui/**", "/api/payments/mock/**").permitAll()
                         .anyRequest().authenticated())
                 .authenticationProvider(authenticationProvider())
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);

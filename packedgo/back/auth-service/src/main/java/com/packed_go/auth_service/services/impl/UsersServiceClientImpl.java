@@ -26,14 +26,14 @@ public class UsersServiceClientImpl implements UsersServiceClient {
                     .bodyValue(request)
                     .retrieve()
                     .bodyToMono(String.class)
-                    .block(); // Bloquear para hacer la llamada síncrona
+                    .block(); // Bloquear para hacer la llamada sÃ­ncrona
                     
             log.info("Successfully created user profile for authUserId: {}", request.getAuthUserId());
             
         } catch (Exception e) {
             log.error("Failed to create user profile for authUserId: {}", request.getAuthUserId(), e);
-            // No lanzamos la excepción para que el registro en auth-service continúe
-            // En un entorno productivo podrías implementar retry logic o dead letter queue
+            // No lanzamos la excepciÃ³n para que el registro en auth-service continÃºe
+            // En un entorno productivo podrÃ­as implementar retry logic o dead letter queue
         }
     }
 }

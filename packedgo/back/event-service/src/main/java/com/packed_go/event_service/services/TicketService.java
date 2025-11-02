@@ -1,7 +1,9 @@
 package com.packed_go.event_service.services;
 
 import com.packed_go.event_service.dtos.ticket.CreateTicketDTO;
+import com.packed_go.event_service.dtos.ticket.CreateTicketWithConsumptionsRequest;
 import com.packed_go.event_service.dtos.ticket.TicketDTO;
+import com.packed_go.event_service.dtos.ticket.TicketWithConsumptionsResponse;
 import jakarta.transaction.Transactional;
 
 import java.util.List;
@@ -13,6 +15,9 @@ public interface TicketService {
 
     @Transactional
     TicketDTO purchaseTicket(Long userId, String passCode, Long ticketConsumptionId);
+
+    @Transactional
+    TicketWithConsumptionsResponse createTicketWithConsumptions(CreateTicketWithConsumptionsRequest request);
 
     @Transactional
     TicketDTO redeemTicket(Long ticketId);

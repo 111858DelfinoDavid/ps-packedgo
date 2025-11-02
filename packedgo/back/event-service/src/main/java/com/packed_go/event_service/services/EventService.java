@@ -1,5 +1,6 @@
 package com.packed_go.event_service.services;
 
+import com.packed_go.event_service.dtos.consumption.ConsumptionDTO;
 import com.packed_go.event_service.dtos.event.CreateEventDTO;
 import com.packed_go.event_service.dtos.event.EventDTO;
 import jakarta.transaction.Transactional;
@@ -28,4 +29,6 @@ public interface EventService {
 
     @Transactional
     EventDTO deleteLogical(Long id);
+    
+    List<ConsumptionDTO> getEventConsumptions(Long eventId);
 }

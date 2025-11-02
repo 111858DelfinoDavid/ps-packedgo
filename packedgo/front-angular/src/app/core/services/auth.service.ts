@@ -64,6 +64,11 @@ export class AuthService {
     return this.currentUserSubject.value;
   }
 
+  getUserId(): number | null {
+    const user = this.getCurrentUser();
+    return user?.id || null;
+  }
+
   // Admin Login
   adminLogin(credentials: AdminLoginRequest): Observable<LoginResponse> {
     return this.http.post<ApiResponse<LoginResponse>>(`${this.apiUrl}/auth/admin/login`, credentials)
