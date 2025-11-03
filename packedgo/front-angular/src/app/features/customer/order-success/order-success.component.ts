@@ -4,6 +4,7 @@ import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { OrderService } from '../../../core/services/order.service';
 import { TicketService, Ticket } from '../../../core/services/ticket.service';
 import { AuthService } from '../../../core/services/auth.service';
+import { PaymentService } from '../../../core/services/payment.service';
 import { MultiOrderCheckoutResponse } from '../../../shared/models/order.model';
 import { forkJoin } from 'rxjs';
 
@@ -20,12 +21,15 @@ export class OrderSuccessComponent implements OnInit {
   private orderService = inject(OrderService);
   private ticketService = inject(TicketService);
   private authService = inject(AuthService);
+  private paymentService = inject(PaymentService);
 
   sessionId: string = '';
   sessionData: MultiOrderCheckoutResponse | null = null;
   tickets: Ticket[] = [];
   isLoading = true;
   isLoadingTickets = false;
+  isVerifyingPayments = false;
+  verificationMessage = '';
 
   ngOnInit(): void {
     // Obtener el sessionId de los query params
@@ -44,12 +48,71 @@ export class OrderSuccessComponent implements OnInit {
       next: (data) => {
         this.sessionData = data;
         this.isLoading = false;
-        // Load tickets after session data is loaded
-        this.loadTickets();
+        
+        // Verificar si hay órdenes pendientes de pago
+        const pendingOrders = data.paymentGroups?.filter(
+          group => group.status === 'PENDING_PAYMENT'
+        ) || [];
+        
+        if (pendingOrders.length > 0) {
+          console.log(`⏳ Encontradas ${pendingOrders.length} órdenes pendientes, verificando pagos...`);
+          this.verifyPendingPayments(pendingOrders);
+        } else {
+          // Si no hay pendientes, cargar tickets directamente
+          this.loadTickets();
+        }
       },
       error: (error) => {
         console.error('Error loading session:', error);
         this.isLoading = false;
+      }
+    });
+  }
+
+  verifyPendingPayments(orders: any[]): void {
+    this.isVerifyingPayments = true;
+    this.verificationMessage = 'Verificando estado de los pagos...';
+    
+    // Esperar 2 segundos antes de verificar (dar tiempo a MercadoPago)
+    setTimeout(() => {
+      const verifications = orders.map(order => 
+        this.paymentService.verifyPaymentStatus(order.orderNumber)
+      );
+      
+      forkJoin(verifications).subscribe({
+        next: (results) => {
+          console.log('✅ Verificaciones completadas:', results);
+          this.isVerifyingPayments = false;
+          this.verificationMessage = 'Pagos verificados exitosamente';
+          
+          // Recargar sesión para obtener estados actualizados
+          setTimeout(() => {
+            this.reloadSessionAndTickets();
+          }, 1000);
+        },
+        error: (error) => {
+          console.error('❌ Error verificando pagos:', error);
+          this.isVerifyingPayments = false;
+          this.verificationMessage = 'No se pudieron verificar todos los pagos';
+          
+          // Intentar cargar tickets de todos modos
+          setTimeout(() => {
+            this.loadTickets();
+          }, 1000);
+        }
+      });
+    }, 2000);
+  }
+
+  reloadSessionAndTickets(): void {
+    this.orderService.getSessionStatus(this.sessionId).subscribe({
+      next: (data) => {
+        this.sessionData = data;
+        this.loadTickets();
+      },
+      error: (error) => {
+        console.error('Error reloading session:', error);
+        this.loadTickets();
       }
     });
   }

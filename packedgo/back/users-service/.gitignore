@@ -33,11 +33,12 @@ build/
 .vscode/
 
 ### Environment Variables ###
-.env
-.env.local
-.env.production
-.env.test
-*.env
+# .env files included for MVP testing (private repo)
+# .env
+# .env.local
+# .env.production
+# .env.test
+# *.env
 
 ### H2 Database Files (legacy) ###
 testdb.mv.db

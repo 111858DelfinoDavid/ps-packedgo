@@ -4,6 +4,12 @@
     <p>Cargando información de tu compra...</p>
   </div>
 
+  <!-- Verification Message -->
+  <div *ngIf="isVerifyingPayments" class="verification-banner">
+    <div class="spinner-small"></div>
+    <p>{{ verificationMessage }}</p>
+  </div>
+
   <div *ngIf="!isLoading && sessionData" class="success-content">
     <!-- Success Icon -->
     <div class="success-icon">

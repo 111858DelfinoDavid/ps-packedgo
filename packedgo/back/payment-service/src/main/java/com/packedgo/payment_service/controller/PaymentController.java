@@ -185,4 +185,64 @@ public class PaymentController {
                 "version", "1.0.0"
         ));
     }
+
+    /**
+     * Endpoint para verificar manualmente el estado de un pago en MercadoPago
+     * Útil cuando no se reciben webhooks automáticos
+     * 
+     * @param orderId Número de orden (ej: ORD-202511-123)
+     * @return Estado actualizado del pago
+     */
+    @PostMapping("/verify/{orderId}")
+    public ResponseEntity<?> verifyPayment(
+            @PathVariable String orderId,
+            @org.springframework.web.bind.annotation.RequestHeader("Authorization") String authHeader) {
+
+        try {
+            // Validar JWT
+            String token = jwtTokenValidator.extractTokenFromHeader(authHeader);
+            if (!jwtTokenValidator.validateToken(token)) {
+                return ResponseEntity
+                        .status(HttpStatus.UNAUTHORIZED)
+                        .body(Map.of("error", "Token JWT inválido"));
+            }
+
+            Long userIdFromToken = jwtTokenValidator.getUserIdFromToken(token);
+            
+            log.info("POST /api/payments/verify/{} - UserId from JWT: {}", orderId, userIdFromToken);
+
+            // Buscar el pago por orderId
+            Payment payment = paymentService.getPaymentByOrderId(orderId);
+            
+            // Si el pago ya tiene mpPaymentId, verificar estado en MercadoPago
+            if (payment.getMpPaymentId() != null) {
+                log.info("Verificando estado del pago en MercadoPago: mpPaymentId={}", payment.getMpPaymentId());
+                paymentService.processWebhookNotification(payment.getAdminId(), payment.getMpPaymentId());
+                
+                // Recargar el pago después de la verificación
+                payment = paymentService.getPaymentByOrderId(orderId);
+            } else {
+                log.warn("El pago {} no tiene mpPaymentId todavía", orderId);
+            }
+            
+            return ResponseEntity.ok(Map.of(
+                "orderId", orderId,
+                "status", payment.getStatus().name(),
+                "verified", true,
+                "message", "Payment status verified successfully"
+            ));
+
+        } catch (RuntimeException e) {
+            log.error("Error de autenticación: {}", e.getMessage());
+            return ResponseEntity
+                    .status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("error", "Error de autenticación: " + e.getMessage()));
+        } catch (Exception e) {
+            log.error("Error verifying payment for order: {}", orderId, e);
+            return ResponseEntity
+                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Error al verificar el pago: " + e.getMessage()));
+        }
+    }
 }
+

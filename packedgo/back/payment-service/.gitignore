@@ -33,10 +33,11 @@ build/
 .vscode/
 
 ### Environment Variables ###
-.env
-.env.local
-.env.*.local
-*.env
+# .env files included for MVP testing (private repo)
+# .env
+# .env.local
+# .env.*.local
+# *.env
 
 ### Database Init (may contain sensitive data) ###
 database-init.sql
