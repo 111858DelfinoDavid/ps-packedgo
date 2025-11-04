@@ -44,6 +44,7 @@ export class CheckoutComponent implements OnInit, OnDestroy {
   // Subscriptions
   private pollingSubscription: Subscription | null = null;
   private timerSubscription: Subscription | null = null;
+  private paymentPollingSubscription: Subscription | null = null;
 
   ngOnInit(): void {
     // Detectar si venimos de un retorno de MercadoPago
@@ -56,6 +57,9 @@ export class CheckoutComponent implements OnInit, OnDestroy {
       if (params['sessionId']) {
         this.sessionId = params['sessionId'];
         this.loadExistingCheckout(this.sessionId);
+        
+        // Verificar si hay un pago pendiente de verificación
+        this.checkPendingPaymentVerification();
       } else {
         // Si no hay sessionId, iniciar nuevo checkout
         this.initiateCheckout();
@@ -66,6 +70,7 @@ export class CheckoutComponent implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.stopPolling();
     this.stopTimer();
+    this.stopPaymentPolling();
   }
 
   /**
@@ -177,7 +182,7 @@ export class CheckoutComponent implements OnInit, OnDestroy {
     switch (status) {
       case 'approved':
         this.paymentReturnType = 'success';
-        this.paymentReturnMessage = '✅ ¡Pago aprobado! Tu orden ha sido confirmada.';
+        this.paymentReturnMessage = '✅ ¡Pago aprobado! Verificando tu orden...';
         break;
       case 'pending':
         this.paymentReturnType = 'pending';
@@ -193,7 +198,11 @@ export class CheckoutComponent implements OnInit, OnDestroy {
         this.paymentReturnMessage = 'Verificando el estado de tu pago...';
     }
 
-    // Limpiar los query params después de 5 segundos
+    // Si el pago fue aprobado o está pendiente, verificar el estado
+    // El orderNumber se recuperará del localStorage en checkPendingPaymentVerification
+    // que ya se llama en ngOnInit
+
+    // Limpiar los query params después de 8 segundos
     setTimeout(() => {
       this.paymentReturnMessage = '';
       this.paymentReturnType = '';
@@ -389,8 +398,87 @@ export class CheckoutComponent implements OnInit, OnDestroy {
    */
   openPaymentCheckout(group: PaymentGroup): void {
     if (group.initPoint) {
-      // Redirigir en la misma pestaña en lugar de abrir nueva ventana
+      // Guardar el orderNumber en localStorage para verificación al regresar
+      localStorage.setItem('pendingPaymentVerification', group.orderNumber);
+      localStorage.setItem('pendingPaymentSessionId', this.sessionId);
+      
+      console.log('💳 Redirigiendo a MercadoPago. OrderNumber guardado:', group.orderNumber);
+      
+      // Redirigir en la misma pestaña
       window.location.href = group.initPoint;
+    }
+  }
+
+  /**
+   * Inicia polling agresivo para verificar el estado del pago cada 2 segundos
+   * Se usa cuando el usuario va a pagar en MercadoPago o presiona "Verificar mi pago"
+   */
+  private startPaymentPolling(orderNumber: string): void {
+    console.log('🔄 Iniciando polling de verificación de pago para orden:', orderNumber);
+    
+    // Detener polling anterior si existe
+    this.stopPaymentPolling();
+    
+    // Polling cada 2 segundos (más rápido para mejor UX)
+    this.paymentPollingSubscription = interval(2000)
+      .pipe(
+        switchMap(() => this.paymentService.verifyPaymentStatus(orderNumber))
+      )
+      .subscribe({
+        next: (response) => {
+          console.log('🔍 Verificación de pago:', response);
+          
+          // Si el pago fue aprobado, refrescar la sesión inmediatamente
+          if (response.status === 'APPROVED') {
+            console.log('✅ ¡Pago aprobado! Recargando sesión...');
+            this.stopPaymentPolling();
+            this.loadExistingCheckout(this.sessionId);
+            
+            // Mostrar mensaje de éxito
+            this.paymentReturnType = 'success';
+            this.paymentReturnMessage = '✅ ¡Pago aprobado! Tu orden ha sido confirmada.';
+            
+            setTimeout(() => {
+              this.paymentReturnMessage = '';
+              this.paymentReturnType = '';
+            }, 5000);
+          }
+        },
+        error: (error) => {
+          console.error('Error verificando pago:', error);
+          // No detener el polling por errores temporales
+        }
+      });
+  }
+
+  /**
+   * Detiene el polling de verificación de pagos
+   */
+  private stopPaymentPolling(): void {
+    if (this.paymentPollingSubscription) {
+      this.paymentPollingSubscription.unsubscribe();
+      this.paymentPollingSubscription = null;
+      console.log('⏹️ Polling de verificación de pago detenido');
+    }
+  }
+
+  /**
+   * Verifica si hay un pago pendiente de verificación al cargar la página
+   * Esto se usa cuando el usuario regresa de MercadoPago
+   */
+  private checkPendingPaymentVerification(): void {
+    const pendingOrderNumber = localStorage.getItem('pendingPaymentVerification');
+    const pendingSessionId = localStorage.getItem('pendingPaymentSessionId');
+    
+    if (pendingOrderNumber && pendingSessionId === this.sessionId) {
+      console.log('🔍 Pago pendiente detectado. Iniciando verificación para:', pendingOrderNumber);
+      
+      // Limpiar localStorage
+      localStorage.removeItem('pendingPaymentVerification');
+      localStorage.removeItem('pendingPaymentSessionId');
+      
+      // Iniciar polling de verificación
+      this.startPaymentPolling(pendingOrderNumber);
     }
   }
 
@@ -406,20 +494,26 @@ export class CheckoutComponent implements OnInit, OnDestroy {
 
   /**
    * Verifica manualmente el estado de un pago
+   * Este método se llama cuando el usuario presiona el botón "Verificar mi pago"
+   */
+  verifyPaymentManually(group: PaymentGroup): void {
+    if (!group.orderNumber) return;
+
+    console.log('🔍 Verificación manual iniciada para orden:', group.orderNumber);
+    
+    // Mostrar mensaje al usuario
+    this.paymentReturnType = 'pending';
+    this.paymentReturnMessage = '🔍 Verificando tu pago en MercadoPago...';
+
+    // Iniciar polling para esta orden
+    this.startPaymentPolling(group.orderNumber);
+  }
+
+  /**
+   * Verifica manualmente el estado de un pago (método antiguo - mantener por compatibilidad)
    */
   refreshPaymentStatus(group: PaymentGroup): void {
-    if (!group.paymentPreferenceId) return;
-
-    this.paymentService.getPaymentStatus(group.paymentPreferenceId).subscribe({
-      next: (status) => {
-        console.log('Payment status:', status);
-        // El backend actualiza automáticamente via webhook, esto es solo visual
-        alert('Verificando estado del pago...');
-      },
-      error: (error) => {
-        console.error('Error checking payment status:', error);
-      }
-    });
+    this.verifyPaymentManually(group);
   }
 
   /**

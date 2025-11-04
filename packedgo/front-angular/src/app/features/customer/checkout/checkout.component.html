@@ -66,6 +66,7 @@
     <div class="warning-box">
       <p><strong>⚠️ Importante:</strong> Tu compra incluye eventos de {{ checkoutResponse.totalOrders }} organizador(es) diferente(s).</p>
       <p>Deberás completar {{ checkoutResponse.totalOrders }} pago(s) separado(s) para confirmar tu compra.</p>
+      <p><strong>💡 Después de pagar:</strong> Si MercadoPago no te redirige automáticamente, cierra la ventana y presiona el botón "✅ Verificar mi pago".</p>
     </div>
 
     <!-- Payment Groups -->
@@ -142,11 +143,11 @@
               </button>
               
               <button 
-                class="btn btn-link btn-refresh" 
-                (click)="refreshPaymentStatus(group)"
+                class="btn btn-success btn-verify" 
+                (click)="verifyPaymentManually(group)"
                 [disabled]="!group.paymentPreferenceId"
-                title="Verificar estado del pago">
-                🔄
+                title="Haz clic aquí después de pagar en MercadoPago">
+                ✅ Verificar mi pago
               </button>
             </div>
           </div>
