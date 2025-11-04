@@ -14,9 +14,10 @@ import org.springframework.web.bind.annotation.RestController;
 import com.packedgo.payment_service.dto.PaymentRequest;
 import com.packedgo.payment_service.dto.PaymentResponse;
 import com.packedgo.payment_service.dto.WebhookNotification;
+import com.packedgo.payment_service.exception.ResourceNotFoundException;
 import com.packedgo.payment_service.model.Payment;
-import com.packedgo.payment_service.service.PaymentService;
 import com.packedgo.payment_service.security.JwtTokenValidator;
+import com.packedgo.payment_service.service.PaymentService;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -32,31 +33,34 @@ public class PaymentController {
 
     /**
      * Endpoint para crear una preferencia de pago
-     * SEGURIDAD MULTI-TENANT: El adminId se extrae del JWT, no del request body
+     * MODIFICADO: Acepta adminId del request body (viene de la orden)
+     * Valida que el usuario esté autenticado (customer o admin)
      */
     @PostMapping("/create")
     public ResponseEntity<PaymentResponse> createPayment(
             @Valid @RequestBody PaymentRequest request,
-            @org.springframework.web.bind.annotation.RequestHeader("Authorization") String authHeader) {
+            @org.springframework.web.bind.annotation.RequestHeader(value = "Authorization", required = false) String authHeader) {
 
         try {
-            // SECURITY FIX: Extraer adminId del JWT token
-            String token = jwtTokenValidator.extractTokenFromHeader(authHeader);
-            if (!jwtTokenValidator.validateToken(token)) {
-                return ResponseEntity
-                        .status(HttpStatus.UNAUTHORIZED)
-                        .body(PaymentResponse.builder()
-                                .message("Token JWT inválido")
-                                .build());
+            // Validar token JWT si está presente
+            if (authHeader != null && !authHeader.isEmpty()) {
+                String token = jwtTokenValidator.extractTokenFromHeader(authHeader);
+                if (!jwtTokenValidator.validateToken(token)) {
+                    log.warn("Token JWT inválido");
+                    return ResponseEntity
+                            .status(HttpStatus.UNAUTHORIZED)
+                            .body(PaymentResponse.builder()
+                                    .message("Token JWT inválido")
+                                    .build());
+                }
+                log.info("Usuario autenticado - UserID from JWT: {}", jwtTokenValidator.getUserIdFromToken(token));
+            } else {
+                log.warn("No se proporcionó token de autenticación");
             }
 
-            Long adminIdFromToken = jwtTokenValidator.getUserIdFromToken(token);
-            
-            // Inyectar el adminId desde el token (no confiar en el request body)
-            request.setAdminId(adminIdFromToken);
-
-            log.info("POST /api/payments/create - AdminId from JWT: {}, OrderId: {}",
-                    adminIdFromToken, request.getOrderId());
+            // Usar adminId del request body (viene de la orden creada por order-service)
+            log.info("POST /api/payments/create - AdminId from request: {}, OrderId: {}",
+                    request.getAdminId(), request.getOrderId());
 
             PaymentResponse response = paymentService.createPaymentPreference(request);
             return ResponseEntity.status(HttpStatus.CREATED).body(response);
@@ -211,27 +215,24 @@ public class PaymentController {
             
             log.info("POST /api/payments/verify/{} - UserId from JWT: {}", orderId, userIdFromToken);
 
-            // Buscar el pago por orderId
-            Payment payment = paymentService.getPaymentByOrderId(orderId);
-            
-            // Si el pago ya tiene mpPaymentId, verificar estado en MercadoPago
-            if (payment.getMpPaymentId() != null) {
-                log.info("Verificando estado del pago en MercadoPago: mpPaymentId={}", payment.getMpPaymentId());
-                paymentService.processWebhookNotification(payment.getAdminId(), payment.getMpPaymentId());
-                
-                // Recargar el pago después de la verificación
-                payment = paymentService.getPaymentByOrderId(orderId);
-            } else {
-                log.warn("El pago {} no tiene mpPaymentId todavía", orderId);
-            }
+            // Usar el nuevo método mejorado de verificación
+            Payment payment = paymentService.verifyPaymentStatus(orderId);
             
             return ResponseEntity.ok(Map.of(
                 "orderId", orderId,
                 "status", payment.getStatus().name(),
                 "verified", true,
-                "message", "Payment status verified successfully"
+                "hasMpPaymentId", payment.getMpPaymentId() != null,
+                "message", payment.getMpPaymentId() != null 
+                    ? "Payment status verified with MercadoPago" 
+                    : "Payment found but not yet processed by MercadoPago. Complete the payment and try again."
             ));
 
+        } catch (ResourceNotFoundException e) {
+            log.error("Payment not found: {}", e.getMessage());
+            return ResponseEntity
+                    .status(HttpStatus.NOT_FOUND)
+                    .body(Map.of("error", e.getMessage()));
         } catch (RuntimeException e) {
             log.error("Error de autenticación: {}", e.getMessage());
             return ResponseEntity

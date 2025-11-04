@@ -30,15 +30,16 @@ public class SecurityConfig {
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         // Endpoints públicos (webhook de MercadoPago)
-                        .requestMatchers("/api/payments/webhook").permitAll()
-                        .requestMatchers("/api/payments/health").permitAll()
+                        .requestMatchers("/payments/webhook", "/api/payments/webhook").permitAll()
+                        .requestMatchers("/payments/health", "/api/payments/health").permitAll()
                         .requestMatchers("/actuator/health").permitAll()
 
                         // Endpoints de admin credentials (temporal - agregar JWT en producción)
-                        .requestMatchers("/admin/credentials/**").permitAll()
+                        .requestMatchers("/admin/credentials/**", "/api/admin/credentials/**").permitAll()
 
                         // Endpoint de creación de pagos (temporal para testing - agregar JWT en producción)
-                        .requestMatchers("/payments/create").permitAll()
+                        .requestMatchers("/payments/create", "/api/payments/create").permitAll()
+                        .requestMatchers("/payments/verify/**", "/api/payments/verify/**").permitAll()
 
                         // Todos los demás endpoints requieren autenticación
                         // Aquí deberías implementar JWT o el método de autenticación que uses

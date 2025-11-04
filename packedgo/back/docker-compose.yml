@@ -164,7 +164,7 @@ services:
       context: ./payment-service
       dockerfile: Dockerfile
     ports:
-      - "8085:8082"
+      - "8085:8085"  # Fixed: service runs on 8085 inside container
       - "5009:5009"  # Debug port for payment-service
     env_file:
       - ./payment-service/.env

@@ -107,9 +107,17 @@ public class PaymentService {
                     .items(items)
                     .payer(payer)
                     .backUrls(backUrls)
-                    // .autoReturn("approved") // Comentado para sandbox - descomentar con URLs HTTPS válidas
                     .externalReference(payment.getOrderId()) // Usar orderId como external_reference
                     .statementDescriptor("PackedGo");
+
+            // Solo habilitar autoReturn si las URLs son HTTPS (producción)
+            // En desarrollo con localhost, el polling del frontend se encarga de la redirección
+            if (request.getSuccessUrl() != null && request.getSuccessUrl().startsWith("https://")) {
+                preferenceBuilder.autoReturn("approved");
+                log.info("autoReturn habilitado para URLs HTTPS");
+            } else {
+                log.info("autoReturn deshabilitado - usando polling del frontend para redirección");
+            }
 
             // Agregar notificationUrl si está configurada y es HTTPS (requerido por MercadoPago en producción)
             if (webhookUrl != null && !webhookUrl.isEmpty()) {
@@ -314,6 +322,111 @@ public class PaymentService {
         
         return paymentRepository.findByOrderId(orderId)
                 .orElseThrow(() -> new ResourceNotFoundException("No se encontró pago para la orden: " + orderId));
+    }
+
+    /**
+     * Verifica el estado de un pago consultando MercadoPago
+     * Funciona incluso si no se ha recibido el webhook
+     * 
+     * @param orderId Número de orden (ej: ORD-202511-123)
+     * @return Payment actualizado con el estado de MercadoPago
+     */
+    @Transactional
+    public Payment verifyPaymentStatus(String orderId) {
+        log.info("🔍 Verificando estado de pago para orden: {}", orderId);
+        
+        Payment payment = paymentRepository.findByOrderId(orderId)
+                .orElseThrow(() -> new ResourceNotFoundException("No se encontró pago para la orden: " + orderId));
+        
+        try {
+            // Configurar credenciales del admin
+            AdminCredential credential = credentialService.getValidatedCredentials(payment.getAdminId());
+            MercadoPagoConfig.setAccessToken(credential.getAccessToken());
+            
+            // Si ya tenemos mpPaymentId, consultar directamente
+            if (payment.getMpPaymentId() != null) {
+                log.info("Consultando MercadoPago con mpPaymentId: {}", payment.getMpPaymentId());
+                PaymentClient client = new PaymentClient();
+                com.mercadopago.resources.payment.Payment mpPayment = client.get(payment.getMpPaymentId());
+                
+                return updatePaymentFromMercadoPago(payment, mpPayment);
+            }
+            
+            // Si no tenemos mpPaymentId pero tenemos preferenceId, buscar pagos asociados
+            if (payment.getPreferenceId() != null) {
+                log.info("Buscando pagos de MercadoPago para preferenceId: {}", payment.getPreferenceId());
+                
+                // Intentar buscar el pago usando el external_reference
+                // MercadoPago SDK no tiene método directo para buscar por external_reference
+                // pero podemos usar el Search API si está disponible
+                
+                // Por ahora, marcar como que no se puede verificar automáticamente
+                log.warn("⚠️ No se puede verificar automáticamente sin mpPaymentId. " +
+                        "El usuario debe completar el pago y esperar el webhook o " +
+                        "consultar manualmente en MercadoPago.");
+                
+                return payment;
+            }
+            
+            log.warn("No hay suficiente información para verificar el pago en MercadoPago");
+            return payment;
+            
+        } catch (MPApiException apiException) {
+            log.error("Error de API de MercadoPago al verificar: {} - {}", 
+                    apiException.getStatusCode(), apiException.getApiResponse().getContent());
+            throw new PaymentException("Error al verificar pago en MercadoPago: " + apiException.getMessage());
+            
+        } catch (MPException mpException) {
+            log.error("Error de MercadoPago al verificar: {}", mpException.getMessage());
+            throw new PaymentException("Error de conexión con MercadoPago: " + mpException.getMessage());
+            
+        } catch (Exception e) {
+            log.error("Error inesperado al verificar pago", e);
+            throw new PaymentException("Error al verificar el pago: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * Actualiza un pago con datos de MercadoPago
+     */
+    private Payment updatePaymentFromMercadoPago(Payment payment, 
+                                                  com.mercadopago.resources.payment.Payment mpPayment) {
+        Payment.PaymentStatus previousStatus = payment.getStatus();
+        Payment.PaymentStatus newStatus = mapMercadoPagoStatus(mpPayment.getStatus());
+        
+        log.info("Estado anterior: {} → Estado nuevo: {}", previousStatus, newStatus);
+        
+        // Actualizar información del pago
+        payment.setMpPaymentId(mpPayment.getId());
+        payment.setPaymentMethod(mpPayment.getPaymentMethodId());
+        payment.setPaymentTypeId(mpPayment.getPaymentTypeId());
+        payment.setStatus(newStatus);
+        payment.setStatusDetail(mpPayment.getStatusDetail());
+        payment.setTransactionAmount(mpPayment.getTransactionAmount());
+        
+        // Actualizar información del pagador si está disponible
+        if (mpPayment.getPayer() != null) {
+            payment.setPayerEmail(mpPayment.getPayer().getEmail());
+            if (mpPayment.getPayer().getFirstName() != null) {
+                payment.setPayerName(mpPayment.getPayer().getFirstName() + " " +
+                        (mpPayment.getPayer().getLastName() != null ? mpPayment.getPayer().getLastName() : ""));
+            }
+        }
+        
+        // Si el pago fue aprobado, guardar fecha de aprobación
+        if (newStatus == Payment.PaymentStatus.APPROVED && mpPayment.getDateApproved() != null) {
+            payment.setApprovedAt(mpPayment.getDateApproved().toLocalDateTime());
+        }
+        
+        payment = paymentRepository.save(payment);
+        
+        // Notificar a Order Service si el estado cambió
+        if (previousStatus != newStatus) {
+            log.info("✅ Estado de pago cambió, notificando a Order Service");
+            notifyOrderService(payment, newStatus, mpPayment.getStatusDetail());
+        }
+        
+        return payment;
     }
 
     private Payment.PaymentStatus mapMercadoPagoStatus(String mpStatus) {

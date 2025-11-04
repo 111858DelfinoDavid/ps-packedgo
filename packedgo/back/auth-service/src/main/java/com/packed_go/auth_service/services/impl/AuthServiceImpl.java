@@ -1,5 +1,14 @@
 package com.packed_go.auth_service.services.impl;
 
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import com.packed_go.auth_service.dto.request.AdminLoginRequest;
 import com.packed_go.auth_service.dto.request.AdminRegistrationRequest;
 import com.packed_go.auth_service.dto.request.ChangePasswordLoggedUserRequest;
@@ -12,26 +21,27 @@ import com.packed_go.auth_service.dto.request.UpdateAuthUserRequest;
 import com.packed_go.auth_service.dto.response.AuthUserProfileResponse;
 import com.packed_go.auth_service.dto.response.LoginResponse;
 import com.packed_go.auth_service.dto.response.TokenValidationResponse;
-import com.packed_go.auth_service.entities.*;
+import com.packed_go.auth_service.entities.AuthUser;
+import com.packed_go.auth_service.entities.EmailVerificationToken;
+import com.packed_go.auth_service.entities.LoginAttempt;
+import com.packed_go.auth_service.entities.PasswordRecoveryToken;
+import com.packed_go.auth_service.entities.UserSession;
 import com.packed_go.auth_service.exceptions.BadRequestException;
 import com.packed_go.auth_service.exceptions.ResourceNotFoundException;
 import com.packed_go.auth_service.exceptions.UnauthorizedException;
-import com.packed_go.auth_service.repositories.*;
+import com.packed_go.auth_service.repositories.AuthUserRepository;
+import com.packed_go.auth_service.repositories.EmailVerificationTokenRepository;
+import com.packed_go.auth_service.repositories.LoginAttemptRepository;
+import com.packed_go.auth_service.repositories.PasswordRecoveryTokenRepository;
+import com.packed_go.auth_service.repositories.RolePermissionRepository;
+import com.packed_go.auth_service.repositories.UserSessionRepository;
 import com.packed_go.auth_service.security.JwtTokenProvider;
 import com.packed_go.auth_service.services.AuthService;
+import com.packed_go.auth_service.services.EmailService;
 import com.packed_go.auth_service.services.UsersServiceClient;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
-import com.packed_go.auth_service.services.EmailService;
-import java.util.UUID;
-
-import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -160,7 +170,7 @@ public class AuthServiceImpl implements AuthService {
                 .role("CUSTOMER")
                 .loginType("DOCUMENT")
                 .isActive(true)
-                .isEmailVerified(false)
+                .isEmailVerified(true) // ✅ Auto-verificado para desarrollo
                 .isDocumentVerified(false)
                 .failedLoginAttempts(0)
                 .createdAt(LocalDateTime.now())
@@ -193,7 +203,9 @@ public class AuthServiceImpl implements AuthService {
         }
         
         
-        // Generar y enviar email de verificación
+        // 🚫 Email de verificación desactivado para desarrollo
+        // Los usuarios se crean ya verificados (isEmailVerified = true)
+        /*
         try {
             sendVerificationEmail(savedUser);
             log.info("Verification email sent for user ID: {}", savedUser.getId());
@@ -201,6 +213,8 @@ public class AuthServiceImpl implements AuthService {
             log.error("Failed to send verification email for user ID: {}", savedUser.getId(), e);
             // No lanzamos la excepción para que el registro continúe
         }
+        */
+        log.info("✅ User registered and auto-verified (development mode) - ID: {}", savedUser.getId());
         
         return savedUser;
     }
@@ -293,7 +307,7 @@ public boolean verifyEmail(String token) {
                 .role("ADMIN")
                 .loginType("EMAIL")
                 .isActive(true)
-                .isEmailVerified(false)
+                .isEmailVerified(true) // ✅ Auto-verificado para desarrollo
                 .isDocumentVerified(false)
                 .failedLoginAttempts(0)
                 .createdAt(LocalDateTime.now())
@@ -304,7 +318,9 @@ public boolean verifyEmail(String token) {
         AuthUser savedAdmin = authUserRepository.save(newAdmin);
         log.info("Admin registered successfully with ID: {}", savedAdmin.getId());
         
-        // Generar y enviar email de verificación
+        // 🚫 Email de verificación desactivado para desarrollo
+        // Los admins se crean ya verificados (isEmailVerified = true)
+        /*
         try {
             sendVerificationEmail(savedAdmin);
             log.info("Verification email sent for admin ID: {}", savedAdmin.getId());
@@ -312,6 +328,8 @@ public boolean verifyEmail(String token) {
             log.error("Failed to send verification email for admin ID: {}", savedAdmin.getId(), e);
             // No lanzamos la excepción para que el registro continúe
         }
+        */
+        log.info("✅ Admin registered and auto-verified (development mode) - ID: {}", savedAdmin.getId());
         
         return savedAdmin;
     }
