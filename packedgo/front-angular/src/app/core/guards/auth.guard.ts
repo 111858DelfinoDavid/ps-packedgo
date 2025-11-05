@@ -6,17 +6,12 @@ export const authGuard: CanActivateFn = (route, state) => {
   const authService = inject(AuthService);
   const router = inject(Router);
 
-  // Si es la ruta de checkout con sessionId, permitir acceso temporalmente
-  // El componente verificará la validez de la sesión
-  if (state.url.includes('/customer/checkout') && route.queryParams['sessionId']) {
-    return true;
-  }
-
+  // Siempre verificar que el usuario esté autenticado
   if (authService.isAuthenticated()) {
     return true;
   }
 
-  // Redirect to customer login page
+  // Redirect to customer login page, preservando la URL de retorno
   router.navigate(['/customer/login'], { queryParams: { returnUrl: state.url } });
   return false;
 };

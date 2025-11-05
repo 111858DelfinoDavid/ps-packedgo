@@ -18,6 +18,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class MultiOrderCheckoutResponse {
     private String sessionId;
+    private String sessionToken;
     private BigDecimal totalAmount;
     private String sessionStatus;
     private LocalDateTime expiresAt;

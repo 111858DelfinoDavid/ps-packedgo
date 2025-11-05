@@ -63,6 +63,44 @@ export class OrderService {
   }
 
   /**
+   * Recupera una sesión usando el token de recuperación (sin JWT)
+   * @param sessionToken Token de recuperación de la sesión
+   * @returns Observable con el estado de la sesión
+   */
+  recoverSession(sessionToken: string): Observable<MultiOrderCheckoutResponse> {
+    const headers = new HttpHeaders({
+      'Content-Type': 'application/json',
+      'X-Session-Token': sessionToken
+    });
+
+    return this.http.get<MultiOrderCheckoutResponse>(
+      `${this.apiUrl}/orders/session/recover`,
+      { headers }
+    ).pipe(
+      tap(response => {
+        console.log('Sesión recuperada:', response);
+      }),
+      catchError(this.handleError)
+    );
+  }
+
+  /**
+   * Obtiene todos los tickets generados en una sesión
+   * @param sessionId ID de la sesión
+   * @returns Observable con la lista de tickets
+   */
+  getSessionTickets(sessionId: string): Observable<any[]> {
+    return this.http.get<any[]>(
+      `${this.apiUrl}/orders/session/${sessionId}/tickets`
+    ).pipe(
+      tap(response => {
+        console.log('Tickets de sesión:', response);
+      }),
+      catchError(this.handleError)
+    );
+  }
+
+  /**
    * Abandona una sesión de checkout y devuelve los items al carrito
    * Solo funciona si no hay pagos completados en la sesión
    * @param sessionId ID de la sesión a abandonar

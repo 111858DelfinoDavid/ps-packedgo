@@ -1,7 +1,7 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
-import { Router, RouterModule } from '@angular/router';
+import { Router, RouterModule, ActivatedRoute } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
 
 @Component({
@@ -10,10 +10,11 @@ import { AuthService } from '../../../core/services/auth.service';
   templateUrl: './customer-login.component.html',
   styleUrl: './customer-login.component.css'
 })
-export class CustomerLoginComponent {
+export class CustomerLoginComponent implements OnInit {
   private fb = inject(FormBuilder);
   private authService = inject(AuthService);
   private router = inject(Router);
+  private route = inject(ActivatedRoute);
 
   loginForm: FormGroup;
   isLoading = false;
@@ -22,12 +23,19 @@ export class CustomerLoginComponent {
   showResendEmailButton = false;
   resendingEmail = false;
   resendSuccess = false;
+  private returnUrl: string = '/customer/dashboard';
 
   constructor() {
     this.loginForm = this.fb.group({
       document: ['', [Validators.required, Validators.pattern(/^\d+$/)]],
       password: ['', [Validators.required, Validators.minLength(6)]]
     });
+  }
+
+  ngOnInit(): void {
+    // Capturar el returnUrl de los query params
+    this.returnUrl = this.route.snapshot.queryParams['returnUrl'] || '/customer/dashboard';
+    console.log('Return URL:', this.returnUrl);
   }
 
   togglePasswordVisibility(): void {
@@ -63,7 +71,26 @@ export class CustomerLoginComponent {
           return;
         }
         
-        this.router.navigate(['/customer/dashboard']);
+        // Redirigir a la URL de retorno o al dashboard por defecto
+        console.log('Redirigiendo a:', this.returnUrl);
+        
+        // Parsear la URL de retorno para manejar correctamente los query params
+        if (this.returnUrl.includes('?')) {
+          // Si la URL tiene query params, separarlos
+          const [path, queryString] = this.returnUrl.split('?');
+          const params: any = {};
+          
+          // Parsear los query params manualmente
+          queryString.split('&').forEach(param => {
+            const [key, value] = param.split('=');
+            params[key] = decodeURIComponent(value);
+          });
+          
+          this.router.navigate([path], { queryParams: params });
+        } else {
+          // Si no hay query params, navegar directamente
+          this.router.navigate([this.returnUrl]);
+        }
       },
       error: (error) => {
         console.error('Error en login:', error);

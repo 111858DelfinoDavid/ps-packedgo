@@ -41,6 +41,9 @@ public class MultiOrderSession {
     @Column(name = "session_id", length = 36)
     private String sessionId;
 
+    @Column(name = "session_token", length = 36, unique = true)
+    private String sessionToken;
+
     @Column(name = "user_id", nullable = false)
     private Long userId;
 
@@ -72,6 +75,9 @@ public class MultiOrderSession {
     protected void onCreate() {
         if (sessionId == null) {
             sessionId = UUID.randomUUID().toString();
+        }
+        if (sessionToken == null) {
+            sessionToken = UUID.randomUUID().toString();
         }
         createdAt = LocalDateTime.now();
         updatedAt = LocalDateTime.now();

@@ -27,6 +27,16 @@ public interface OrderService {
     MultiOrderCheckoutResponse getSessionStatus(String sessionId);
     
     /**
+     * Recupera una sesión usando el token de recuperación (sin requerir JWT)
+     */
+    MultiOrderCheckoutResponse recoverSessionByToken(String sessionToken);
+    
+    /**
+     * Obtiene todos los tickets generados en una sesión
+     */
+    List<Object> getSessionTickets(String sessionId);
+    
+    /**
      * Abandona una sesión de checkout y devuelve items al carrito si no hay pagos completados
      */
     void abandonSession(String sessionId, Long userId);

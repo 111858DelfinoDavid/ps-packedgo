@@ -1,8 +1,8 @@
 import { Component, OnInit, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterModule, ActivatedRoute } from '@angular/router';
-import { interval, Subscription, firstValueFrom } from 'rxjs';
-import { switchMap } from 'rxjs/operators';
+import { interval, Subscription, firstValueFrom, forkJoin } from 'rxjs';
+import { switchMap, map } from 'rxjs/operators';
 import { OrderService } from '../../../core/services/order.service';
 import { PaymentService } from '../../../core/services/payment.service';
 import { CartService } from '../../../core/services/cart.service';
@@ -48,18 +48,27 @@ export class CheckoutComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     // Detectar si venimos de un retorno de MercadoPago
     this.route.queryParams.subscribe(params => {
+      const comesFromMercadoPago = params['status'] || params['paymentStatus'] || params['payment_id'];
+      
       // Puede venir con 'status' o 'paymentStatus'
-      if (params['status'] || params['paymentStatus']) {
+      if (comesFromMercadoPago) {
         this.handleMercadoPagoReturn(params);
       }
       
       // Si viene con sessionId en la URL, cargar ese checkout
       if (params['sessionId']) {
         this.sessionId = params['sessionId'];
-        this.loadExistingCheckout(this.sessionId);
+        this.loadExistingCheckout(this.sessionId, !!comesFromMercadoPago);
       } else {
-        // Si no hay sessionId, iniciar nuevo checkout
-        this.initiateCheckout();
+        // Si no hay sessionId en URL, intentar recuperar desde localStorage
+        const savedToken = localStorage.getItem('checkout_session_token');
+        if (savedToken) {
+          console.log('Found saved session token, attempting recovery');
+          this.recoverCheckoutFromToken(savedToken);
+        } else {
+          // Si no hay token guardado, iniciar nuevo checkout
+          this.initiateCheckout();
+        }
       }
     });
   }
@@ -84,6 +93,12 @@ export class CheckoutComponent implements OnInit, OnDestroy {
         this.expiresAt = new Date(response.expiresAt);
         
         console.log('Checkout response:', response);
+        
+        // Guardar session token en localStorage para recuperación
+        if (response.sessionToken) {
+          localStorage.setItem('checkout_session_token', response.sessionToken);
+          console.log('Session token saved to localStorage');
+        }
         
         // Actualizar URL con sessionId SIN navegación (solo modifica la URL en el historial)
         const url = this.router.createUrlTree([], {
@@ -125,7 +140,7 @@ export class CheckoutComponent implements OnInit, OnDestroy {
   /**
    * Carga un checkout existente por sessionId
    */
-  private loadExistingCheckout(sessionId: string): void {
+  private loadExistingCheckout(sessionId: string, comesFromMercadoPago: boolean = false): void {
     this.isLoading = true;
     this.errorMessage = '';
 
@@ -154,12 +169,68 @@ export class CheckoutComponent implements OnInit, OnDestroy {
         this.errorMessage = error.message || 'Error al cargar el checkout';
         this.isLoading = false;
         
-        // Si el error es de sesión inválida/expirada y el usuario no está autenticado, redirigir al login
-        if (!this.authService.isAuthenticated()) {
+        // Si el error es de sesión inválida/expirada y el usuario no está autenticado
+        // PERO NO VIENE DE MERCADOPAGO, redirigir al login
+        if (!comesFromMercadoPago && !this.authService.isAuthenticated()) {
           console.warn('Session invalid and user not authenticated, redirecting to login');
           this.router.navigate(['/customer/login'], { 
             queryParams: { returnUrl: '/customer/checkout', sessionId: sessionId } 
           });
+        } else if (comesFromMercadoPago) {
+          // Si viene de MercadoPago pero hay error, mostrar mensaje pero NO redirigir
+          console.warn('Error loading session after MercadoPago return, but not redirecting to login');
+          this.errorMessage = 'Error al cargar el estado de la sesión. Por favor, verifica tu pago en "Mis Órdenes".';
+        }
+      }
+    });
+  }
+
+  /**
+   * Recupera un checkout usando el token guardado en localStorage
+   */
+  private recoverCheckoutFromToken(sessionToken: string): void {
+    this.isLoading = true;
+    this.errorMessage = '';
+
+    this.orderService.recoverSession(sessionToken).subscribe({
+      next: (response) => {
+        this.checkoutResponse = response;
+        this.paymentGroups = response.paymentGroups;
+        this.sessionId = response.sessionId;
+        this.expiresAt = new Date(response.expiresAt);
+        
+        console.log('Session recovered from token:', response);
+        
+        // Actualizar URL con sessionId
+        const url = this.router.createUrlTree([], {
+          relativeTo: this.route,
+          queryParams: { sessionId: this.sessionId },
+          queryParamsHandling: 'merge'
+        }).toString();
+        window.history.replaceState(null, '', url);
+        
+        // Iniciar timer de expiración
+        this.startExpirationTimer();
+        
+        // Generar preferencias de pago para grupos sin payment preference
+        this.generateMissingPaymentPreferences();
+        
+        // Iniciar polling de estado
+        this.startSessionPolling();
+        
+        this.isLoading = false;
+      },
+      error: (error) => {
+        console.error('Error recovering session:', error);
+        
+        // Si el token es inválido o la sesión expiró, limpiar y crear nuevo checkout
+        if (error.message?.includes('expired') || error.message?.includes('not found')) {
+          console.warn('Session expired or invalid, clearing token and starting new checkout');
+          localStorage.removeItem('checkout_session_token');
+          this.initiateCheckout();
+        } else {
+          this.errorMessage = error.message || 'Error al recuperar la sesión';
+          this.isLoading = false;
         }
       }
     });
@@ -185,19 +256,54 @@ export class CheckoutComponent implements OnInit, OnDestroy {
         this.paymentReturnType = 'success';
         this.paymentReturnMessage = `✅ ¡Pago aprobado exitosamente!
         
-Orden ${orderId} confirmada. En unos momentos verás tus tickets actualizados.
+Orden ${orderId} confirmada. Actualizando el estado...
 
 ${this.paymentGroups.length > 1 ? 'Nota: Si tienes otros pagos pendientes, aparecerán abajo.' : ''}`;
-        // Recargar el checkout para ver si hay más pagos pendientes
+        
+        // Forzar actualización del estado de la sesión inmediatamente
         if (this.sessionId) {
-          setTimeout(() => {
-            this.loadExistingCheckout(this.sessionId);
-            // Mantener el mensaje visible un poco más después de recargar
-            setTimeout(() => {
-              this.paymentReturnMessage = '';
-              this.paymentReturnType = '';
-            }, 5000);
-          }, 3000);
+          // Primero, intentar actualizar el estado de la sesión
+          this.orderService.getSessionStatus(this.sessionId).subscribe({
+            next: (sessionStatus) => {
+              console.log('Session status after payment:', sessionStatus);
+              this.checkoutResponse = sessionStatus;
+              this.paymentGroups = sessionStatus.paymentGroups;
+              
+              // Verificar si se completó todo
+              if (sessionStatus.sessionStatus === 'COMPLETED') {
+                this.stopPolling();
+                this.stopTimer();
+                this.cartService.loadCart();
+                
+                // Mostrar mensaje de éxito y redirigir
+                this.paymentReturnMessage = '✅ ¡Todos los pagos completados! Redirigiendo...';
+                
+                setTimeout(() => {
+                  // Limpiar token de sesión ya que se completó exitosamente
+                  localStorage.removeItem('checkout_session_token');
+                  console.log('Session token cleared (checkout completed)');
+                  
+                  this.router.navigate(['/customer/orders/success'], {
+                    queryParams: { sessionId: this.sessionId }
+                  });
+                }, 2000);
+              } else {
+                // Si no está completo, mostrar mensaje y actualizar UI
+                setTimeout(() => {
+                  this.paymentReturnMessage = '';
+                  this.paymentReturnType = '';
+                }, 5000);
+              }
+            },
+            error: (error) => {
+              console.error('Error updating session after payment:', error);
+              // Si hay error, mostrar mensaje y limpiar después
+              setTimeout(() => {
+                this.paymentReturnMessage = '';
+                this.paymentReturnType = '';
+              }, 5000);
+            }
+          });
         }
         break;
       case 'pending':
@@ -356,6 +462,11 @@ El botón de pago aparece más abajo.`;
             this.stopTimer();
             // Limpiar el carrito ya que la compra está completa
             this.cartService.loadCart(); // Refrescar el carrito
+            
+            // Limpiar token de sesión ya que se completó exitosamente
+            localStorage.removeItem('checkout_session_token');
+            console.log('Session token cleared (polling detected completion)');
+            
             this.router.navigate(['/customer/orders/success'], {
               queryParams: { sessionId: this.sessionId }
             });
@@ -458,14 +569,143 @@ El botón de pago aparece más abajo.`;
   refreshPaymentStatus(group: PaymentGroup): void {
     if (!group.paymentPreferenceId) return;
 
-    this.paymentService.getPaymentStatus(group.paymentPreferenceId).subscribe({
-      next: (status) => {
-        console.log('Payment status:', status);
-        // El backend actualiza automáticamente via webhook, esto es solo visual
-        alert('Verificando estado del pago...');
+    console.log('Simulando aprobación de pago para:', group);
+
+    // Primero, simular la aprobación del pago (esto dispara el webhook simulado)
+    this.paymentService.simulatePaymentApproval(group.paymentPreferenceId).subscribe({
+      next: (approvalResponse) => {
+        console.log('Payment approval simulation response:', approvalResponse);
+        
+        // Después de simular la aprobación, actualizar el estado de la sesión
+        this.orderService.getSessionStatus(this.sessionId).subscribe({
+          next: (sessionStatus) => {
+            console.log('Session status after approval:', sessionStatus);
+            
+            // Actualizar el estado local
+            this.checkoutResponse = sessionStatus;
+            this.paymentGroups = sessionStatus.paymentGroups;
+            
+            // Verificar si el pago fue aprobado
+            const updatedGroup = this.paymentGroups.find(g => g.orderId === group.orderId);
+            if (updatedGroup?.status === 'PAID') {
+              alert('✅ ¡Pago aprobado exitosamente! Las entradas han sido generadas.');
+              
+              // Si todos los pagos están completos, redirigir
+              if (sessionStatus.sessionStatus === 'COMPLETED') {
+                this.stopPolling();
+                this.stopTimer();
+                this.cartService.loadCart();
+                
+                setTimeout(() => {
+                  // Limpiar token de sesión ya que se completó exitosamente
+                  localStorage.removeItem('checkout_session_token');
+                  console.log('Session token cleared (simulate payment completed)');
+                  
+                  this.router.navigate(['/customer/orders/success'], {
+                    queryParams: { sessionId: this.sessionId }
+                  });
+                }, 2000);
+              }
+            } else if (updatedGroup?.status === 'PENDING') {
+              alert('⏳ El pago aún está pendiente de confirmación');
+            } else {
+              alert('Estado del pago actualizado: ' + (updatedGroup?.status || 'desconocido'));
+            }
+          },
+          error: (error) => {
+            console.error('Error updating session status:', error);
+            alert('Error al actualizar el estado de la sesión');
+          }
+        });
       },
       error: (error) => {
-        console.error('Error checking payment status:', error);
+        console.error('Error simulating payment approval:', error);
+        
+        // Si ya estaba aprobado, solo actualizar la sesión
+        if (error.error?.status === 'already_approved') {
+          alert('✅ El pago ya estaba aprobado');
+          
+          // Actualizar el estado de la sesión
+          this.orderService.getSessionStatus(this.sessionId).subscribe({
+            next: (sessionStatus) => {
+              this.checkoutResponse = sessionStatus;
+              this.paymentGroups = sessionStatus.paymentGroups;
+            }
+          });
+        } else {
+          alert('Error al verificar el estado del pago: ' + (error.error?.error || error.message));
+        }
+      }
+    });
+  }
+
+  /**
+   * Simula la aprobación de TODOS los pagos pendientes en el checkout multi-admin
+   * Útil para testing sin MercadoPago real
+   */
+  simulateAllPayments(): void {
+    const pendingGroups = this.paymentGroups.filter(g => g.status === 'PENDING_PAYMENT');
+    
+    if (pendingGroups.length === 0) {
+      alert('No hay pagos pendientes para simular');
+      return;
+    }
+
+    console.log(`Simulando ${pendingGroups.length} pagos pendientes...`);
+    
+    // Simular todos los pagos en paralelo
+    const simulationObservables = pendingGroups.map(group => 
+      this.paymentService.simulatePaymentApproval(group.paymentPreferenceId!)
+    );
+
+    // Ejecutar todas las simulaciones en paralelo usando forkJoin
+    const forkJoinObservable = pendingGroups.length === 1 
+      ? simulationObservables[0].pipe(map(result => [result]))
+      : forkJoin(simulationObservables);
+
+    forkJoinObservable.subscribe({
+      next: (results) => {
+        console.log('All payments simulated:', results);
+        
+        // Actualizar el estado de la sesión después de simular todos
+        this.orderService.getSessionStatus(this.sessionId).subscribe({
+          next: (sessionStatus) => {
+            console.log('Session status after simulating all payments:', sessionStatus);
+            
+            // Actualizar el estado local
+            this.checkoutResponse = sessionStatus;
+            this.paymentGroups = sessionStatus.paymentGroups;
+            
+            // Verificar cuántos pagos fueron aprobados
+            const approvedCount = this.paymentGroups.filter(g => g.status === 'PAID').length;
+            alert(`✅ ${approvedCount} de ${this.paymentGroups.length} pagos aprobados exitosamente!`);
+            
+            // Si todos los pagos están completos, redirigir
+            if (sessionStatus.sessionStatus === 'COMPLETED') {
+              this.stopPolling();
+              this.stopTimer();
+              this.cartService.loadCart();
+              
+              setTimeout(() => {
+                // Limpiar token de sesión ya que se completó exitosamente
+                localStorage.removeItem('checkout_session_token');
+                console.log('Session token cleared (simulate all payments completed)');
+                
+                this.router.navigate(['/customer/orders/success'], {
+                  queryParams: { sessionId: this.sessionId }
+                });
+              }, 2000);
+            }
+          },
+          error: (error) => {
+            console.error('Error updating session status:', error);
+            alert('Error al actualizar el estado de la sesión');
+          }
+        });
+      },
+      error: (error) => {
+        console.error('Error simulating payments:', error);
+        alert('Error al simular algunos pagos: ' + (error.error?.message || error.message));
       }
     });
   }

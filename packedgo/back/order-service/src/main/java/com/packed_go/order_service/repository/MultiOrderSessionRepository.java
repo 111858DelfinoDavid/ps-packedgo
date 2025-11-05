@@ -19,6 +19,11 @@ public interface MultiOrderSessionRepository extends JpaRepository<MultiOrderSes
     Optional<MultiOrderSession> findBySessionId(String sessionId);
 
     /**
+     * Busca una sesión por token de recuperación
+     */
+    Optional<MultiOrderSession> findBySessionToken(String sessionToken);
+
+    /**
      * Busca todas las sesiones de un usuario
      */
     List<MultiOrderSession> findByUserIdOrderByCreatedAtDesc(Long userId);

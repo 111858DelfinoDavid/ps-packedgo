@@ -57,7 +57,29 @@ export class AuthService {
   }
 
   isAuthenticated(): boolean {
-    return !!this.getToken();
+    const token = this.getToken();
+    if (!token) {
+      return false;
+    }
+
+    // Verificar si el token está expirado
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      const expiration = payload.exp * 1000; // Convertir a milisegundos
+      const now = Date.now();
+      
+      if (now >= expiration) {
+        console.warn('Token expirado, limpiando sesión...');
+        this.logout();
+        return false;
+      }
+      
+      return true;
+    } catch (error) {
+      console.error('Error al validar token:', error);
+      this.logout();
+      return false;
+    }
   }
 
   getCurrentUser(): AuthUser | null {

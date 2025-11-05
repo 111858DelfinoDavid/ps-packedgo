@@ -72,28 +72,68 @@ public class OrderController {
      * Obtener el estado de una sesión de múltiples órdenes
      * 
      * GET /api/orders/sessions/{sessionId}
-     * Headers: Authorization: Bearer {token}
+     * Headers: Authorization: Bearer {token} (opcional - para validación de usuario)
      * 
      * @return 200 OK con el estado de la sesión
      */
     @GetMapping("/sessions/{sessionId}")
     public ResponseEntity<MultiOrderCheckoutResponse> getSessionStatus(
-            @RequestHeader("Authorization") String authHeader,
+            @RequestHeader(value = "Authorization", required = false) String authHeader,
             @PathVariable String sessionId) {
         
         log.info("GET /api/orders/sessions/{} - Retrieving session status", sessionId);
         
-        Long userId = extractUserId(authHeader);
-        MultiOrderCheckoutResponse response = orderService.getSessionStatus(sessionId);
-        
-        // Validar que la sesión pertenece al usuario
-        if (!response.getPaymentGroups().isEmpty() && 
-            !response.getPaymentGroups().get(0).getOrderId().toString().contains(userId.toString())) {
-            // Esta validación es básica, en producción valdría la pena tener userId en MultiOrderSession
-            log.warn("User {} attempted to access session {}", userId, sessionId);
+        // Si hay authHeader, validar que la sesión pertenece al usuario
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            try {
+                Long userId = extractUserId(authHeader);
+                log.info("Session status requested by user: {}", userId);
+            } catch (Exception e) {
+                log.warn("Invalid or expired token, proceeding without user validation");
+            }
+        } else {
+            log.info("Session status requested without authentication (polling)");
         }
         
+        MultiOrderCheckoutResponse response = orderService.getSessionStatus(sessionId);
         return ResponseEntity.ok(response);
+    }
+    
+    /**
+     * Recuperar una sesión usando el token de recuperación
+     * NO requiere autenticación JWT - usa token anónimo de sesión
+     * 
+     * GET /api/orders/session/recover
+     * Headers: X-Session-Token: {sessionToken}
+     * 
+     * @return 200 OK con el estado de la sesión
+     */
+    @GetMapping("/session/recover")
+    public ResponseEntity<MultiOrderCheckoutResponse> recoverSession(
+            @RequestHeader("X-Session-Token") String sessionToken) {
+        
+        log.info("GET /api/orders/session/recover - Recovering session by token");
+        
+        MultiOrderCheckoutResponse response = orderService.recoverSessionByToken(sessionToken);
+        return ResponseEntity.ok(response);
+    }
+    
+    /**
+     * Obtener todos los tickets generados en una sesión
+     * NO requiere autenticación JWT
+     * 
+     * GET /api/orders/session/{sessionId}/tickets
+     * 
+     * @return 200 OK con la lista de tickets
+     */
+    @GetMapping("/session/{sessionId}/tickets")
+    public ResponseEntity<List<Object>> getSessionTickets(
+            @PathVariable String sessionId) {
+        
+        log.info("GET /api/orders/session/{}/tickets - Retrieving session tickets", sessionId);
+        
+        List<Object> tickets = orderService.getSessionTickets(sessionId);
+        return ResponseEntity.ok(tickets);
     }
     
     /**

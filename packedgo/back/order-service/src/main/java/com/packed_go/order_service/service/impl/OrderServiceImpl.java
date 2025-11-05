@@ -294,6 +294,58 @@ public class OrderServiceImpl implements OrderService {
     }
     
     @Override
+    @Transactional(readOnly = true)
+    public MultiOrderCheckoutResponse recoverSessionByToken(String sessionToken) {
+        log.info("Recovering session by token");
+        
+        MultiOrderSession session = sessionRepository.findBySessionToken(sessionToken)
+                .orElseThrow(() -> new RuntimeException("Session not found for provided token"));
+        
+        // Verificar que la sesión no ha expirado
+        if (session.isExpired()) {
+            log.warn("Session {} has expired", session.getSessionId());
+            throw new RuntimeException("Session has expired");
+        }
+        
+        // Actualizar estado de la sesión
+        session.updateSessionStatus();
+        
+        List<Order> orders = session.getOrders();
+        return buildMultiOrderResponse(session, orders);
+    }
+    
+    @Override
+    @Transactional(readOnly = true)
+    public List<Object> getSessionTickets(String sessionId) {
+        log.info("Getting tickets for session: {}", sessionId);
+        
+        MultiOrderSession session = sessionRepository.findBySessionId(sessionId)
+                .orElseThrow(() -> new RuntimeException("Session not found: " + sessionId));
+        
+        // Obtener todas las órdenes de la sesión que estén pagadas
+        List<Order> paidOrders = session.getOrders().stream()
+                .filter(Order::isPaid)
+                .collect(Collectors.toList());
+        
+        if (paidOrders.isEmpty()) {
+            log.warn("No paid orders found for session: {}", sessionId);
+            return List.of();
+        }
+        
+        // Obtener tickets de cada orden pagada
+        // Nota: Asumimos que los tickets están en event-service
+        // Por ahora devolvemos los order IDs para que el frontend pueda buscar tickets
+        return paidOrders.stream()
+                .map(order -> Map.of(
+                    "orderId", order.getId(),
+                    "orderNumber", order.getOrderNumber(),
+                    "eventId", order.getItems().get(0).getEventId(),
+                    "totalAmount", order.getTotalAmount()
+                ))
+                .collect(Collectors.toList());
+    }
+    
+    @Override
     @Transactional
     public void abandonSession(String sessionId, Long userId) {
         log.info("Abandoning session: {} for user: {}", sessionId, userId);
@@ -392,6 +444,7 @@ public class OrderServiceImpl implements OrderService {
         
         return MultiOrderCheckoutResponse.builder()
                 .sessionId(session.getSessionId())
+                .sessionToken(session.getSessionToken())
                 .totalAmount(session.getTotalAmount())
                 .sessionStatus(session.getSessionStatus())
                 .expiresAt(session.getExpiresAt())
@@ -455,7 +508,9 @@ public class OrderServiceImpl implements OrderService {
                     if (orderItem.getConsumptions() != null && !orderItem.getConsumptions().isEmpty()) {
                         consumptions = orderItem.getConsumptions().stream()
                                 .map(cons -> TicketConsumptionDTO.builder()
-                                        .ticketConsumptionId(cons.getConsumptionId())
+                                        .consumptionId(cons.getConsumptionId())
+                                        .consumptionName(cons.getConsumptionName())
+                                        .priceAtPurchase(cons.getUnitPrice())
                                         .quantity(cons.getQuantity())
                                         .build())
                                 .collect(Collectors.toList());
