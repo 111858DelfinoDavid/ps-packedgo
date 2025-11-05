@@ -48,7 +48,8 @@ export class CheckoutComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     // Detectar si venimos de un retorno de MercadoPago
     this.route.queryParams.subscribe(params => {
-      if (params['status']) {
+      // Puede venir con 'status' o 'paymentStatus'
+      if (params['status'] || params['paymentStatus']) {
         this.handleMercadoPagoReturn(params);
       }
       
@@ -168,36 +169,81 @@ export class CheckoutComponent implements OnInit, OnDestroy {
    * Maneja el retorno desde MercadoPago
    */
   private handleMercadoPagoReturn(params: any): void {
-    const status = params['status'];
+    const status = params['status'] || params['paymentStatus']; // Puede venir de dos formas
+    const orderId = params['orderId'];
     const paymentId = params['payment_id'];
     const merchantOrderId = params['merchant_order_id'];
 
-    console.log('Retorno de MercadoPago:', { status, paymentId, merchantOrderId });
+    console.log('Retorno de MercadoPago:', { status, orderId, paymentId, merchantOrderId });
+
+    // Scroll al inicio para que el usuario vea el mensaje
+    window.scrollTo({ top: 0, behavior: 'smooth' });
 
     switch (status) {
       case 'approved':
+      case 'success':
         this.paymentReturnType = 'success';
-        this.paymentReturnMessage = '✅ ¡Pago aprobado! Tu orden ha sido confirmada.';
+        this.paymentReturnMessage = `✅ ¡Pago aprobado exitosamente!
+        
+Orden ${orderId} confirmada. En unos momentos verás tus tickets actualizados.
+
+${this.paymentGroups.length > 1 ? 'Nota: Si tienes otros pagos pendientes, aparecerán abajo.' : ''}`;
+        // Recargar el checkout para ver si hay más pagos pendientes
+        if (this.sessionId) {
+          setTimeout(() => {
+            this.loadExistingCheckout(this.sessionId);
+            // Mantener el mensaje visible un poco más después de recargar
+            setTimeout(() => {
+              this.paymentReturnMessage = '';
+              this.paymentReturnType = '';
+            }, 5000);
+          }, 3000);
+        }
         break;
       case 'pending':
         this.paymentReturnType = 'pending';
-        this.paymentReturnMessage = '⏳ Pago pendiente. Te notificaremos cuando se confirme.';
+        this.paymentReturnMessage = `⏳ Pago en proceso de aprobación
+        
+Orden ${orderId} registrada. Te notificaremos por email cuando se confirme el pago.
+
+Por favor revisa tu bandeja de entrada.`;
+        // Limpiar mensaje después de 10 segundos para pending
+        setTimeout(() => {
+          this.paymentReturnMessage = '';
+          this.paymentReturnType = '';
+        }, 10000);
         break;
       case 'rejected':
       case 'failure':
         this.paymentReturnType = 'error';
-        this.paymentReturnMessage = '❌ El pago fue rechazado. Puedes intentar nuevamente.';
+        this.paymentReturnMessage = `❌ El pago fue rechazado
+        
+Orden ${orderId} no pudo procesarse. Por favor verifica tus datos e intenta nuevamente.
+
+El botón de pago aparece más abajo.`;
+        // Limpiar mensaje después de 12 segundos para errores
+        setTimeout(() => {
+          this.paymentReturnMessage = '';
+          this.paymentReturnType = '';
+        }, 12000);
         break;
       default:
         this.paymentReturnType = 'pending';
-        this.paymentReturnMessage = 'Verificando el estado de tu pago...';
+        this.paymentReturnMessage = '⏳ Verificando el estado de tu pago...';
+        setTimeout(() => {
+          this.paymentReturnMessage = '';
+          this.paymentReturnType = '';
+        }, 8000);
     }
 
-    // Limpiar los query params después de 5 segundos
+    // Limpiar los query params después de mostrar el mensaje
     setTimeout(() => {
-      this.paymentReturnMessage = '';
-      this.paymentReturnType = '';
-    }, 8000);
+      this.router.navigate([], {
+        relativeTo: this.route,
+        queryParams: { sessionId: this.sessionId }, // Mantener solo el sessionId
+        replaceUrl: true
+      });
+    }, 100);
   }
 
   /**
@@ -220,7 +266,8 @@ export class CheckoutComponent implements OnInit, OnDestroy {
         if (payment) {
           group.paymentPreferenceId = payment.preferenceId;
           group.qrUrl = payment.qrUrl;
-          group.initPoint = payment.initPoint;
+          // Usar sandboxInitPoint para testing, initPoint para producción
+          group.initPoint = payment.sandboxInitPoint || payment.initPoint;
         }
       } catch (error) {
         console.error(`Error generando pago para orden ${group.orderNumber}:`, error);
@@ -253,7 +300,8 @@ export class CheckoutComponent implements OnInit, OnDestroy {
           if (payment) {
             group.paymentPreferenceId = payment.preferenceId;
             group.qrUrl = payment.qrUrl;
-            group.initPoint = payment.initPoint;
+            // Usar sandboxInitPoint para testing, initPoint para producción
+            group.initPoint = payment.sandboxInitPoint || payment.initPoint;
           }
         } catch (error: any) {
           console.error(`Error generando pago para orden ${group.orderNumber}:`, error);
@@ -385,12 +433,12 @@ export class CheckoutComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Abre el checkout de Mercado Pago en la misma pestaña (redirección directa)
+   * Abre el checkout de Mercado Pago en una nueva pestaña para mantener el polling activo
    */
   openPaymentCheckout(group: PaymentGroup): void {
     if (group.initPoint) {
-      // Redirigir en la misma pestaña en lugar de abrir nueva ventana
-      window.location.href = group.initPoint;
+      // Abrir en nueva pestaña para que el checkout actual siga con polling
+      window.open(group.initPoint, '_blank');
     }
   }
 
