@@ -220,6 +220,22 @@ services:
     networks:
       - packedgo-network
 
+  # Analytics Service
+  analytics-service:
+    build:
+      context: ./analytics-service
+      dockerfile: Dockerfile
+    ports:
+      - "8087:8087"
+      - "5010:5010"  # Debug port for analytics-service
+    env_file:
+      - ./analytics-service/.env
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - JAVA_TOOL_OPTIONS=-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5010
+    networks:
+      - packedgo-network
+
 networks:
   packedgo-network:
     driver: bridge
