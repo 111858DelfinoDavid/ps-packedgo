@@ -454,13 +454,20 @@ export class CustomerDashboardComponent implements OnInit, OnDestroy {
     if (!userId) return;
 
     this.isLoadingProfile = true;
-    // Usar getRawValue() para obtener también los valores deshabilitados
+    
+    // ⚠️ IMPORTANTE: Incluir TODOS los campos requeridos por el backend
+    // El backend requiere: name, lastName, document, gender, bornDate, telephone, profileImageUrl
     const profileData = {
       name: this.profileForm.get('name')?.value,
       lastName: this.profileForm.get('lastName')?.value,
+      document: this.userAuthData?.document || 0, // Del auth-service (readonly)
+      gender: this.profileForm.get('gender')?.value,
+      bornDate: this.profileForm.get('bornDate')?.value,
       telephone: this.profileForm.get('telephone')?.value,
-      profileImageUrl: this.profileForm.get('profileImageUrl')?.value
+      profileImageUrl: this.profileForm.get('profileImageUrl')?.value || ''
     };
+
+    console.log('📤 Enviando datos de perfil:', profileData);
 
     this.userService.updateUserProfile(userId, profileData).subscribe({
       next: (response: any) => {
