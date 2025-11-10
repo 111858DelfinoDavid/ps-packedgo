@@ -1,8 +1,8 @@
 import { Component, OnInit, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterModule, ActivatedRoute } from '@angular/router';
-import { interval, Subscription, firstValueFrom, forkJoin } from 'rxjs';
-import { switchMap, map } from 'rxjs/operators';
+import { interval, Subscription, firstValueFrom } from 'rxjs';
+import { switchMap } from 'rxjs/operators';
 import { OrderService } from '../../../core/services/order.service';
 import { PaymentService } from '../../../core/services/payment.service';
 import { CartService } from '../../../core/services/cart.service';
@@ -44,31 +44,25 @@ export class CheckoutComponent implements OnInit, OnDestroy {
   // Subscriptions
   private pollingSubscription: Subscription | null = null;
   private timerSubscription: Subscription | null = null;
+  private paymentPollingSubscription: Subscription | null = null;
 
   ngOnInit(): void {
     // Detectar si venimos de un retorno de MercadoPago
     this.route.queryParams.subscribe(params => {
-      const comesFromMercadoPago = params['status'] || params['paymentStatus'] || params['payment_id'];
-      
-      // Puede venir con 'status' o 'paymentStatus'
-      if (comesFromMercadoPago) {
+      if (params['status']) {
         this.handleMercadoPagoReturn(params);
       }
       
       // Si viene con sessionId en la URL, cargar ese checkout
       if (params['sessionId']) {
         this.sessionId = params['sessionId'];
-        this.loadExistingCheckout(this.sessionId, !!comesFromMercadoPago);
+        this.loadExistingCheckout(this.sessionId);
+        
+        // Verificar si hay un pago pendiente de verificación
+        this.checkPendingPaymentVerification();
       } else {
-        // Si no hay sessionId en URL, intentar recuperar desde localStorage
-        const savedToken = localStorage.getItem('checkout_session_token');
-        if (savedToken) {
-          console.log('Found saved session token, attempting recovery');
-          this.recoverCheckoutFromToken(savedToken);
-        } else {
-          // Si no hay token guardado, iniciar nuevo checkout
-          this.initiateCheckout();
-        }
+        // Si no hay sessionId, iniciar nuevo checkout
+        this.initiateCheckout();
       }
     });
   }
@@ -76,6 +70,7 @@ export class CheckoutComponent implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.stopPolling();
     this.stopTimer();
+    this.stopPaymentPolling();
   }
 
   /**
@@ -93,12 +88,6 @@ export class CheckoutComponent implements OnInit, OnDestroy {
         this.expiresAt = new Date(response.expiresAt);
         
         console.log('Checkout response:', response);
-        
-        // Guardar session token en localStorage para recuperación
-        if (response.sessionToken) {
-          localStorage.setItem('checkout_session_token', response.sessionToken);
-          console.log('Session token saved to localStorage');
-        }
         
         // Actualizar URL con sessionId SIN navegación (solo modifica la URL en el historial)
         const url = this.router.createUrlTree([], {
@@ -140,7 +129,7 @@ export class CheckoutComponent implements OnInit, OnDestroy {
   /**
    * Carga un checkout existente por sessionId
    */
-  private loadExistingCheckout(sessionId: string, comesFromMercadoPago: boolean = false): void {
+  private loadExistingCheckout(sessionId: string): void {
     this.isLoading = true;
     this.errorMessage = '';
 
@@ -169,68 +158,12 @@ export class CheckoutComponent implements OnInit, OnDestroy {
         this.errorMessage = error.message || 'Error al cargar el checkout';
         this.isLoading = false;
         
-        // Si el error es de sesión inválida/expirada y el usuario no está autenticado
-        // PERO NO VIENE DE MERCADOPAGO, redirigir al login
-        if (!comesFromMercadoPago && !this.authService.isAuthenticated()) {
+        // Si el error es de sesión inválida/expirada y el usuario no está autenticado, redirigir al login
+        if (!this.authService.isAuthenticated()) {
           console.warn('Session invalid and user not authenticated, redirecting to login');
           this.router.navigate(['/customer/login'], { 
             queryParams: { returnUrl: '/customer/checkout', sessionId: sessionId } 
           });
-        } else if (comesFromMercadoPago) {
-          // Si viene de MercadoPago pero hay error, mostrar mensaje pero NO redirigir
-          console.warn('Error loading session after MercadoPago return, but not redirecting to login');
-          this.errorMessage = 'Error al cargar el estado de la sesión. Por favor, verifica tu pago en "Mis Órdenes".';
-        }
-      }
-    });
-  }
-
-  /**
-   * Recupera un checkout usando el token guardado en localStorage
-   */
-  private recoverCheckoutFromToken(sessionToken: string): void {
-    this.isLoading = true;
-    this.errorMessage = '';
-
-    this.orderService.recoverSession(sessionToken).subscribe({
-      next: (response) => {
-        this.checkoutResponse = response;
-        this.paymentGroups = response.paymentGroups;
-        this.sessionId = response.sessionId;
-        this.expiresAt = new Date(response.expiresAt);
-        
-        console.log('Session recovered from token:', response);
-        
-        // Actualizar URL con sessionId
-        const url = this.router.createUrlTree([], {
-          relativeTo: this.route,
-          queryParams: { sessionId: this.sessionId },
-          queryParamsHandling: 'merge'
-        }).toString();
-        window.history.replaceState(null, '', url);
-        
-        // Iniciar timer de expiración
-        this.startExpirationTimer();
-        
-        // Generar preferencias de pago para grupos sin payment preference
-        this.generateMissingPaymentPreferences();
-        
-        // Iniciar polling de estado
-        this.startSessionPolling();
-        
-        this.isLoading = false;
-      },
-      error: (error) => {
-        console.error('Error recovering session:', error);
-        
-        // Si el token es inválido o la sesión expiró, limpiar y crear nuevo checkout
-        if (error.message?.includes('expired') || error.message?.includes('not found')) {
-          console.warn('Session expired or invalid, clearing token and starting new checkout');
-          localStorage.removeItem('checkout_session_token');
-          this.initiateCheckout();
-        } else {
-          this.errorMessage = error.message || 'Error al recuperar la sesión';
-          this.isLoading = false;
         }
       }
     });
@@ -240,116 +173,40 @@ export class CheckoutComponent implements OnInit, OnDestroy {
    * Maneja el retorno desde MercadoPago
    */
   private handleMercadoPagoReturn(params: any): void {
-    const status = params['status'] || params['paymentStatus']; // Puede venir de dos formas
-    const orderId = params['orderId'];
+    const status = params['status'];
     const paymentId = params['payment_id'];
     const merchantOrderId = params['merchant_order_id'];
 
-    console.log('Retorno de MercadoPago:', { status, orderId, paymentId, merchantOrderId });
-
-    // Scroll al inicio para que el usuario vea el mensaje
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    console.log('Retorno de MercadoPago:', { status, paymentId, merchantOrderId });
 
     switch (status) {
       case 'approved':
-      case 'success':
         this.paymentReturnType = 'success';
-        this.paymentReturnMessage = `✅ ¡Pago aprobado exitosamente!
-        
-Orden ${orderId} confirmada. Actualizando el estado...
-
-${this.paymentGroups.length > 1 ? 'Nota: Si tienes otros pagos pendientes, aparecerán abajo.' : ''}`;
-        
-        // Forzar actualización del estado de la sesión inmediatamente
-        if (this.sessionId) {
-          // Primero, intentar actualizar el estado de la sesión
-          this.orderService.getSessionStatus(this.sessionId).subscribe({
-            next: (sessionStatus) => {
-              console.log('Session status after payment:', sessionStatus);
-              this.checkoutResponse = sessionStatus;
-              this.paymentGroups = sessionStatus.paymentGroups;
-              
-              // Verificar si se completó todo
-              if (sessionStatus.sessionStatus === 'COMPLETED') {
-                this.stopPolling();
-                this.stopTimer();
-                this.cartService.loadCart();
-                
-                // Mostrar mensaje de éxito y redirigir
-                this.paymentReturnMessage = '✅ ¡Todos los pagos completados! Redirigiendo...';
-                
-                setTimeout(() => {
-                  // Limpiar token de sesión ya que se completó exitosamente
-                  localStorage.removeItem('checkout_session_token');
-                  console.log('Session token cleared (checkout completed)');
-                  
-                  this.router.navigate(['/customer/orders/success'], {
-                    queryParams: { sessionId: this.sessionId }
-                  });
-                }, 2000);
-              } else {
-                // Si no está completo, mostrar mensaje y actualizar UI
-                setTimeout(() => {
-                  this.paymentReturnMessage = '';
-                  this.paymentReturnType = '';
-                }, 5000);
-              }
-            },
-            error: (error) => {
-              console.error('Error updating session after payment:', error);
-              // Si hay error, mostrar mensaje y limpiar después
-              setTimeout(() => {
-                this.paymentReturnMessage = '';
-                this.paymentReturnType = '';
-              }, 5000);
-            }
-          });
-        }
+        this.paymentReturnMessage = '✅ ¡Pago aprobado! Verificando tu orden...';
         break;
       case 'pending':
         this.paymentReturnType = 'pending';
-        this.paymentReturnMessage = `⏳ Pago en proceso de aprobación
-        
-Orden ${orderId} registrada. Te notificaremos por email cuando se confirme el pago.
-
-Por favor revisa tu bandeja de entrada.`;
-        // Limpiar mensaje después de 10 segundos para pending
-        setTimeout(() => {
-          this.paymentReturnMessage = '';
-          this.paymentReturnType = '';
-        }, 10000);
+        this.paymentReturnMessage = '⏳ Pago pendiente. Te notificaremos cuando se confirme.';
         break;
       case 'rejected':
       case 'failure':
         this.paymentReturnType = 'error';
-        this.paymentReturnMessage = `❌ El pago fue rechazado
-        
-Orden ${orderId} no pudo procesarse. Por favor verifica tus datos e intenta nuevamente.
-
-El botón de pago aparece más abajo.`;
-        // Limpiar mensaje después de 12 segundos para errores
-        setTimeout(() => {
-          this.paymentReturnMessage = '';
-          this.paymentReturnType = '';
-        }, 12000);
+        this.paymentReturnMessage = '❌ El pago fue rechazado. Puedes intentar nuevamente.';
         break;
       default:
         this.paymentReturnType = 'pending';
-        this.paymentReturnMessage = '⏳ Verificando el estado de tu pago...';
-        setTimeout(() => {
-          this.paymentReturnMessage = '';
-          this.paymentReturnType = '';
-        }, 8000);
+        this.paymentReturnMessage = 'Verificando el estado de tu pago...';
     }
 
-    // Limpiar los query params después de mostrar el mensaje
+    // Si el pago fue aprobado o está pendiente, verificar el estado
+    // El orderNumber se recuperará del localStorage en checkPendingPaymentVerification
+    // que ya se llama en ngOnInit
+
+    // Limpiar los query params después de 8 segundos
     setTimeout(() => {
-      this.router.navigate([], {
-        relativeTo: this.route,
-        queryParams: { sessionId: this.sessionId }, // Mantener solo el sessionId
-        replaceUrl: true
-      });
-    }, 100);
+      this.paymentReturnMessage = '';
+      this.paymentReturnType = '';
+    }, 8000);
   }
 
   /**
@@ -372,8 +229,7 @@ El botón de pago aparece más abajo.`;
         if (payment) {
           group.paymentPreferenceId = payment.preferenceId;
           group.qrUrl = payment.qrUrl;
-          // Usar sandboxInitPoint para testing, initPoint para producción
-          group.initPoint = payment.sandboxInitPoint || payment.initPoint;
+          group.initPoint = payment.initPoint;
         }
       } catch (error) {
         console.error(`Error generando pago para orden ${group.orderNumber}:`, error);
@@ -406,8 +262,7 @@ El botón de pago aparece más abajo.`;
           if (payment) {
             group.paymentPreferenceId = payment.preferenceId;
             group.qrUrl = payment.qrUrl;
-            // Usar sandboxInitPoint para testing, initPoint para producción
-            group.initPoint = payment.sandboxInitPoint || payment.initPoint;
+            group.initPoint = payment.initPoint;
           }
         } catch (error: any) {
           console.error(`Error generando pago para orden ${group.orderNumber}:`, error);
@@ -462,11 +317,6 @@ El botón de pago aparece más abajo.`;
             this.stopTimer();
             // Limpiar el carrito ya que la compra está completa
             this.cartService.loadCart(); // Refrescar el carrito
-            
-            // Limpiar token de sesión ya que se completó exitosamente
-            localStorage.removeItem('checkout_session_token');
-            console.log('Session token cleared (polling detected completion)');
-            
             this.router.navigate(['/customer/orders/success'], {
               queryParams: { sessionId: this.sessionId }
             });
@@ -544,12 +394,91 @@ El botón de pago aparece más abajo.`;
   }
 
   /**
-   * Abre el checkout de Mercado Pago en una nueva pestaña para mantener el polling activo
+   * Abre el checkout de Mercado Pago en la misma pestaña (redirección directa)
    */
   openPaymentCheckout(group: PaymentGroup): void {
     if (group.initPoint) {
-      // Abrir en nueva pestaña para que el checkout actual siga con polling
-      window.open(group.initPoint, '_blank');
+      // Guardar el orderNumber en localStorage para verificación al regresar
+      localStorage.setItem('pendingPaymentVerification', group.orderNumber);
+      localStorage.setItem('pendingPaymentSessionId', this.sessionId);
+      
+      console.log('💳 Redirigiendo a MercadoPago. OrderNumber guardado:', group.orderNumber);
+      
+      // Redirigir en la misma pestaña
+      window.location.href = group.initPoint;
+    }
+  }
+
+  /**
+   * Inicia polling agresivo para verificar el estado del pago cada 2 segundos
+   * Se usa cuando el usuario va a pagar en MercadoPago o presiona "Verificar mi pago"
+   */
+  private startPaymentPolling(orderNumber: string): void {
+    console.log('🔄 Iniciando polling de verificación de pago para orden:', orderNumber);
+    
+    // Detener polling anterior si existe
+    this.stopPaymentPolling();
+    
+    // Polling cada 2 segundos (más rápido para mejor UX)
+    this.paymentPollingSubscription = interval(2000)
+      .pipe(
+        switchMap(() => this.paymentService.verifyPaymentStatus(orderNumber))
+      )
+      .subscribe({
+        next: (response) => {
+          console.log('🔍 Verificación de pago:', response);
+          
+          // Si el pago fue aprobado, refrescar la sesión inmediatamente
+          if (response.status === 'APPROVED') {
+            console.log('✅ ¡Pago aprobado! Recargando sesión...');
+            this.stopPaymentPolling();
+            this.loadExistingCheckout(this.sessionId);
+            
+            // Mostrar mensaje de éxito
+            this.paymentReturnType = 'success';
+            this.paymentReturnMessage = '✅ ¡Pago aprobado! Tu orden ha sido confirmada.';
+            
+            setTimeout(() => {
+              this.paymentReturnMessage = '';
+              this.paymentReturnType = '';
+            }, 5000);
+          }
+        },
+        error: (error) => {
+          console.error('Error verificando pago:', error);
+          // No detener el polling por errores temporales
+        }
+      });
+  }
+
+  /**
+   * Detiene el polling de verificación de pagos
+   */
+  private stopPaymentPolling(): void {
+    if (this.paymentPollingSubscription) {
+      this.paymentPollingSubscription.unsubscribe();
+      this.paymentPollingSubscription = null;
+      console.log('⏹️ Polling de verificación de pago detenido');
+    }
+  }
+
+  /**
+   * Verifica si hay un pago pendiente de verificación al cargar la página
+   * Esto se usa cuando el usuario regresa de MercadoPago
+   */
+  private checkPendingPaymentVerification(): void {
+    const pendingOrderNumber = localStorage.getItem('pendingPaymentVerification');
+    const pendingSessionId = localStorage.getItem('pendingPaymentSessionId');
+    
+    if (pendingOrderNumber && pendingSessionId === this.sessionId) {
+      console.log('🔍 Pago pendiente detectado. Iniciando verificación para:', pendingOrderNumber);
+      
+      // Limpiar localStorage
+      localStorage.removeItem('pendingPaymentVerification');
+      localStorage.removeItem('pendingPaymentSessionId');
+      
+      // Iniciar polling de verificación
+      this.startPaymentPolling(pendingOrderNumber);
     }
   }
 
@@ -565,149 +494,26 @@ El botón de pago aparece más abajo.`;
 
   /**
    * Verifica manualmente el estado de un pago
+   * Este método se llama cuando el usuario presiona el botón "Verificar mi pago"
    */
-  refreshPaymentStatus(group: PaymentGroup): void {
-    if (!group.paymentPreferenceId) return;
+  verifyPaymentManually(group: PaymentGroup): void {
+    if (!group.orderNumber) return;
 
-    console.log('Simulando aprobación de pago para:', group);
+    console.log('🔍 Verificación manual iniciada para orden:', group.orderNumber);
+    
+    // Mostrar mensaje al usuario
+    this.paymentReturnType = 'pending';
+    this.paymentReturnMessage = '🔍 Verificando tu pago en MercadoPago...';
 
-    // Primero, simular la aprobación del pago (esto dispara el webhook simulado)
-    this.paymentService.simulatePaymentApproval(group.paymentPreferenceId).subscribe({
-      next: (approvalResponse) => {
-        console.log('Payment approval simulation response:', approvalResponse);
-        
-        // Después de simular la aprobación, actualizar el estado de la sesión
-        this.orderService.getSessionStatus(this.sessionId).subscribe({
-          next: (sessionStatus) => {
-            console.log('Session status after approval:', sessionStatus);
-            
-            // Actualizar el estado local
-            this.checkoutResponse = sessionStatus;
-            this.paymentGroups = sessionStatus.paymentGroups;
-            
-            // Verificar si el pago fue aprobado
-            const updatedGroup = this.paymentGroups.find(g => g.orderId === group.orderId);
-            if (updatedGroup?.status === 'PAID') {
-              alert('✅ ¡Pago aprobado exitosamente! Las entradas han sido generadas.');
-              
-              // Si todos los pagos están completos, redirigir
-              if (sessionStatus.sessionStatus === 'COMPLETED') {
-                this.stopPolling();
-                this.stopTimer();
-                this.cartService.loadCart();
-                
-                setTimeout(() => {
-                  // Limpiar token de sesión ya que se completó exitosamente
-                  localStorage.removeItem('checkout_session_token');
-                  console.log('Session token cleared (simulate payment completed)');
-                  
-                  this.router.navigate(['/customer/orders/success'], {
-                    queryParams: { sessionId: this.sessionId }
-                  });
-                }, 2000);
-              }
-            } else if (updatedGroup?.status === 'PENDING') {
-              alert('⏳ El pago aún está pendiente de confirmación');
-            } else {
-              alert('Estado del pago actualizado: ' + (updatedGroup?.status || 'desconocido'));
-            }
-          },
-          error: (error) => {
-            console.error('Error updating session status:', error);
-            alert('Error al actualizar el estado de la sesión');
-          }
-        });
-      },
-      error: (error) => {
-        console.error('Error simulating payment approval:', error);
-        
-        // Si ya estaba aprobado, solo actualizar la sesión
-        if (error.error?.status === 'already_approved') {
-          alert('✅ El pago ya estaba aprobado');
-          
-          // Actualizar el estado de la sesión
-          this.orderService.getSessionStatus(this.sessionId).subscribe({
-            next: (sessionStatus) => {
-              this.checkoutResponse = sessionStatus;
-              this.paymentGroups = sessionStatus.paymentGroups;
-            }
-          });
-        } else {
-          alert('Error al verificar el estado del pago: ' + (error.error?.error || error.message));
-        }
-      }
-    });
+    // Iniciar polling para esta orden
+    this.startPaymentPolling(group.orderNumber);
   }
 
   /**
-   * Simula la aprobación de TODOS los pagos pendientes en el checkout multi-admin
-   * Útil para testing sin MercadoPago real
+   * Verifica manualmente el estado de un pago (método antiguo - mantener por compatibilidad)
    */
-  simulateAllPayments(): void {
-    const pendingGroups = this.paymentGroups.filter(g => g.status === 'PENDING_PAYMENT');
-    
-    if (pendingGroups.length === 0) {
-      alert('No hay pagos pendientes para simular');
-      return;
-    }
-
-    console.log(`Simulando ${pendingGroups.length} pagos pendientes...`);
-    
-    // Simular todos los pagos en paralelo
-    const simulationObservables = pendingGroups.map(group => 
-      this.paymentService.simulatePaymentApproval(group.paymentPreferenceId!)
-    );
-
-    // Ejecutar todas las simulaciones en paralelo usando forkJoin
-    const forkJoinObservable = pendingGroups.length === 1 
-      ? simulationObservables[0].pipe(map(result => [result]))
-      : forkJoin(simulationObservables);
-
-    forkJoinObservable.subscribe({
-      next: (results) => {
-        console.log('All payments simulated:', results);
-        
-        // Actualizar el estado de la sesión después de simular todos
-        this.orderService.getSessionStatus(this.sessionId).subscribe({
-          next: (sessionStatus) => {
-            console.log('Session status after simulating all payments:', sessionStatus);
-            
-            // Actualizar el estado local
-            this.checkoutResponse = sessionStatus;
-            this.paymentGroups = sessionStatus.paymentGroups;
-            
-            // Verificar cuántos pagos fueron aprobados
-            const approvedCount = this.paymentGroups.filter(g => g.status === 'PAID').length;
-            alert(`✅ ${approvedCount} de ${this.paymentGroups.length} pagos aprobados exitosamente!`);
-            
-            // Si todos los pagos están completos, redirigir
-            if (sessionStatus.sessionStatus === 'COMPLETED') {
-              this.stopPolling();
-              this.stopTimer();
-              this.cartService.loadCart();
-              
-              setTimeout(() => {
-                // Limpiar token de sesión ya que se completó exitosamente
-                localStorage.removeItem('checkout_session_token');
-                console.log('Session token cleared (simulate all payments completed)');
-                
-                this.router.navigate(['/customer/orders/success'], {
-                  queryParams: { sessionId: this.sessionId }
-                });
-              }, 2000);
-            }
-          },
-          error: (error) => {
-            console.error('Error updating session status:', error);
-            alert('Error al actualizar el estado de la sesión');
-          }
-        });
-      },
-      error: (error) => {
-        console.error('Error simulating payments:', error);
-        alert('Error al simular algunos pagos: ' + (error.error?.message || error.message));
-      }
-    });
+  refreshPaymentStatus(group: PaymentGroup): void {
+    this.verifyPaymentManually(group);
   }
 
   /**

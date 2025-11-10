@@ -66,6 +66,11 @@ export const routes: Routes = [
     loadComponent: () => import('./features/admin/consumptions-management/consumptions-management.component').then(m => m.ConsumptionsManagementComponent),
     canActivate: [adminGuard, emailVerifiedGuard]
   },
+  {
+    path: 'admin/analytics',
+    loadComponent: () => import('./features/admin/admin-analytics/admin-analytics.component').then(m => m.AdminAnalyticsComponent),
+    canActivate: [adminGuard, emailVerifiedGuard]
+  },
   
   // Customer routes (protected + email verified)
   {

@@ -164,7 +164,7 @@ services:
       context: ./payment-service
       dockerfile: Dockerfile
     ports:
-      - "8085:8082"
+      - "8085:8085"  # Fixed: service runs on 8085 inside container
       - "5009:5009"  # Debug port for payment-service
     env_file:
       - ./payment-service/.env
@@ -217,6 +217,22 @@ services:
     depends_on:
       - order-service
       - event-service
+    networks:
+      - packedgo-network
+
+  # Analytics Service
+  analytics-service:
+    build:
+      context: ./analytics-service
+      dockerfile: Dockerfile
+    ports:
+      - "8087:8087"
+      - "5010:5010"  # Debug port for analytics-service
+    env_file:
+      - ./analytics-service/.env
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - JAVA_TOOL_OPTIONS=-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5010
     networks:
       - packedgo-network
 
