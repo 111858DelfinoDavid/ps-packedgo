@@ -79,4 +79,8 @@ export class AdminRegisterComponent {
   get authorizationCode() {
     return this.registerForm.get('authorizationCode');
   }
+
+  goToLanding(): void {
+    this.router.navigate(['/']);
+  }
 }

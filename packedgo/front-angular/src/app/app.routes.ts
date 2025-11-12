@@ -18,6 +18,16 @@ export const routes: Routes = [
     pathMatch: 'full'
   },
   
+  // Terms and Privacy
+  {
+    path: 'terms',
+    loadComponent: () => import('./features/terms/terms.component').then(m => m.TermsComponent)
+  },
+  {
+    path: 'privacy',
+    loadComponent: () => import('./features/terms/terms.component').then(m => m.TermsComponent)
+  },
+  
   // Auth routes - Admin
   {
     path: 'admin/login',

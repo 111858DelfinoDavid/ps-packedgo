@@ -49,6 +49,7 @@
   width: 100%;
   max-width: 450px;
   position: relative;
+  position: relative;
   z-index: 2;
   border: 1px solid rgba(255, 255, 255, 0.2);
   margin-top: 4rem;
@@ -225,4 +226,79 @@
 .invalid-feedback {
   font-size: 0.875rem;
   margin-top: 0.25rem;
+}
+
+/* Back to Landing Button */
+.btn-back-landing {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 25px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(79, 172, 254, 0.4);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  z-index: 10;
+}
+
+.btn-back-landing:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(79, 172, 254, 0.6);
+  background: linear-gradient(135deg, #00f2fe 0%, #4facfe 100%);
+}
+
+.btn-back-landing:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 10px rgba(79, 172, 254, 0.4);
+}
+
+.btn-back-landing i {
+  font-size: 1.1rem;
+  transition: transform 0.3s ease;
+}
+
+.btn-back-landing:hover i {
+  transform: translateX(-3px);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .login-container {
+    padding: 2.5rem 2rem;
+    padding-top: 70px;
+  }
+
+  .btn-back-landing {
+    top: 15px;
+    left: 15px;
+    padding: 8px 16px;
+    font-size: 0.85rem;
+  }
+
+  .btn-back-landing i {
+    font-size: 1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .login-container {
+    padding: 2rem 1.5rem;
+    padding-top: 65px;
+  }
+
+  .btn-back-landing {
+    top: 10px;
+    left: 10px;
+    padding: 6px 12px;
+    font-size: 0.8rem;
+    gap: 5px;
+  }
 }

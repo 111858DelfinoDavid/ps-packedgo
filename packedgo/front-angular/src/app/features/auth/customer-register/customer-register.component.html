@@ -1,5 +1,10 @@
 <div class="register-container">
   <div class="register-card">
+    <!-- Back to Landing Button -->
+    <button type="button" class="btn-back-landing" (click)="goToLanding()">
+      <i class="bi bi-arrow-left"></i> Volver al inicio
+    </button>
+
     <div class="register-header">
       <i class="bi bi-person-plus-fill"></i>
       <h2>Registro de Cliente</h2>
@@ -222,6 +227,23 @@
         </select>
         <div class="invalid-feedback" *ngIf="gender?.touched">
           <span *ngIf="gender?.errors?.['required']">El género es requerido</span>
+        </div>
+      </div>
+
+      <!-- Términos y Condiciones -->
+      <div class="form-group form-check-custom">
+        <input 
+          type="checkbox" 
+          id="acceptTerms" 
+          formControlName="acceptTerms" 
+          class="form-check-input"
+          [class.is-invalid]="acceptTerms?.touched && acceptTerms?.invalid"
+        >
+        <label for="acceptTerms" class="form-check-label">
+          Acepto los <a (click)="goToTerms()" class="terms-link">Términos y Condiciones</a>
+        </label>
+        <div class="invalid-feedback" *ngIf="acceptTerms?.touched && acceptTerms?.invalid">
+          Debes aceptar los términos y condiciones para continuar
         </div>
       </div>
 

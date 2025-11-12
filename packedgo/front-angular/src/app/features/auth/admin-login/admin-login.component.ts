@@ -115,6 +115,10 @@ export class AdminLoginComponent {
     });
   }
 
+  goToLanding(): void {
+    this.router.navigate(['/']);
+  }
+
   // Getters para validación en template
   get email() {
     return this.loginForm.get('email');

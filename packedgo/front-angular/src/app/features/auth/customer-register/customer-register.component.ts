@@ -31,7 +31,8 @@ export class CustomerRegisterComponent {
       lastName: ['', [Validators.required, Validators.minLength(1), Validators.maxLength(100)]],
       bornDate: ['', [Validators.required]],
       telephone: ['', [Validators.required, Validators.pattern(/^\d+$/)]],
-      gender: ['', [Validators.required]]
+      gender: ['', [Validators.required]],
+      acceptTerms: [false, [Validators.requiredTrue]]
     });
   }
 
@@ -75,6 +76,14 @@ export class CustomerRegisterComponent {
     });
   }
 
+  goToTerms(): void {
+    window.open('/terms', '_blank');
+  }
+
+  goToLanding(): void {
+    this.router.navigate(['/']);
+  }
+
   // Getters para validación en template
   get username() { return this.registerForm.get('username'); }
   get email() { return this.registerForm.get('email'); }
@@ -85,4 +94,5 @@ export class CustomerRegisterComponent {
   get bornDate() { return this.registerForm.get('bornDate'); }
   get telephone() { return this.registerForm.get('telephone'); }
   get gender() { return this.registerForm.get('gender'); }
+  get acceptTerms() { return this.registerForm.get('acceptTerms'); }
 }

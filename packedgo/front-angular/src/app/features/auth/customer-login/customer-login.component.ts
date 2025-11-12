@@ -135,6 +135,10 @@ export class CustomerLoginComponent implements OnInit {
     });
   }
 
+  goToLanding(): void {
+    this.router.navigate(['/']);
+  }
+
   // Getters para validación en template
   get document() {
     return this.loginForm.get('document');
