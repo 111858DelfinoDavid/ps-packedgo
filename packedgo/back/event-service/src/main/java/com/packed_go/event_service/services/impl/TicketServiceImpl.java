@@ -1,5 +1,6 @@
 package com.packed_go.event_service.services.impl;
 
+import com.packed_go.event_service.dtos.pass.PassDTO;
 import com.packed_go.event_service.dtos.ticket.ConsumptionItemDTO;
 import com.packed_go.event_service.dtos.ticket.CreateTicketDTO;
 import com.packed_go.event_service.dtos.ticket.CreateTicketWithConsumptionsRequest;
@@ -15,6 +16,8 @@ import com.packed_go.event_service.services.QRCodeService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.retry.annotation.Backoff;
 import org.springframework.retry.annotation.Recover;
 import org.springframework.retry.annotation.Retryable;
@@ -27,6 +30,8 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 public class TicketServiceImpl implements TicketService {
+
+    private static final Logger log = LoggerFactory.getLogger(TicketServiceImpl.class);
 
     private final TicketRepository ticketRepository;
     private final PassRepository passRepository;
@@ -141,14 +146,50 @@ public class TicketServiceImpl implements TicketService {
     }
 
     @Override
+    @Transactional
     public List<TicketDTO> findByUserId(Long userId) {
         List<Ticket> tickets = ticketRepository.findByUserId(userId);
         return tickets.stream()
-                .map(ticket -> modelMapper.map(ticket, TicketDTO.class))
+                .map(this::convertToDTO)
                 .toList();
     }
 
+    private TicketDTO convertToDTO(Ticket ticket) {
+        log.info("Converting ticket ID {} to DTO. QR Code from entity: {}", 
+                ticket.getId(), ticket.getQrCode() != null && !ticket.getQrCode().isEmpty());
+        
+        TicketDTO dto = new TicketDTO();
+        dto.setId(ticket.getId());
+        dto.setUserId(ticket.getUserId());
+        dto.setActive(ticket.isActive());
+        dto.setRedeemed(ticket.isRedeemed());
+        dto.setCreatedAt(ticket.getCreatedAt());
+        dto.setPurchasedAt(ticket.getPurchasedAt());
+        dto.setRedeemedAt(ticket.getRedeemedAt());
+        
+        // Mapear el QR code
+        String qrCodeValue = ticket.getQrCode();
+        log.info("QR Code value from ticket {}: {}", ticket.getId(), qrCodeValue != null ? "present (length: " + qrCodeValue.length() + ")" : "null");
+        dto.setQrCode(qrCodeValue);
+        
+        // Mapear el pass
+        if (ticket.getPass() != null) {
+            dto.setPass(modelMapper.map(ticket.getPass(), PassDTO.class));
+            dto.setPassCode(ticket.getPass().getCode());
+            log.info("Pass code set for ticket {}: {}", ticket.getId(), ticket.getPass().getCode());
+        }
+        
+        // Mapear el consumption
+        if (ticket.getTicketConsumption() != null) {
+            dto.setTicketConsumption(modelMapper.map(ticket.getTicketConsumption(), TicketConsumptionDTO.class));
+        }
+        
+        log.info("DTO created for ticket {}. QR Code in DTO: {}", ticket.getId(), dto.getQrCode() != null && !dto.getQrCode().isEmpty());
+        return dto;
+    }
+
     @Override
+    @Transactional
     public List<TicketDTO> findByUserIdAndActive(Long userId, boolean active) {
         List<Ticket> tickets = active ? 
                 ticketRepository.findByUserIdAndActiveTrue(userId) : 
@@ -156,7 +197,7 @@ public class TicketServiceImpl implements TicketService {
                         .filter(ticket -> !ticket.isActive())
                         .toList();
         return tickets.stream()
-                .map(ticket -> modelMapper.map(ticket, TicketDTO.class))
+                .map(this::convertToDTO)
                 .toList();
     }
 

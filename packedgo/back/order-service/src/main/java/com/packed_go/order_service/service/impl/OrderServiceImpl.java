@@ -5,6 +5,7 @@ import com.packed_go.order_service.dto.ConsumptionDTO;
 import com.packed_go.order_service.dto.MultiOrderCheckoutResponse;
 import com.packed_go.order_service.dto.OrderItemDTO;
 import com.packed_go.order_service.dto.PaymentGroupDTO;
+import com.packed_go.order_service.dto.SessionStateResponse;
 import com.packed_go.order_service.dto.external.CreateTicketWithConsumptionsRequest;
 import com.packed_go.order_service.dto.external.PaymentServiceRequest;
 import com.packed_go.order_service.dto.external.PaymentServiceResponse;
@@ -32,10 +33,13 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
@@ -227,6 +231,7 @@ public class OrderServiceImpl implements OrderService {
                 .cartId(cart.getId())
                 .totalAmount(cart.getTotalAmount())
                 .sessionStatus("PENDING")
+                .sessionToken(UUID.randomUUID().toString()) // Generar token explícitamente
                 .build();
         
         session = sessionRepository.save(session);
@@ -343,6 +348,129 @@ public class OrderServiceImpl implements OrderService {
                     "totalAmount", order.getTotalAmount()
                 ))
                 .collect(Collectors.toList());
+    }
+    
+    /**
+     * Backend State Authority: El método más importante de toda la aplicación
+     * Busca o crea la sesión actual del usuario SIN que el frontend guarde nada
+     * NUNCA falla, siempre retorna una sesión válida
+     */
+    @Override
+    @Transactional
+    public SessionStateResponse getCurrentCheckoutState(Long userId) {
+        log.info("Getting current checkout state for user: {}", userId);
+        
+        LocalDateTime now = LocalDateTime.now();
+        
+        // 1. Buscar sesión activa (PENDING/PARTIAL no expirada)
+        Optional<MultiOrderSession> activeSession = sessionRepository.findActiveSessionByUserId(userId, now);
+        
+        MultiOrderSession session;
+        boolean wasCreated = false;
+        
+        if (activeSession.isPresent()) {
+            session = activeSession.get();
+            log.info("Found active session: {} for user: {}", session.getSessionId(), userId);
+            
+            // Actualizar tracking
+            session.touch();
+            sessionRepository.save(session);
+            
+        } else {
+            // 2. No hay sesión activa, crear nueva desde cart
+            log.info("No active session found, creating new session from cart for user: {}", userId);
+            
+            // Buscar carrito activo
+            List<ShoppingCart> activeCarts = cartRepository.findByUserIdAndStatusWithItems(userId, "ACTIVE");
+            if (activeCarts.isEmpty()) {
+                // Carrito vacío, retornar sesión vacía indicando que debe agregar items
+                return SessionStateResponse.builder()
+                        .sessionStatus("NO_CART")
+                        .isActive(false)
+                        .isExpired(false)
+                        .isCompleted(false)
+                        .totalGroups(0)
+                        .paidGroups(0)
+                        .pendingGroups(0)
+                        .paymentGroups(List.of())
+                        .build();
+            }
+            
+            // Crear sesión desde cart (reusar lógica de checkoutMulti)
+            MultiOrderCheckoutResponse checkoutResponse = checkoutMulti(userId);
+            
+            // Buscar la sesión recién creada
+            session = sessionRepository.findBySessionId(checkoutResponse.getSessionId())
+                    .orElseThrow(() -> new RuntimeException("Failed to create session"));
+            
+            wasCreated = true;
+            log.info("Created new session: {} for user: {}", session.getSessionId(), userId);
+        }
+        
+        // 3. Construir response con estado completo
+        return buildSessionStateResponse(session, wasCreated);
+    }
+    
+    /**
+     * Construye el response con TODO el estado de la sesión
+     */
+    private SessionStateResponse buildSessionStateResponse(MultiOrderSession session, boolean wasJustCreated) {
+        LocalDateTime now = LocalDateTime.now();
+        boolean isExpired = session.isExpired();
+        long secondsUntilExpiration = java.time.Duration.between(now, session.getExpiresAt()).getSeconds();
+        
+        // Obtener órdenes
+        List<Order> orders = session.getOrders();
+        
+        // Agrupar por admin y construir payment groups
+        List<SessionStateResponse.PaymentGroupInfo> paymentGroups = orders.stream()
+                .map(order -> {
+                    List<SessionStateResponse.OrderItemInfo> items = order.getItems().stream()
+                            .map(item -> SessionStateResponse.OrderItemInfo.builder()
+                                    .eventId(item.getEventId())
+                                    .eventName(item.getEventName())
+                                    .quantity(item.getQuantity())
+                                    .unitPrice(item.getUnitPrice())
+                                    .subtotal(item.getUnitPrice().multiply(BigDecimal.valueOf(item.getQuantity())))
+                                    .build())
+                            .collect(Collectors.toList());
+                    
+                    return SessionStateResponse.PaymentGroupInfo.builder()
+                            .adminId(order.getAdminId())
+                            .adminName("Admin " + order.getAdminId()) // TODO: Obtener nombre real
+                            .orderId(order.getId().toString())
+                            .orderNumber(order.getOrderNumber())
+                            .amount(order.getTotalAmount())
+                            .paymentStatus(order.getStatus().toString())
+                            .initPoint(null) // TODO: Agregar campo paymentInitPoint a Order entity
+                            .items(items)
+                            .build();
+                })
+                .toList();
+        
+        // Stats
+        int totalGroups = paymentGroups.size();
+        int paidGroups = (int) paymentGroups.stream()
+                .filter(g -> "PAID".equals(g.getPaymentStatus()) || "COMPLETED".equals(g.getPaymentStatus()))
+                .count();
+        int pendingGroups = totalGroups - paidGroups;
+        
+        return SessionStateResponse.builder()
+                .sessionId(session.getSessionId())
+                .sessionStatus(session.getSessionStatus())
+                .totalAmount(session.getTotalAmount())
+                .expiresAt(session.getExpiresAt())
+                .lastAccessedAt(session.getLastAccessedAt())
+                .attemptCount(session.getAttemptCount())
+                .isExpired(isExpired)
+                .isActive(!isExpired && !"COMPLETED".equals(session.getSessionStatus()) && !"CANCELLED".equals(session.getSessionStatus()))
+                .isCompleted("COMPLETED".equals(session.getSessionStatus()))
+                .secondsUntilExpiration(Math.max(0, secondsUntilExpiration))
+                .paymentGroups(paymentGroups)
+                .totalGroups(totalGroups)
+                .paidGroups(paidGroups)
+                .pendingGroups(pendingGroups)
+                .build();
     }
     
     @Override

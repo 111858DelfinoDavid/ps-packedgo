@@ -66,6 +66,17 @@ public class MultiOrderSession {
     @Column(name = "expires_at", nullable = false)
     private LocalDateTime expiresAt;
 
+    // Backend State Authority: tracking fields
+    @Column(name = "last_accessed_at")
+    private LocalDateTime lastAccessedAt;
+
+    @Column(name = "client_info", length = 500)
+    private String clientInfo; // User-Agent, IP, etc for debugging
+
+    @Builder.Default
+    @Column(name = "attempt_count")
+    private Integer attemptCount = 0; // Track recovery attempts
+
     @Builder.Default
     @OneToMany(mappedBy = "multiOrderSession", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @JsonManagedReference
@@ -81,6 +92,7 @@ public class MultiOrderSession {
         }
         createdAt = LocalDateTime.now();
         updatedAt = LocalDateTime.now();
+        lastAccessedAt = LocalDateTime.now();
         
         // La sesión expira en 30 minutos
         if (expiresAt == null) {
@@ -91,6 +103,14 @@ public class MultiOrderSession {
     @PreUpdate
     protected void onUpdate() {
         updatedAt = LocalDateTime.now();
+    }
+
+    /**
+     * Updates last accessed timestamp - call this on every session access
+     */
+    public void touch() {
+        this.lastAccessedAt = LocalDateTime.now();
+        this.attemptCount++;
     }
 
     /**

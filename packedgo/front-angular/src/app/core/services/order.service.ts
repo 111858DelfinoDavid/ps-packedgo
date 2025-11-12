@@ -6,7 +6,8 @@ import { environment } from '../../../environments/environment';
 import { 
   MultiOrderCheckoutResponse, 
   Order, 
-  MultiOrderSession 
+  MultiOrderSession,
+  SessionStateResponse
 } from '../../shared/models/order.model';
 
 @Injectable({
@@ -79,6 +80,26 @@ export class OrderService {
     ).pipe(
       tap(response => {
         console.log('Sesión recuperada:', response);
+      }),
+      catchError(this.handleError)
+    );
+  }
+
+  /**
+   * Backend State Authority: Obtiene o crea la sesión actual del usuario
+   * El frontend NO guarda sessionId, el backend lo maneja TODO automáticamente
+   * Usa JWT del usuario para identificar sesión activa o crear nueva
+   * @returns Observable con el estado completo de la sesión (NUNCA falla)
+   */
+  getCurrentCheckoutState(): Observable<SessionStateResponse> {
+    return this.http.get<SessionStateResponse>(
+      `${this.apiUrl}/orders/checkout/current`
+    ).pipe(
+      tap(response => {
+        console.log('✅ Estado actual de checkout:', response);
+        console.log(`📊 Session: ${response.sessionId}, Status: ${response.sessionStatus}`);
+        console.log(`💰 ${response.paidGroups}/${response.totalGroups} pagos completados`);
+        console.log(`⏱️  ${response.secondsUntilExpiration}s restantes`);
       }),
       catchError(this.handleError)
     );

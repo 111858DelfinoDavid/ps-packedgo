@@ -13,6 +13,8 @@ public class TicketDTO {
     private Long id;
     private Long userId;
     private PassDTO pass;
+    private String passCode; // Código del pase (para mostrar en UI)
+    private String qrCode; // QR code en formato base64
     private TicketConsumptionDTO ticketConsumption;
     private boolean active;
     private boolean redeemed;

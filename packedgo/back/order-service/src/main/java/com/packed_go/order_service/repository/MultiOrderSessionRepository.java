@@ -29,6 +29,16 @@ public interface MultiOrderSessionRepository extends JpaRepository<MultiOrderSes
     List<MultiOrderSession> findByUserIdOrderByCreatedAtDesc(Long userId);
 
     /**
+     * Backend State Authority: Busca la sesión activa (PENDING o PARTIAL) no expirada del usuario
+     * Esta es la clave para que el frontend NO necesite guardar nada en localStorage
+     */
+    @Query("SELECT s FROM MultiOrderSession s WHERE s.userId = :userId " +
+           "AND s.sessionStatus IN ('PENDING', 'PARTIAL') " +
+           "AND s.expiresAt > :now " +
+           "ORDER BY s.lastAccessedAt DESC")
+    Optional<MultiOrderSession> findActiveSessionByUserId(Long userId, LocalDateTime now);
+
+    /**
      * Busca sesiones pendientes de un usuario
      */
     @Query("SELECT s FROM MultiOrderSession s WHERE s.userId = ?1 AND s.sessionStatus IN ('PENDING', 'PARTIAL') AND s.expiresAt > ?2")

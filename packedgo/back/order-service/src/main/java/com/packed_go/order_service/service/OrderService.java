@@ -3,6 +3,7 @@ package com.packed_go.order_service.service;
 import java.util.List;
 
 import com.packed_go.order_service.dto.MultiOrderCheckoutResponse;
+import com.packed_go.order_service.dto.SessionStateResponse;
 import com.packed_go.order_service.dto.request.CheckoutRequest;
 import com.packed_go.order_service.dto.request.PaymentCallbackRequest;
 import com.packed_go.order_service.dto.response.CheckoutResponse;
@@ -20,6 +21,13 @@ public interface OrderService {
      * Procesa el checkout multitenant creando múltiples órdenes si hay items de varios admins
      */
     MultiOrderCheckoutResponse checkoutMulti(Long userId);
+    
+    /**
+     * Backend State Authority: Obtiene o crea la sesión actual del usuario
+     * Busca sesión activa (PENDING/PARTIAL no expirada), si no existe crea nueva desde cart
+     * El frontend NO necesita guardar sessionId, solo llamar a este endpoint con JWT
+     */
+    SessionStateResponse getCurrentCheckoutState(Long userId);
     
     /**
      * Obtiene el estado de una sesión de múltiples órdenes

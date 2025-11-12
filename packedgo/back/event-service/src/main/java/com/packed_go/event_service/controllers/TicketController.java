@@ -80,6 +80,15 @@ public class TicketController {
         log.info("Obteniendo tickets para usuario: {}", userId);
         validateAndExtractUserId(authHeader, userId);
         List<TicketDTO> tickets = ticketService.findByUserId(userId);
+        
+        // Log para debug
+        tickets.forEach(ticket -> {
+            log.info("Ticket ID: {}, Pass Code: {}, QR Code present: {}", 
+                    ticket.getId(), 
+                    ticket.getPassCode(), 
+                    ticket.getQrCode() != null && !ticket.getQrCode().isEmpty());
+        });
+        
         return ResponseEntity.ok(tickets);
     }
 

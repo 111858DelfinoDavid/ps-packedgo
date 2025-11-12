@@ -33,8 +33,8 @@ public class PaymentController {
 
     /**
      * Endpoint para crear una preferencia de pago
-     * MODIFICADO: Acepta adminId del request body (viene de la orden)
-     * Valida que el usuario esté autenticado (customer o admin)
+     * SEGURIDAD: Requiere autenticación JWT
+     * Valida que el usuario esté autenticado antes de crear preferencias de pago
      */
     @PostMapping("/create")
     public ResponseEntity<PaymentResponse> createPayment(
@@ -42,25 +42,33 @@ public class PaymentController {
             @org.springframework.web.bind.annotation.RequestHeader(value = "Authorization", required = false) String authHeader) {
 
         try {
-            // Validar token JWT si está presente
-            if (authHeader != null && !authHeader.isEmpty()) {
-                String token = jwtTokenValidator.extractTokenFromHeader(authHeader);
-                if (!jwtTokenValidator.validateToken(token)) {
-                    log.warn("Token JWT inválido");
-                    return ResponseEntity
-                            .status(HttpStatus.UNAUTHORIZED)
-                            .body(PaymentResponse.builder()
-                                    .message("Token JWT inválido")
-                                    .build());
-                }
-                log.info("Usuario autenticado - UserID from JWT: {}", jwtTokenValidator.getUserIdFromToken(token));
-            } else {
-                log.warn("No se proporcionó token de autenticación");
+            // SECURITY: Validar JWT token
+            String token = jwtTokenValidator.extractTokenFromHeader(authHeader);
+            if (!jwtTokenValidator.validateToken(token)) {
+                log.warn("Token JWT inválido en /payments/create");
+                return ResponseEntity
+                        .status(HttpStatus.UNAUTHORIZED)
+                        .body(PaymentResponse.builder()
+                                .message("Token JWT inválido o expirado")
+                                .build());
             }
 
-            // Usar adminId del request body (viene de la orden creada por order-service)
-            log.info("POST /api/payments/create - AdminId from request: {}, OrderId: {}",
-                    request.getAdminId(), request.getOrderId());
+            Long userIdFromToken = jwtTokenValidator.getUserIdFromToken(token);
+
+            log.info("POST /api/payments/create - UserId: {}, AdminId: {}, OrderId: {}",
+                    userIdFromToken, request.getAdminId(), request.getOrderId());
+
+            // Validar que el adminId esté presente
+            if (request.getAdminId() == null) {
+                return ResponseEntity
+                        .status(HttpStatus.BAD_REQUEST)
+                        .body(PaymentResponse.builder()
+                                .message("AdminId es requerido")
+                                .build());
+            }
+
+            // Usuario autenticado puede crear pagos para cualquier admin
+            // (normal en checkout cuando customer compra eventos de diferentes admins)
 
             PaymentResponse response = paymentService.createPaymentPreference(request);
             return ResponseEntity.status(HttpStatus.CREATED).body(response);
@@ -118,6 +126,106 @@ public class PaymentController {
             return ResponseEntity
                     .status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    /**
+     * Endpoint para consultar el estado de un pago por preferenceId
+     * POLLING: Este endpoint es usado por el frontend para hacer polling del estado
+     * Autenticación OPCIONAL para permitir polling desde browser
+     */
+    @GetMapping("/status/{preferenceId}")
+    public ResponseEntity<?> getPaymentByPreferenceId(
+            @PathVariable String preferenceId,
+            @org.springframework.web.bind.annotation.RequestHeader(value = "Authorization", required = false) String authHeader) {
+
+        try {
+            // Si hay authHeader, validar JWT (opcional)
+            if (authHeader != null && authHeader.startsWith("Bearer ")) {
+                try {
+                    String token = jwtTokenValidator.extractTokenFromHeader(authHeader);
+                    if (jwtTokenValidator.validateToken(token)) {
+                        Long userId = jwtTokenValidator.getUserIdFromToken(token);
+                        log.info("GET /api/payments/status/{} - User authenticated: {}", preferenceId, userId);
+                    }
+                } catch (Exception e) {
+                    log.warn("Invalid or expired token in polling request, proceeding anyway");
+                }
+            } else {
+                log.info("GET /api/payments/status/{} - Unauthenticated polling request", preferenceId);
+            }
+
+            Payment payment = paymentService.getPaymentByPreferenceId(preferenceId);
+            
+            PaymentResponse response = PaymentResponse.builder()
+                    .paymentId(payment.getId())
+                    .orderId(payment.getOrderId())
+                    .status(payment.getStatus().name())
+                    .amount(payment.getAmount())
+                    .currency(payment.getCurrency())
+                    .preferenceId(payment.getPreferenceId())
+                    .message("Payment found")
+                    .build();
+            
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            log.error("Error getting payment status for preference: {}", preferenceId, e);
+            return ResponseEntity
+                    .status(HttpStatus.NOT_FOUND)
+                    .body(Map.of("error", "Pago no encontrado para la preferencia: " + preferenceId));
+        }
+    }
+
+    /**
+     * Endpoint para simular la aprobación de un pago (SOLO PARA TESTING)
+     * Simula que MercadoPago aprobó el pago y dispara todo el flujo de generación de tickets
+     * IMPORTANTE: Este endpoint NO debe estar habilitado en producción
+     */
+    @PostMapping("/simulate-approval/{preferenceId}")
+    public ResponseEntity<?> simulatePaymentApproval(
+            @PathVariable String preferenceId) {
+
+        try {
+            log.info("POST /api/payments/simulate-approval/{} - Simulando aprobación de pago", preferenceId);
+
+            // Buscar el pago por preferenceId
+            Payment payment = paymentService.getPaymentByPreferenceId(preferenceId);
+            
+            if (payment.getStatus() == Payment.PaymentStatus.APPROVED) {
+                return ResponseEntity.ok(Map.of(
+                    "status", "already_approved",
+                    "message", "El pago ya estaba aprobado",
+                    "orderId", payment.getOrderId()
+                ));
+            }
+
+            // Simular el webhook de MercadoPago aprobando el pago
+            // Usamos un mpPaymentId falso para testing
+            Long fakeMpPaymentId = System.currentTimeMillis(); // ID único basado en timestamp
+            
+            log.info("Simulando aprobación de pago {} con mpPaymentId simulado: {}", 
+                    payment.getId(), fakeMpPaymentId);
+            
+            // Llamar al método de simulación (NO consulta MercadoPago)
+            paymentService.simulatePaymentApproval(preferenceId, fakeMpPaymentId);
+            
+            // Recargar el pago para obtener el estado actualizado
+            payment = paymentService.getPaymentByPreferenceId(preferenceId);
+            
+            return ResponseEntity.ok(Map.of(
+                "status", "success",
+                "message", "Pago simulado como aprobado exitosamente",
+                "orderId", payment.getOrderId(),
+                "paymentStatus", payment.getStatus().name(),
+                "mpPaymentId", fakeMpPaymentId.toString()
+            ));
+
+        } catch (Exception e) {
+            log.error("Error simulando aprobación de pago para preference: {}", preferenceId, e);
+            return ResponseEntity
+                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Error al simular la aprobación: " + e.getMessage()));
         }
     }
 

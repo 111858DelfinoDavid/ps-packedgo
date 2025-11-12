@@ -14,11 +14,13 @@ import java.util.Optional;
 @Repository
 public interface TicketRepository extends JpaRepository<Ticket, Long> {
 
-    // Buscar tickets por usuario
-    List<Ticket> findByUserId(Long userId);
+    // Buscar tickets por usuario con pass eager loaded
+    @Query("SELECT t FROM Ticket t LEFT JOIN FETCH t.pass WHERE t.userId = :userId")
+    List<Ticket> findByUserId(@Param("userId") Long userId);
 
     // Buscar tickets por usuario y activos
-    List<Ticket> findByUserIdAndActiveTrue(Long userId);
+    @Query("SELECT t FROM Ticket t LEFT JOIN FETCH t.pass WHERE t.userId = :userId AND t.active = true")
+    List<Ticket> findByUserIdAndActiveTrue(@Param("userId") Long userId);
 
     // Buscar ticket por pass
     Optional<Ticket> findByPass_Id(Long passId);

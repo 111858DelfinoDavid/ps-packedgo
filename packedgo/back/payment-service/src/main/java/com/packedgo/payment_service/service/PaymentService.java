@@ -1,5 +1,6 @@
 package com.packedgo.payment_service.service;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -13,6 +14,8 @@ import com.mercadopago.client.preference.PreferenceBackUrlsRequest;
 import com.mercadopago.client.preference.PreferenceClient;
 import com.mercadopago.client.preference.PreferenceItemRequest;
 import com.mercadopago.client.preference.PreferencePayerRequest;
+import com.mercadopago.client.preference.PreferencePaymentMethodsRequest;
+import com.mercadopago.client.preference.PreferencePaymentTypeRequest;
 import com.mercadopago.client.preference.PreferenceRequest;
 import com.mercadopago.exceptions.MPApiException;
 import com.mercadopago.exceptions.MPException;
@@ -101,12 +104,22 @@ public class PaymentService {
                     .failure(request.getFailureUrl())
                     .pending(request.getPendingUrl())
                     .build();
+            
+            log.info("URLs de retorno configuradas - Success: {}, Failure: {}, Pending: {}", 
+                    request.getSuccessUrl(), request.getFailureUrl(), request.getPendingUrl());
+
+            // 6.5. Configurar métodos de pago permitidos
+            PreferencePaymentMethodsRequest paymentMethods = PreferencePaymentMethodsRequest.builder()
+                    .installments(1) // Solo pagos en 1 cuota
+                    .build();
 
             // 7. Crear la preferencia de pago
             PreferenceRequest.PreferenceRequestBuilder preferenceBuilder = PreferenceRequest.builder()
                     .items(items)
                     .payer(payer)
                     .backUrls(backUrls)
+                    .paymentMethods(paymentMethods)
+                    // .autoReturn("approved") - Deshabilitado: MercadoPago Sandbox rechaza autoReturn con error 400
                     .externalReference(payment.getOrderId()) // Usar orderId como external_reference
                     .statementDescriptor("PackedGo");
 
@@ -314,6 +327,55 @@ public class PaymentService {
     }
 
     /**
+     * Simula la aprobación de un pago SIN consultar a MercadoPago (SOLO PARA TESTING)
+     * Esto es útil cuando no se puede validar el email en MercadoPago sandbox
+     */
+    public void simulatePaymentApproval(String preferenceId, Long fakeMpPaymentId) {
+        log.info("TESTING: Simulando aprobación de pago para preferencia: {}", preferenceId);
+
+        try {
+            // Buscar el pago por preferenceId
+            Payment payment = paymentRepository
+                    .findByPreferenceId(preferenceId)
+                    .orElseThrow(() -> new ResourceNotFoundException(
+                            "Pago no encontrado para preferencia: " + preferenceId));
+
+            if (payment.getStatus() == Payment.PaymentStatus.APPROVED) {
+                log.info("El pago {} ya estaba aprobado", payment.getId());
+                return;
+            }
+
+            // Guardar estado anterior
+            Payment.PaymentStatus previousStatus = payment.getStatus();
+
+            // Actualizar el pago como aprobado
+            payment.setMpPaymentId(fakeMpPaymentId);
+            payment.setStatus(Payment.PaymentStatus.APPROVED);
+            payment.setStatusDetail("approved");
+            payment.setPaymentMethod("visa"); // Simulado
+            payment.setPaymentTypeId("credit_card"); // Simulado
+            payment.setApprovedAt(LocalDateTime.now());
+            payment.setPayerName("Test User");
+            payment.setPayerEmail("test@example.com");
+
+            paymentRepository.save(payment);
+
+            log.info("TESTING: Pago {} simulado como aprobado: {} -> APPROVED",
+                    payment.getId(), previousStatus);
+
+            // Notificar a order-service (esto genera los tickets)
+            notifyOrderService(payment, Payment.PaymentStatus.APPROVED, "approved");
+
+        } catch (ResourceNotFoundException e) {
+            log.error("Pago no encontrado: {}", e.getMessage());
+            throw e;
+        } catch (Exception e) {
+            log.error("Error simulando aprobación de pago", e);
+            throw new PaymentException("Error simulando aprobación: " + e.getMessage());
+        }
+    }
+
+    /**
      * Obtiene el estado de un pago por orderId
      */
     @Transactional(readOnly = true)
@@ -384,6 +446,18 @@ public class PaymentService {
             log.error("Error inesperado al verificar pago", e);
             throw new PaymentException("Error al verificar el pago: " + e.getMessage());
         }
+    }
+    
+    /**
+     * Obtiene el estado de un pago por preferenceId
+     * Usado por el frontend para hacer polling del estado del pago
+     */
+    @Transactional(readOnly = true)
+    public Payment getPaymentByPreferenceId(String preferenceId) {
+        log.info("Consultando pago para preferencia: {}", preferenceId);
+        
+        return paymentRepository.findByPreferenceId(preferenceId)
+                .orElseThrow(() -> new ResourceNotFoundException("No se encontró pago para la preferencia: " + preferenceId));
     }
     
     /**

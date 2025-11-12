@@ -1,6 +1,7 @@
 package com.packed_go.order_service.controller;
 
 import com.packed_go.order_service.dto.MultiOrderCheckoutResponse;
+import com.packed_go.order_service.dto.SessionStateResponse;
 import com.packed_go.order_service.dto.request.CheckoutRequest;
 import com.packed_go.order_service.dto.request.PaymentCallbackRequest;
 import com.packed_go.order_service.dto.response.CheckoutResponse;
@@ -46,6 +47,28 @@ public class OrderController {
         CheckoutResponse response = orderService.checkout(userId, request);
         
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+    
+    /**
+     * Backend State Authority: Obtiene o crea la sesión actual del usuario
+     * El frontend NO guarda sessionId, solo llama a este endpoint con JWT
+     * Busca sesión activa (PENDING/PARTIAL no expirada), si no existe crea nueva
+     * 
+     * GET /api/orders/checkout/current
+     * Headers: Authorization: Bearer {token}
+     * 
+     * @return 200 OK con el estado completo de la sesión (NUNCA falla)
+     */
+    @GetMapping("/checkout/current")
+    public ResponseEntity<SessionStateResponse> getCurrentCheckoutState(
+            @RequestHeader("Authorization") String authHeader) {
+        
+        log.info("GET /api/orders/checkout/current - Getting current checkout state");
+        
+        Long userId = extractUserId(authHeader);
+        SessionStateResponse response = orderService.getCurrentCheckoutState(userId);
+        
+        return ResponseEntity.ok(response);
     }
     
     /**
