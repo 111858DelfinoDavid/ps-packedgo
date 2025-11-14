@@ -11,13 +11,13 @@ import org.springframework.stereotype.Service;
 import com.packed_go.event_service.dtos.consumption.ConsumptionDTO;
 import com.packed_go.event_service.dtos.event.CreateEventDTO;
 import com.packed_go.event_service.dtos.event.EventDTO;
+import com.packed_go.event_service.entities.Consumption;
 import com.packed_go.event_service.entities.Event;
 import com.packed_go.event_service.entities.EventCategory;
-import com.packed_go.event_service.entities.Consumption;
 import com.packed_go.event_service.exceptions.ResourceNotFoundException;
+import com.packed_go.event_service.repositories.ConsumptionRepository;
 import com.packed_go.event_service.repositories.EventCategoryRepository;
 import com.packed_go.event_service.repositories.EventRepository;
-import com.packed_go.event_service.repositories.ConsumptionRepository;
 import com.packed_go.event_service.services.EventService;
 import com.packed_go.event_service.services.PassGenerationService;
 
@@ -41,23 +41,29 @@ public class EventServiceImpl implements EventService {
     private final ConsumptionRepository consumptionRepository;
     private final PassGenerationService passGenerationService;
 
+    private EventDTO mapEventToDTO(Event event) {
+        EventDTO eventDTO = modelMapper.map(event, EventDTO.class);
+        
+        // Indicar si tiene imagen almacenada
+        eventDTO.setHasImageData(event.getImageData() != null && event.getImageData().length > 0);
+        
+        // Cargar las consumptions del admin que creó el evento
+        if (event.getCreatedBy() != null) {
+            List<Consumption> consumptions = consumptionRepository.findByCreatedByAndActiveIsTrue(event.getCreatedBy());
+            List<ConsumptionDTO> consumptionDTOs = consumptions.stream()
+                .map(c -> modelMapper.map(c, ConsumptionDTO.class))
+                .toList();
+            eventDTO.setAvailableConsumptions(consumptionDTOs);
+        }
+        
+        return eventDTO;
+    }
+
     @Override
     public EventDTO findById(Long id) {
         Optional<Event> eventExist = eventRepository.findById(id);
         if (eventExist.isPresent()) {
-            Event event = eventExist.get();
-            EventDTO eventDTO = modelMapper.map(event, EventDTO.class);
-            
-            // Cargar las consumptions del admin que creó el evento
-            if (event.getCreatedBy() != null) {
-                List<Consumption> consumptions = consumptionRepository.findByCreatedByAndActiveIsTrue(event.getCreatedBy());
-                List<ConsumptionDTO> consumptionDTOs = consumptions.stream()
-                    .map(c -> modelMapper.map(c, ConsumptionDTO.class))
-                    .toList();
-                eventDTO.setAvailableConsumptions(consumptionDTOs);
-            }
-            
-            return eventDTO;
+            return mapEventToDTO(eventExist.get());
         } else {
             throw new RuntimeException("Event with id" + id + " not found");
         }
@@ -67,18 +73,9 @@ public class EventServiceImpl implements EventService {
     @Override
     public List<EventDTO> findAll() {
         List<Event> eventEntities = eventRepository.findAll();
-        return eventEntities.stream().map(entity -> {
-            EventDTO eventDTO = modelMapper.map(entity, EventDTO.class);
-            // Cargar las consumptions del admin que creó el evento
-            if (entity.getCreatedBy() != null) {
-                List<Consumption> consumptions = consumptionRepository.findByCreatedByAndActiveIsTrue(entity.getCreatedBy());
-                List<ConsumptionDTO> consumptionDTOs = consumptions.stream()
-                    .map(c -> modelMapper.map(c, ConsumptionDTO.class))
-                    .toList();
-                eventDTO.setAvailableConsumptions(consumptionDTOs);
-            }
-            return eventDTO;
-        }).toList();
+        return eventEntities.stream()
+                .map(this::mapEventToDTO)
+                .toList();
     }
 
 
@@ -174,7 +171,12 @@ public class EventServiceImpl implements EventService {
             entity.setCurrentCapacity(eventDto.getCurrentCapacity());
             entity.setBasePrice(eventDto.getBasePrice());
             entity.setImageUrl(eventDto.getImageUrl());
-            entity.setStatus(eventDto.getStatus());
+            
+            // Solo actualizar status si viene en el DTO (no null)
+            if (eventDto.getStatus() != null) {
+                entity.setStatus(eventDto.getStatus());
+            }
+            
             entity.setActive(eventDto.isActive());
             // No tocar createdAt/createdBy para preservar histórico; actualizamos updatedAt
             entity.setUpdatedAt(LocalDateTime.now());
@@ -227,5 +229,24 @@ public class EventServiceImpl implements EventService {
         return consumptions.stream()
                 .map(consumption -> modelMapper.map(consumption, ConsumptionDTO.class))
                 .toList();
+    }
+
+    @Override
+    @Transactional
+    public void saveEventImage(Long eventId, byte[] imageData, String contentType) {
+        Event event = eventRepository.findById(eventId)
+                .orElseThrow(() -> new ResourceNotFoundException("Event with id " + eventId + " not found"));
+        
+        event.setImageData(imageData);
+        event.setImageContentType(contentType);
+        eventRepository.save(event);
+    }
+
+    @Override
+    public byte[] getEventImage(Long eventId) {
+        Event event = eventRepository.findById(eventId)
+                .orElseThrow(() -> new ResourceNotFoundException("Event with id " + eventId + " not found"));
+        
+        return event.getImageData();
     }
 }

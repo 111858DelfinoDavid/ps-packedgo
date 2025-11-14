@@ -1,12 +1,13 @@
 package com.packed_go.event_service.services;
 
+import java.time.LocalDateTime;
+import java.util.List;
+
 import com.packed_go.event_service.dtos.consumption.ConsumptionDTO;
 import com.packed_go.event_service.dtos.event.CreateEventDTO;
 import com.packed_go.event_service.dtos.event.EventDTO;
-import jakarta.transaction.Transactional;
 
-import java.time.LocalDateTime;
-import java.util.List;
+import jakarta.transaction.Transactional;
 
 public interface EventService {
     EventDTO findById(Long id);
@@ -31,4 +32,8 @@ public interface EventService {
     EventDTO deleteLogical(Long id);
     
     List<ConsumptionDTO> getEventConsumptions(Long eventId);
+    
+    void saveEventImage(Long eventId, byte[] imageData, String contentType);
+    
+    byte[] getEventImage(Long eventId);
 }

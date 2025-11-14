@@ -170,4 +170,71 @@ public class EventController {
         List<ConsumptionDTO> consumptions = service.getEventConsumptions(eventId);
         return ResponseEntity.ok(consumptions);
     }
+
+    /**
+     * 🔒 POST /event/{id}/image - Subir imagen para un evento (valida ownership)
+     */
+    @PostMapping("/{id}/image")
+    public ResponseEntity<?> uploadImage(
+            @PathVariable Long id,
+            @RequestParam("image") org.springframework.web.multipart.MultipartFile file,
+            @RequestHeader("Authorization") String authHeader) {
+        
+        try {
+            Long userId = extractUserIdFromToken(authHeader);
+            log.info("🔒 User {} uploading image for event {}", userId, id);
+            
+            // Validar ownership
+            EventDTO existingEvent = service.findById(id);
+            if (!existingEvent.getCreatedBy().equals(userId)) {
+                log.warn("⚠️ User {} tried to upload image for event {} owned by {}", userId, id, existingEvent.getCreatedBy());
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+            }
+            
+            // Validar tipo de archivo
+            String contentType = file.getContentType();
+            if (contentType == null || 
+                (!contentType.equals("image/png") && 
+                 !contentType.equals("image/jpeg") && 
+                 !contentType.equals("image/jpg"))) {
+                return ResponseEntity.badRequest().body("Solo se permiten imágenes PNG, JPG o JPEG");
+            }
+            
+            // Validar tamaño (max 5MB)
+            if (file.getSize() > 5 * 1024 * 1024) {
+                return ResponseEntity.badRequest().body("La imagen no puede superar los 5MB");
+            }
+            
+            service.saveEventImage(id, file.getBytes(), contentType);
+            return ResponseEntity.ok().body(java.util.Map.of("message", "Imagen subida correctamente"));
+            
+        } catch (Exception e) {
+            log.error("Error uploading image for event {}", id, e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Error al subir la imagen: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 🔓 GET /event/{id}/image - Obtener imagen de un evento (público)
+     */
+    @GetMapping("/{id}/image")
+    public ResponseEntity<byte[]> getImage(@PathVariable Long id) {
+        try {
+            EventDTO event = service.findById(id);
+            byte[] imageData = service.getEventImage(id);
+            
+            if (imageData == null || imageData.length == 0) {
+                return ResponseEntity.notFound().build();
+            }
+            
+            return ResponseEntity.ok()
+                    .header("Content-Type", event.getImageContentType())
+                    .body(imageData);
+                    
+        } catch (Exception e) {
+            log.error("Error getting image for event {}", id, e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
 }

@@ -43,6 +43,11 @@ public class Event {
     private BigDecimal basePrice;
     private String imageUrl;
     
+    @Column(columnDefinition = "BYTEA")
+    private byte[] imageData;
+    
+    private String imageContentType;
+    
     @Column(nullable = false, length = 20)
     private String status;
     
