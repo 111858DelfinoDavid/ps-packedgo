@@ -8,6 +8,8 @@ import lombok.Setter;
 public class ConsumptionCategoryDTO {
     private Long id;
     private String name;
+    private String description;
+    private boolean active;
     private Long createdBy;
 
     public Long getCreatedBy() {
