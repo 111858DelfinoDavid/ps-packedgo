@@ -6,6 +6,7 @@ import com.packed_go.auth_service.dto.request.ChangePasswordLoggedUserRequest;
 import com.packed_go.auth_service.dto.request.ChangePasswordRequest;
 import com.packed_go.auth_service.dto.request.CustomerLoginRequest;
 import com.packed_go.auth_service.dto.request.CustomerRegistrationRequest;
+import com.packed_go.auth_service.dto.request.EmployeeLoginRequest;
 import com.packed_go.auth_service.dto.request.PasswordResetRequest;
 import com.packed_go.auth_service.dto.request.UpdateAuthUserRequest;
 import com.packed_go.auth_service.dto.response.AuthUserProfileResponse;
@@ -18,6 +19,8 @@ public interface AuthService {
     LoginResponse loginAdmin(AdminLoginRequest request, String ipAddress, String userAgent);
     
     LoginResponse loginCustomer(CustomerLoginRequest request, String ipAddress, String userAgent);
+    
+    LoginResponse loginEmployee(EmployeeLoginRequest request, String ipAddress, String userAgent);
     
     AuthUser registerCustomer(CustomerRegistrationRequest request);
     

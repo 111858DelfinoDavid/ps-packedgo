@@ -50,10 +50,10 @@ export class AdminDashboardComponent implements OnInit {
       color: 'danger'
     },
     {
-      title: 'Gestionar Usuarios',
-      description: 'Ver y administrar usuarios',
+      title: 'Gestionar Empleados',
+      description: 'Crear y administrar empleados',
       icon: 'bi-people',
-      route: '/admin/users',
+      route: '/admin/employees',
       color: 'success'
     },
     {

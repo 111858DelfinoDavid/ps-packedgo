@@ -113,6 +113,17 @@ export class AuthService {
       );
   }
 
+  // Employee Login
+  employeeLogin(credentials: { email: string; password: string }): Observable<LoginResponse> {
+    return this.http.post<ApiResponse<LoginResponse>>(`${this.apiUrl}/auth/employee/login`, credentials)
+      .pipe(
+        map(response => response.data),
+        tap(loginData => {
+          this.saveAuthData(loginData);
+        })
+      );
+  }
+
   // Admin Registration
   adminRegister(userData: AdminRegistrationRequest): Observable<any> {
     return this.http.post(`${this.apiUrl}/auth/admin/register`, userData);
@@ -154,6 +165,11 @@ export class AuthService {
   isCustomer(): boolean {
     const user = this.getCurrentUser();
     return user?.role === 'CUSTOMER' || user?.role === 'USER';
+  }
+
+  isEmployee(): boolean {
+    const user = this.getCurrentUser();
+    return user?.role === 'EMPLOYEE';
   }
 
   getPermissions(): string[] {

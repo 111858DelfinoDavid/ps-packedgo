@@ -16,11 +16,13 @@ import com.packed_go.auth_service.dto.request.ChangePasswordRequest;
 import com.packed_go.auth_service.dto.request.CreateProfileFromAuthRequest;
 import com.packed_go.auth_service.dto.request.CustomerLoginRequest;
 import com.packed_go.auth_service.dto.request.CustomerRegistrationRequest;
+import com.packed_go.auth_service.dto.request.EmployeeLoginRequest;
 import com.packed_go.auth_service.dto.request.PasswordResetRequest;
 import com.packed_go.auth_service.dto.request.UpdateAuthUserRequest;
 import com.packed_go.auth_service.dto.response.AuthUserProfileResponse;
 import com.packed_go.auth_service.dto.response.LoginResponse;
 import com.packed_go.auth_service.dto.response.TokenValidationResponse;
+import com.packed_go.auth_service.dto.response.ValidateEmployeeResponse;
 import com.packed_go.auth_service.entities.AuthUser;
 import com.packed_go.auth_service.entities.EmailVerificationToken;
 import com.packed_go.auth_service.entities.LoginAttempt;
@@ -139,6 +141,56 @@ public class AuthServiceImpl implements AuthService {
         }
 
         // Login exitoso
+        return processSuccessfulLogin(user, ipAddress, userAgent);
+    }
+
+    @Override
+    public LoginResponse loginEmployee(EmployeeLoginRequest request, String ipAddress, String userAgent) {
+        log.info("Employee login attempt for email: {}", request.getEmail());
+        
+        // Validar credenciales con users-service
+        ValidateEmployeeResponse employeeData;
+        try {
+            employeeData = usersServiceClient.validateEmployee(request.getEmail(), request.getPassword());
+        } catch (Exception e) {
+            log.error("Employee validation failed for email: {}", request.getEmail(), e);
+            recordFailedLogin(request.getEmail(), "EMAIL", ipAddress, userAgent, "Validation failed");
+            throw new UnauthorizedException("Invalid credentials");
+        }
+
+        // Verificar que el empleado esté activo
+        if (!employeeData.getIsActive()) {
+            log.error("Employee account is inactive: {}", request.getEmail());
+            recordFailedLogin(request.getEmail(), "EMAIL", ipAddress, userAgent, "Account inactive");
+            throw new UnauthorizedException("Employee account is inactive");
+        }
+
+        // Buscar o crear usuario en auth-service
+        AuthUser user = authUserRepository.findByEmailAndLoginType(request.getEmail(), "EMAIL")
+            .orElseGet(() -> {
+                log.info("Creating new auth user for employee: {}", request.getEmail());
+                AuthUser newUser = AuthUser.builder()
+                    .email(request.getEmail())
+                    .username(employeeData.getUsername())
+                    .document(employeeData.getDocument())
+                    .passwordHash(request.getPassword()) // Ya viene hasheado del users-service
+                    .role("EMPLOYEE")
+                    .loginType("EMAIL")
+                    .isEmailVerified(true) // Los empleados son creados por admins
+                    .failedLoginAttempts(0)
+                    .build();
+                return authUserRepository.save(newUser);
+            });
+
+        // Verificar si la cuenta está bloqueada
+        if (user.getLockedUntil() != null && user.getLockedUntil().isAfter(LocalDateTime.now())) {
+            log.error("Employee account is locked: {}", user.getId());
+            recordFailedLogin(request.getEmail(), "EMAIL", ipAddress, userAgent, "Account locked");
+            throw new UnauthorizedException("Account is locked until " + user.getLockedUntil());
+        }
+
+        // Login exitoso
+        log.info("Processing successful login for employee: {}", user.getId());
         return processSuccessfulLogin(user, ipAddress, userAgent);
     }
 

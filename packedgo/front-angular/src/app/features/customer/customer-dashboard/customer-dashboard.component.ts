@@ -424,8 +424,17 @@ export class CustomerDashboardComponent implements OnInit, OnDestroy {
       },
       error: (error: any) => {
         console.error('Error al cargar perfil:', error);
-        alert('Error al cargar el perfil. Por favor, intenta nuevamente.');
+        
+        if (error.status === 500 || error.status === 404) {
+          // Perfil no existe - mostrar mensaje informativo
+          alert('⚠️ Tu perfil no está disponible. Por favor, contacta con el administrador o intenta registrarte nuevamente.');
+        } else {
+          alert('Error al cargar el perfil. Por favor, intenta nuevamente.');
+        }
+        
         this.isLoadingProfile = false;
+        // Volver a la pestaña de eventos
+        this.activeTab = 'events';
       }
     });
   }

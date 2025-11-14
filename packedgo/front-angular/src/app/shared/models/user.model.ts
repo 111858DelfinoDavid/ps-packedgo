@@ -69,9 +69,12 @@ export interface UserProfile {
 
 // Update User Profile Request
 export interface UpdateUserProfileRequest {
-  name?: string;
-  lastName?: string;
-  telephone?: number;
+  name: string;
+  lastName: string;
+  gender: string;
+  document: number;
+  bornDate: string; // LocalDate en formato ISO (YYYY-MM-DD)
+  telephone: number;
   profileImageUrl?: string;
 }
 

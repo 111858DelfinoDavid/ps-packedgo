@@ -207,10 +207,10 @@ services:
       dockerfile: Dockerfile
     ports:
       - "8088:8088"
-      - "5010:5010"  # Debug port for consumption-service
+      - "5011:5011"  # Debug port for consumption-service
     environment:
       - SPRING_PROFILES_ACTIVE=docker
-      - JAVA_TOOL_OPTIONS=-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5010
+      - JAVA_TOOL_OPTIONS=-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5011
       - ORDER_SERVICE_URL=http://order-service:8084/api
       - EVENT_SERVICE_URL=http://event-service:8086/api
       - QR_SECRET_KEY=packedgo-qr-secret-key-2025

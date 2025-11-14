@@ -53,6 +53,21 @@ public class AuthController {
         return ResponseEntity.ok(ApiResponse.success(response, "Customer login successful"));
     }
 
+    @PostMapping("/employee/login")
+    public ResponseEntity<ApiResponse<LoginResponse>> employeeLogin(
+            @Valid @RequestBody EmployeeLoginRequest request,
+            HttpServletRequest httpRequest) {
+        
+        log.info("Employee login attempt for email: {}", request.getEmail());
+        
+        String ipAddress = getClientIpAddress(httpRequest);
+        String userAgent = httpRequest.getHeader("User-Agent");
+        
+        LoginResponse response = authService.loginEmployee(request, ipAddress, userAgent);
+        
+        return ResponseEntity.ok(ApiResponse.success(response, "Employee login successful"));
+    }
+
     @PostMapping("/customer/register")
     public ResponseEntity<ApiResponse<String>> registerCustomer(
             @Valid @RequestBody CustomerRegistrationRequest request) {

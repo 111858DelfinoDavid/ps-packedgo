@@ -190,6 +190,13 @@ export class CheckoutComponent implements OnInit, OnDestroy {
     });
   }
 
+  private stopPolling(): void {
+    if (this.pollingSubscription) {
+      this.pollingSubscription.unsubscribe();
+      this.pollingSubscription = null;
+    }
+  }
+
   /**
    * Carga un checkout existente por sessionId
    */
