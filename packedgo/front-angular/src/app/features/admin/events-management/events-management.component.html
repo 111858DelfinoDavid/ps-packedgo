@@ -118,13 +118,14 @@
             <td>{{ event.id }}</td>
             <td>
               <img 
-                *ngIf="event.imageUrl"
-                [src]="event.imageUrl" 
+                *ngIf="event.hasImageData || event.imageUrl"
+                [src]="getEventImageSrc(event)" 
                 [alt]="event.name"
                 class="event-thumbnail"
+                (error)="handleImageError(event)"
               />
               <i 
-                *ngIf="!event.imageUrl"
+                *ngIf="!event.hasImageData && !event.imageUrl"
                 class="bi bi-image text-muted" 
                 style="font-size: 2rem;"
                 [title]="'Sin imagen'"
@@ -525,22 +526,81 @@
         </small>
       </div>
 
-      <!-- Image URL -->
+      <!-- Image Upload Section -->
       <div class="form-group">
-        <label for="imageUrl">
+        <label>
           <i class="bi bi-image"></i>
-          URL de la Imagen
+          Imagen del Evento
         </label>
-        <input 
-          type="url" 
-          id="imageUrl"
-          formControlName="imageUrl"
-          class="form-control"
-          placeholder="https://ejemplo.com/imagen.jpg"
-        />
-        <small class="form-text text-muted">
-          <i class="bi bi-info-circle"></i> Opcional. URL de la imagen del evento.
-        </small>
+        
+        <!-- Option Tabs -->
+        <div class="image-option-tabs">
+          <button 
+            type="button" 
+            class="tab-btn" 
+            [class.active]="imageUploadOption === 'url'"
+            (click)="setImageOption('url')"
+          >
+            <i class="bi bi-link-45deg"></i> URL Externa
+          </button>
+          <button 
+            type="button" 
+            class="tab-btn" 
+            [class.active]="imageUploadOption === 'upload'"
+            (click)="setImageOption('upload')"
+          >
+            <i class="bi bi-upload"></i> Subir Archivo
+          </button>
+        </div>
+
+        <!-- URL Input -->
+        <div *ngIf="imageUploadOption === 'url'" class="image-url-section">
+          <input 
+            type="url" 
+            id="imageUrl"
+            formControlName="imageUrl"
+            class="form-control"
+            placeholder="https://ejemplo.com/imagen.jpg"
+          />
+          <small class="form-text text-muted">
+            <i class="bi bi-info-circle"></i> Ingresa la URL de una imagen externa.
+          </small>
+        </div>
+
+        <!-- File Upload -->
+        <div *ngIf="imageUploadOption === 'upload'" class="image-upload-section">
+          <div class="file-input-wrapper">
+            <input 
+              type="file" 
+              id="imageFile"
+              (change)="onImageFileSelected($event)"
+              accept="image/png,image/jpeg,image/jpg"
+              class="file-input"
+              #fileInput
+            />
+            <label for="imageFile" class="file-input-label">
+              <i class="bi bi-cloud-upload"></i>
+              <span *ngIf="!selectedImageFile">Seleccionar archivo</span>
+              <span *ngIf="selectedImageFile">{{ selectedImageFile.name }}</span>
+            </label>
+            <button 
+              *ngIf="selectedImageFile" 
+              type="button" 
+              class="btn btn-sm btn-danger"
+              (click)="clearImageFile()"
+            >
+              <i class="bi bi-x"></i>
+            </button>
+          </div>
+          <small class="form-text text-muted">
+            <i class="bi bi-info-circle"></i> PNG, JPG o JPEG. Máximo 5MB.
+          </small>
+          
+          <!-- Preview de la imagen seleccionada -->
+          <div *ngIf="imagePreviewUrl" class="image-preview">
+            <img [src]="imagePreviewUrl" alt="Vista previa">
+          </div>
+        </div>
       </div>
 
       <!-- Modal Actions -->
