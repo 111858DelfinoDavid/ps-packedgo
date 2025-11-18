@@ -112,4 +112,16 @@ export class EventService {
   deleteConsumption(id: number): Observable<void> {
     return this.http.delete<void>(`${this.apiUrl}/event-service/consumption/${id}`);
   }
+
+  // Event Image Upload
+  uploadEventImage(eventId: number, file: File): Observable<any> {
+    const formData = new FormData();
+    formData.append('image', file);
+    
+    return this.http.post(`${this.apiUrl}/event-service/event/${eventId}/image`, formData);
+  }
+
+  getEventImageUrl(eventId: number): string {
+    return `${this.apiUrl}/event-service/event/${eventId}/image`;
+  }
 }

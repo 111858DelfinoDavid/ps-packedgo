@@ -25,6 +25,8 @@ public class EventDTO {
     private Integer currentCapacity;
     private BigDecimal basePrice;
     private String imageUrl;
+    private boolean hasImageData;
+    private String imageContentType;
     private String status;
     private Long createdBy;
     private LocalDateTime createdAt;

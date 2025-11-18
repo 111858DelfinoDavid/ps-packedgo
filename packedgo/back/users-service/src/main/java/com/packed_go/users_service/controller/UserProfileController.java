@@ -31,7 +31,12 @@ import lombok.extern.slf4j.Slf4j;
 @RequestMapping("/user-profiles")
 @RequiredArgsConstructor
 @Slf4j
-@CrossOrigin(origins = "*", allowedHeaders = "*", methods = {RequestMethod.GET, RequestMethod.POST, RequestMethod.PUT, RequestMethod.DELETE, RequestMethod.OPTIONS})
+@CrossOrigin(
+    origins = {"http://localhost:3000", "http://localhost:4200"},
+    allowCredentials = "true",
+    allowedHeaders = "*",
+    methods = {RequestMethod.GET, RequestMethod.POST, RequestMethod.PUT, RequestMethod.DELETE, RequestMethod.OPTIONS}
+)
 public class UserProfileController {
 
     private final UserProfileService service;

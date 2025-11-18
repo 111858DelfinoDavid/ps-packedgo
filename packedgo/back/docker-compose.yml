@@ -227,7 +227,7 @@ services:
       dockerfile: Dockerfile
     ports:
       - "8087:8087"
-      - "5010:5010"  # Debug port for analytics-service
+      - "5011:5010"  # Debug port for analytics-service
     env_file:
       - ./analytics-service/.env
     environment:

@@ -32,6 +32,11 @@ export class EventsManagementComponent implements OnInit {
   isEditMode = false;
   currentEventId?: number;
   
+  // Image Upload
+  imageUploadOption: 'url' | 'upload' = 'url';
+  selectedImageFile: File | null = null;
+  imagePreviewUrl: string | null = null;
+  
   // Categories Tab
   categories: EventCategory[] = [];
   filteredCategories: EventCategory[] = [];
@@ -155,6 +160,10 @@ export class EventsManagementComponent implements OnInit {
       categoryId: event.categoryId
     });
     
+    // Configurar modo de imagen (si tiene URL externa usar 'url', sino dejar en 'url' por defecto)
+    this.imageUploadOption = event.imageUrl ? 'url' : 'url';
+    this.clearImageFile();
+    
     this.showModal = true;
     this.errorMessage = '';
     this.successMessage = '';
@@ -166,7 +175,11 @@ export class EventsManagementComponent implements OnInit {
     this.eventForm.reset();
     this.errorMessage = '';
     this.successMessage = '';
-    this.isSubmitting = false; // Resetear estado de carga
+    this.isSubmitting = false;
+    
+    // Limpiar imagen
+    this.clearImageFile();
+    this.imageUploadOption = 'url';
   }
 
   onSubmit(): void {
@@ -197,12 +210,17 @@ export class EventsManagementComponent implements OnInit {
       // Actualizar evento existente
       this.eventService.updateEvent(this.currentEventId, eventData).subscribe({
         next: () => {
-          this.isSubmitting = false;
-          this.successMessage = 'Evento actualizado exitosamente';
-          setTimeout(() => {
-            this.closeModal();
-            this.loadData();
-          }, 1500);
+          // Si hay imagen seleccionada, subirla
+          if (this.selectedImageFile) {
+            this.uploadEventImage(this.currentEventId!);
+          } else {
+            this.isSubmitting = false;
+            this.successMessage = 'Evento actualizado exitosamente';
+            setTimeout(() => {
+              this.closeModal();
+              this.loadData();
+            }, 1500);
+          }
         },
         error: (error: any) => {
           console.error('Error al actualizar evento:', error);
@@ -213,13 +231,20 @@ export class EventsManagementComponent implements OnInit {
     } else {
       // Crear nuevo evento
       this.eventService.createEvent(eventData).subscribe({
-        next: () => {
-          this.isSubmitting = false;
-          this.successMessage = 'Evento creado exitosamente';
-          setTimeout(() => {
-            this.closeModal();
-            this.loadData();
-          }, 1500);
+        next: (response: any) => {
+          const newEventId = response.id;
+          
+          // Si hay imagen seleccionada, subirla
+          if (this.selectedImageFile && newEventId) {
+            this.uploadEventImage(newEventId);
+          } else {
+            this.isSubmitting = false;
+            this.successMessage = 'Evento creado exitosamente';
+            setTimeout(() => {
+              this.closeModal();
+              this.loadData();
+            }, 1500);
+          }
         },
         error: (error: any) => {
           console.error('Error al crear evento:', error);
@@ -228,6 +253,33 @@ export class EventsManagementComponent implements OnInit {
         }
       });
     }
+  }
+
+  uploadEventImage(eventId: number): void {
+    if (!this.selectedImageFile) {
+      return;
+    }
+
+    this.eventService.uploadEventImage(eventId, this.selectedImageFile).subscribe({
+      next: () => {
+        this.isSubmitting = false;
+        this.successMessage = `Evento ${this.isEditMode ? 'actualizado' : 'creado'} exitosamente con imagen`;
+        setTimeout(() => {
+          this.closeModal();
+          this.loadData();
+        }, 1500);
+      },
+      error: (error: any) => {
+        console.error('Error al subir imagen:', error);
+        this.isSubmitting = false;
+        this.successMessage = `Evento ${this.isEditMode ? 'actualizado' : 'creado'} exitosamente`;
+        this.errorMessage = 'Advertencia: Error al subir la imagen. El evento fue guardado sin imagen.';
+        setTimeout(() => {
+          this.closeModal();
+          this.loadData();
+        }, 2500);
+      }
+    });
   }
 
   deleteEvent(eventId: number, eventName: string): void {
@@ -287,6 +339,79 @@ export class EventsManagementComponent implements OnInit {
   getConsumptionCategoryName(categoryId: number): string {
     const consumption = this.consumptions.find(c => c.id === categoryId);
     return consumption?.categoryId ? `Categoría ${consumption.categoryId}` : 'Sin categoría';
+  }
+
+  // ===== IMAGE UPLOAD METHODS =====
+  setImageOption(option: 'url' | 'upload'): void {
+    this.imageUploadOption = option;
+    
+    if (option === 'url') {
+      // Limpiar archivo seleccionado
+      this.clearImageFile();
+    } else {
+      // Limpiar URL ingresada
+      this.eventForm.patchValue({ imageUrl: '' });
+    }
+  }
+
+  onImageFileSelected(event: any): void {
+    const input = event.target as HTMLInputElement;
+    
+    if (!input.files || input.files.length === 0) {
+      return;
+    }
+
+    const file = input.files[0];
+    
+    // Validar tipo de archivo
+    const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg'];
+    if (!allowedTypes.includes(file.type)) {
+      this.errorMessage = 'Formato de archivo no válido. Use PNG, JPG o JPEG';
+      return;
+    }
+
+    // Validar tamaño (5MB)
+    const maxSize = 5 * 1024 * 1024; // 5MB en bytes
+    if (file.size > maxSize) {
+      this.errorMessage = `El archivo excede el tamaño máximo de 5MB (${(file.size / 1024 / 1024).toFixed(2)} MB)`;
+      return;
+    }
+
+    this.selectedImageFile = file;
+    this.errorMessage = '';
+
+    // Crear preview
+    const reader = new FileReader();
+    reader.onload = (e: ProgressEvent<FileReader>) => {
+      this.imagePreviewUrl = e.target?.result as string;
+    };
+    reader.readAsDataURL(file);
+  }
+
+  clearImageFile(): void {
+    this.selectedImageFile = null;
+    this.imagePreviewUrl = null;
+    
+    // Limpiar el input file
+    const fileInput = document.getElementById('imageFile') as HTMLInputElement;
+    if (fileInput) {
+      fileInput.value = '';
+    }
+  }
+
+  getEventImageSrc(event: Event): string {
+    // Prioridad: imagen subida > imagen URL externa
+    if (event.hasImageData && event.id) {
+      return this.eventService.getEventImageUrl(event.id);
+    }
+    return event.imageUrl || '';
+  }
+
+  handleImageError(event: Event): void {
+    // Si falla la imagen subida, intentar con la URL externa
+    if (event.hasImageData && event.imageUrl) {
+      event.hasImageData = false;
+    }
   }
 
   // ===== TAB MANAGEMENT =====

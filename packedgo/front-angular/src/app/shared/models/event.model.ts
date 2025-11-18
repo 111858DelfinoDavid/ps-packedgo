@@ -9,6 +9,8 @@ export interface Event {
   currentCapacity?: number;
   basePrice: number;
   imageUrl?: string;
+  hasImageData?: boolean;
+  imageContentType?: string;
   categoryId: number;
   status?: string;
   active?: boolean;
