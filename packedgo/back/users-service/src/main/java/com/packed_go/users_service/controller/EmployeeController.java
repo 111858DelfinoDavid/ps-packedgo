@@ -4,21 +4,26 @@ import com.packed_go.users_service.dto.EmployeeDTO.*;
 import com.packed_go.users_service.service.EmployeeService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.reactive.function.client.WebClient;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/api/employee")
+@RequestMapping("/employee")
 @RequiredArgsConstructor
 @Slf4j
 public class EmployeeController {
 
     private final EmployeeService employeeService;
+
+    @Qualifier("eventServiceWebClient")
+    private final WebClient eventServiceWebClient;
 
     @GetMapping("/assigned-events")
     public ResponseEntity<Map<String, Object>> getAssignedEvents(Authentication authentication) {
@@ -44,7 +49,7 @@ public class EmployeeController {
     public ResponseEntity<Map<String, Object>> validateTicket(
             @RequestBody ValidateTicketRequest request,
             Authentication authentication) {
-        
+
         try {
             Long employeeId = extractEmployeeId(authentication);
 
@@ -56,20 +61,26 @@ public class EmployeeController {
                 ));
             }
 
-            // TODO: Implementar validación real del ticket con event-service o ticket-service
-            // Por ahora, mock response
-            ValidateTicketResponse ticketResponse = new ValidateTicketResponse();
-            ticketResponse.setValid(true);
-            ticketResponse.setMessage("Ticket válido - Entrada autorizada");
+            // Llamar a event-service para validar el ticket
+            log.info("🎫 Employee {} validating ticket for event {}", employeeId, request.getEventId());
 
-            TicketInfo ticketInfo = new TicketInfo();
-            ticketInfo.setTicketId(1L);
-            ticketInfo.setTicketType("VIP");
-            ticketInfo.setCustomerName("Juan Pérez");
-            ticketInfo.setEventName("Evento Test");
-            ticketInfo.setAlreadyUsed(false);
-            
-            ticketResponse.setTicketInfo(ticketInfo);
+            Map<String, Object> eventServiceRequest = new HashMap<>();
+            eventServiceRequest.put("qrCode", request.getQrCode());
+            eventServiceRequest.put("eventId", request.getEventId());
+
+            ValidateTicketResponse ticketResponse = eventServiceWebClient.post()
+                    .uri("/event-service/qr-validation/validate-entry")
+                    .bodyValue(eventServiceRequest)
+                    .retrieve()
+                    .bodyToMono(ValidateTicketResponse.class)
+                    .block();
+
+            if (ticketResponse == null || !ticketResponse.getValid()) {
+                return ResponseEntity.badRequest().body(Map.of(
+                    "success", false,
+                    "message", ticketResponse != null ? ticketResponse.getMessage() : "Error al validar el ticket"
+                ));
+            }
 
             Map<String, Object> response = new HashMap<>();
             response.put("success", true);
@@ -80,7 +91,7 @@ public class EmployeeController {
             log.error("Error validating ticket", e);
             return ResponseEntity.badRequest().body(Map.of(
                 "success", false,
-                "message", e.getMessage()
+                "message", "Error: " + e.getMessage()
             ));
         }
     }
@@ -89,7 +100,7 @@ public class EmployeeController {
     public ResponseEntity<Map<String, Object>> registerConsumption(
             @RequestBody RegisterConsumptionRequest request,
             Authentication authentication) {
-        
+
         try {
             Long employeeId = extractEmployeeId(authentication);
 
@@ -101,20 +112,27 @@ public class EmployeeController {
                 ));
             }
 
-            // TODO: Implementar registro real del consumo con consumption-service
-            // Por ahora, mock response
-            RegisterConsumptionResponse consumptionResponse = new RegisterConsumptionResponse();
-            consumptionResponse.setSuccess(true);
-            consumptionResponse.setMessage("Consumo registrado correctamente");
+            // Llamar a event-service para validar y canjear la consumición
+            log.info("🍺 Employee {} registering consumption for event {}", employeeId, request.getEventId());
 
-            ConsumptionInfo consumptionInfo = new ConsumptionInfo();
-            consumptionInfo.setConsumptionId(1L);
-            consumptionInfo.setConsumptionType("Bebida");
-            consumptionInfo.setCustomerName("María Gómez");
-            consumptionInfo.setEventName("Evento Test");
-            consumptionInfo.setRegisteredAt(java.time.LocalDateTime.now());
-            
-            consumptionResponse.setConsumptionInfo(consumptionInfo);
+            Map<String, Object> eventServiceRequest = new HashMap<>();
+            eventServiceRequest.put("qrCode", request.getQrCode());
+            eventServiceRequest.put("eventId", request.getEventId());
+            eventServiceRequest.put("quantity", 1); // Por defecto canjear 1
+
+            RegisterConsumptionResponse consumptionResponse = eventServiceWebClient.post()
+                    .uri("/event-service/qr-validation/validate-consumption")
+                    .bodyValue(eventServiceRequest)
+                    .retrieve()
+                    .bodyToMono(RegisterConsumptionResponse.class)
+                    .block();
+
+            if (consumptionResponse == null || !consumptionResponse.getSuccess()) {
+                return ResponseEntity.badRequest().body(Map.of(
+                    "success", false,
+                    "message", consumptionResponse != null ? consumptionResponse.getMessage() : "Error al registrar el consumo"
+                ));
+            }
 
             Map<String, Object> response = new HashMap<>();
             response.put("success", true);
@@ -125,7 +143,7 @@ public class EmployeeController {
             log.error("Error registering consumption", e);
             return ResponseEntity.badRequest().body(Map.of(
                 "success", false,
-                "message", e.getMessage()
+                "message", "Error: " + e.getMessage()
             ));
         }
     }

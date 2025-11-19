@@ -67,13 +67,14 @@ public class Order {
     @Column(name = "payment_preference_id", length = 100)
     private String paymentPreferenceId; // ID de preferencia de MercadoPago
 
+    @Column(name = "checkout_url", length = 500)
+    private String checkoutUrl; // URL de pago de Stripe
+
+    @Column(name = "session_id", length = 100)
+    private String sessionId; // ID de sesión multi-orden
+
     @Column(name = "admin_id")
     private Long adminId; // Admin del evento (para payment-service)
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "session_id")
-    @JsonBackReference
-    private MultiOrderSession multiOrderSession; // Sesión de múltiples órdenes
 
     @Column(name = "created_at")
     private LocalDateTime createdAt;

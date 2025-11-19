@@ -560,6 +560,7 @@ public class CartServiceImpl implements CartService {
                 .id(item.getId())
                 .eventId(item.getEventId())
                 .eventName(item.getEventName())
+                .adminId(item.getAdminId())
                 .quantity(item.getQuantity())
                 .unitPrice(item.getUnitPrice())
                 .subtotal(item.getSubtotal())

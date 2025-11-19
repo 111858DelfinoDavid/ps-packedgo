@@ -21,8 +21,16 @@ public class PaymentServiceResponse {
     private String status;
     private BigDecimal amount;
     private String currency;
+    
+    // MercadoPago fields (LEGACY)
     private String preferenceId;
     private String initPoint;
     private String sandboxInitPoint;
+    
+    // Stripe fields (RECOMMENDED)
+    private String sessionId;           // Stripe session ID
+    private String checkoutUrl;         // Stripe checkout URL
+    private String paymentProvider;     // "STRIPE" or "MERCADOPAGO"
+    
     private String message;
 }

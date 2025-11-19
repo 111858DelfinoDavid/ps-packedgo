@@ -45,6 +45,7 @@ public class SecurityConfig {
 
                         // Endpoint de creación de pagos (temporal para testing - agregar JWT en producción)
                         .requestMatchers("/payments/create", "/api/payments/create").permitAll()
+                        .requestMatchers("/payments/create-checkout-stripe", "/api/payments/create-checkout-stripe").permitAll()
                         .requestMatchers("/payments/verify/**", "/api/payments/verify/**").permitAll()
 
                         // Todos los demás endpoints requieren autenticación

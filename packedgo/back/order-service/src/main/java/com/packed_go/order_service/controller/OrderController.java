@@ -1,7 +1,5 @@
 package com.packed_go.order_service.controller;
 
-import com.packed_go.order_service.dto.MultiOrderCheckoutResponse;
-import com.packed_go.order_service.dto.SessionStateResponse;
 import com.packed_go.order_service.dto.request.CheckoutRequest;
 import com.packed_go.order_service.dto.request.PaymentCallbackRequest;
 import com.packed_go.order_service.dto.response.CheckoutResponse;
@@ -47,149 +45,6 @@ public class OrderController {
         CheckoutResponse response = orderService.checkout(userId, request);
         
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
-    }
-    
-    /**
-     * Backend State Authority: Obtiene o crea la sesión actual del usuario
-     * El frontend NO guarda sessionId, solo llama a este endpoint con JWT
-     * Busca sesión activa (PENDING/PARTIAL no expirada), si no existe crea nueva
-     * 
-     * GET /api/orders/checkout/current
-     * Headers: Authorization: Bearer {token}
-     * 
-     * @return 200 OK con el estado completo de la sesión (NUNCA falla)
-     */
-    @GetMapping("/checkout/current")
-    public ResponseEntity<SessionStateResponse> getCurrentCheckoutState(
-            @RequestHeader("Authorization") String authHeader) {
-        
-        log.info("GET /api/orders/checkout/current - Getting current checkout state");
-        
-        Long userId = extractUserId(authHeader);
-        SessionStateResponse response = orderService.getCurrentCheckoutState(userId);
-        
-        return ResponseEntity.ok(response);
-    }
-    
-    /**
-     * Procesar checkout multitenant - crea múltiples órdenes si hay items de varios admins
-     * 
-     * POST /api/orders/checkout/multi
-     * Headers: Authorization: Bearer {token}
-     * 
-     * @return 201 CREATED con la sesión y grupos de pago
-     */
-    @PostMapping("/checkout/multi")
-    public ResponseEntity<MultiOrderCheckoutResponse> checkoutMulti(
-            @RequestHeader("Authorization") String authHeader) {
-        
-        log.info("POST /api/orders/checkout/multi - Processing multi-order checkout");
-        
-        Long userId = extractUserId(authHeader);
-        MultiOrderCheckoutResponse response = orderService.checkoutMulti(userId);
-        
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
-    }
-    
-    /**
-     * Obtener el estado de una sesión de múltiples órdenes
-     * 
-     * GET /api/orders/sessions/{sessionId}
-     * Headers: Authorization: Bearer {token} (opcional - para validación de usuario)
-     * 
-     * @return 200 OK con el estado de la sesión
-     */
-    @GetMapping("/sessions/{sessionId}")
-    public ResponseEntity<MultiOrderCheckoutResponse> getSessionStatus(
-            @RequestHeader(value = "Authorization", required = false) String authHeader,
-            @PathVariable String sessionId) {
-        
-        log.info("GET /api/orders/sessions/{} - Retrieving session status", sessionId);
-        
-        // Si hay authHeader, validar que la sesión pertenece al usuario
-        if (authHeader != null && authHeader.startsWith("Bearer ")) {
-            try {
-                Long userId = extractUserId(authHeader);
-                log.info("Session status requested by user: {}", userId);
-            } catch (Exception e) {
-                log.warn("Invalid or expired token, proceeding without user validation");
-            }
-        } else {
-            log.info("Session status requested without authentication (polling)");
-        }
-        
-        MultiOrderCheckoutResponse response = orderService.getSessionStatus(sessionId);
-        return ResponseEntity.ok(response);
-    }
-    
-    /**
-     * Recuperar una sesión usando el token de recuperación
-     * NO requiere autenticación JWT - usa token anónimo de sesión
-     * 
-     * GET /api/orders/session/recover
-     * Headers: X-Session-Token: {sessionToken}
-     * 
-     * @return 200 OK con el estado de la sesión
-     */
-    @GetMapping("/session/recover")
-    public ResponseEntity<MultiOrderCheckoutResponse> recoverSession(
-            @RequestHeader("X-Session-Token") String sessionToken) {
-        
-        log.info("GET /api/orders/session/recover - Recovering session by token");
-        
-        MultiOrderCheckoutResponse response = orderService.recoverSessionByToken(sessionToken);
-        return ResponseEntity.ok(response);
-    }
-    
-    /**
-     * Obtener todos los tickets generados en una sesión
-     * NO requiere autenticación JWT
-     * 
-     * GET /api/orders/session/{sessionId}/tickets
-     * 
-     * @return 200 OK con la lista de tickets
-     */
-    @GetMapping("/session/{sessionId}/tickets")
-    public ResponseEntity<List<Object>> getSessionTickets(
-            @PathVariable String sessionId) {
-        
-        log.info("GET /api/orders/session/{}/tickets - Retrieving session tickets", sessionId);
-        
-        List<Object> tickets = orderService.getSessionTickets(sessionId);
-        return ResponseEntity.ok(tickets);
-    }
-    
-    /**
-     * Abandonar una sesión de checkout y devolver items al carrito
-     * Solo funciona si no hay pagos completados
-     * 
-     * POST /api/orders/sessions/{sessionId}/abandon
-     * Headers: Authorization: Bearer {token}
-     * 
-     * @return 200 OK si se abandonó exitosamente
-     */
-    @PostMapping("/sessions/{sessionId}/abandon")
-    public ResponseEntity<?> abandonSession(
-            @RequestHeader("Authorization") String authHeader,
-            @PathVariable String sessionId) {
-        
-        log.info("POST /api/orders/sessions/{}/abandon - Abandoning session", sessionId);
-        
-        try {
-            Long userId = extractUserId(authHeader);
-            orderService.abandonSession(sessionId, userId);
-            
-            return ResponseEntity.ok()
-                    .body(new MessageResponse("Session abandoned successfully. Items returned to cart."));
-        } catch (IllegalStateException e) {
-            log.warn("Cannot abandon session {}: {}", sessionId, e.getMessage());
-            return ResponseEntity.status(HttpStatus.CONFLICT)
-                    .body(new MessageResponse(e.getMessage()));
-        } catch (RuntimeException e) {
-            log.error("Error abandoning session {}: {}", sessionId, e.getMessage());
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(new MessageResponse(e.getMessage()));
-        }
     }
     
     /**
@@ -277,6 +132,28 @@ public class OrderController {
      * Simple response class for messages
      */
     private record MessageResponse(String message) {}
+
+    /**
+     * Procesar checkout para un admin específico (Single Admin Checkout)
+     * 
+     * POST /api/orders/checkout/single
+     * Headers: Authorization: Bearer {token}
+     * Body: { "adminId": 123 }
+     * 
+     * @return 201 CREATED con la URL de pago
+     */
+    @PostMapping("/checkout/single")
+    public ResponseEntity<CheckoutResponse> checkoutSingleAdmin(
+            @RequestHeader("Authorization") String authHeader,
+            @RequestBody CheckoutRequest request) {
+        
+        log.info("POST /api/orders/checkout/single - Processing checkout for adminId: {}", request.getAdminId());
+        
+        Long userId = extractUserId(authHeader);
+        CheckoutResponse response = orderService.checkoutSingleAdmin(userId, request.getAdminId());
+        
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
 
 
 

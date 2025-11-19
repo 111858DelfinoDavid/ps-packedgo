@@ -2,6 +2,7 @@ import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
+import Swal from 'sweetalert2';
 import { EventService } from '../../../core/services/event.service';
 import { CartService } from '../../../core/services/cart.service';
 import { Event, Consumption } from '../../../shared/models/event.model';
@@ -71,7 +72,7 @@ export class EventDetailComponent implements OnInit {
     if (this.quantity < effectiveMax) {
       this.quantity++;
     } else if (this.quantity >= maxCanAdd) {
-      alert(`Ya tienes ${currentInCart} entrada(s) en tu carrito. Solo puedes agregar ${maxCanAdd} más (máximo ${maxTickets} por persona).`);
+      Swal.fire('Límite alcanzado', `Ya tienes ${currentInCart} entrada(s) en tu carrito. Solo puedes agregar ${maxCanAdd} más (máximo ${maxTickets} por persona).`, 'warning');
     }
   }
 
@@ -103,7 +104,7 @@ export class EventDetailComponent implements OnInit {
     if (!this.cartService.canAddTickets(this.event.id!, this.quantity)) {
       const currentCount = this.cartService.getTicketCountForEvent(this.event.id!);
       const remaining = maxTickets - currentCount;
-      alert(`Ya tienes ${currentCount} entrada(s) de este evento en tu carrito. Solo puedes agregar ${remaining} más (máximo ${maxTickets} por persona).`);
+      Swal.fire('Límite alcanzado', `Ya tienes ${currentCount} entrada(s) de este evento en tu carrito. Solo puedes agregar ${remaining} más (máximo ${maxTickets} por persona).`, 'warning');
       return;
     }
 
@@ -128,12 +129,20 @@ export class EventDetailComponent implements OnInit {
         const consumptionText = consumptions.length > 0 
           ? ` con ${consumptions.length} consumo(s)` 
           : '';
-        alert(`¡${this.quantity} entrada(s) agregada(s) al carrito${consumptionText}!`);
-        this.isAddingToCart = false;
-        // Resetear la cantidad y consumptions seleccionadas
-        this.quantity = 1;
-        this.selectedConsumptions.clear();
-        this.router.navigate(['/customer/dashboard']);
+        
+        Swal.fire({
+          title: '¡Agregado!',
+          text: `¡${this.quantity} entrada(s) agregada(s) al carrito${consumptionText}!`,
+          icon: 'success',
+          timer: 1500,
+          showConfirmButton: false
+        }).then(() => {
+          this.isAddingToCart = false;
+          // Resetear la cantidad y consumptions seleccionadas
+          this.quantity = 1;
+          this.selectedConsumptions.clear();
+          this.router.navigate(['/customer/dashboard']);
+        });
       },
       error: (error) => {
         console.error('Error al agregar al carrito:', error);
@@ -145,9 +154,9 @@ export class EventDetailComponent implements OnInit {
           // Error de límite máximo desde el backend
           const maxTickets = this.cartService.MAX_TICKETS_PER_PERSON;
           const currentCount = this.cartService.getTicketCountForEvent(this.event!.id!);
-          alert(`Has alcanzado el límite máximo de ${maxTickets} entradas por persona. Actualmente tienes ${currentCount} entradas de este evento en tu carrito.`);
+          Swal.fire('Límite alcanzado', `Has alcanzado el límite máximo de ${maxTickets} entradas por persona. Actualmente tienes ${currentCount} entradas de este evento en tu carrito.`, 'error');
         } else {
-          alert(`Error al agregar al carrito: ${errorMessage}`);
+          Swal.fire('Error', `Error al agregar al carrito: ${errorMessage}`, 'error');
         }
         
         this.isAddingToCart = false;

@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PackedGo - Checkout con Stripe</title>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 800px;
+            width: 100%;
+            padding: 40px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .header h1 {
+            color: #333;
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            color: #666;
+            font-size: 1.1rem;
+        }
+
+        .package-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 15px;
+            padding: 30px;
+            color: white;
+            margin-bottom: 30px;
+        }
+
+        .package-card h2 {
+            font-size: 1.8rem;
+            margin-bottom: 20px;
+        }
+
+        .package-items {
+            list-style: none;
+            margin-bottom: 20px;
+        }
+
+        .package-items li {
+            padding: 10px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .package-items li:last-child {
+            border-bottom: none;
+        }
+
+        .price {
+            font-size: 2rem;
+            font-weight: bold;
+            text-align: right;
+            margin-top: 20px;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 18px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 15px;
+        }
+
+        .btn-primary {
+            background: #6772e5;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5469d4;
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(103, 114, 229, 0.3);
+        }
+
+        .btn-primary:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            color: #666;
+            margin-top: 20px;
+        }
+
+        .loading.active {
+            display: block;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .info-box {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 20px;
+        }
+
+        .info-box h3 {
+            color: #333;
+            margin-bottom: 15px;
+        }
+
+        .info-box p {
+            color: #666;
+            line-height: 1.6;
+            margin-bottom: 10px;
+        }
+
+        .info-box code {
+            background: #e9ecef;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎉 PackedGo</h1>
+            <p>Powered by Stripe</p>
+        </div>
+
+        <div class="package-card">
+            <h2>🎫 Paquete Fiesta 2025</h2>
+            <ul class="package-items">
+                <li>
+                    <span>🎟️ Entrada General</span>
+                    <span>$50.00 USD</span>
+                </li>
+                <li>
+                    <span>🍺 3x Cerveza</span>
+                    <span>$24.00 USD</span>
+                </li>
+                <li>
+                    <span>🍹 2x Fernet con Cola</span>
+                    <span>$24.00 USD</span>
+                </li>
+            </ul>
+            <div class="price">Total: $98.00 USD</div>
+        </div>
+
+        <button id="checkoutBtn" class="btn btn-primary">
+            💳 Pagar con Stripe
+        </button>
+
+        <div id="loading" class="loading">
+            <div class="spinner"></div>
+            <p>Redirigiendo a Stripe Checkout...</p>
+        </div>
+
+        <div class="info-box">
+            <h3>ℹ️ Tarjetas de Prueba</h3>
+            <p><strong>Tarjeta exitosa:</strong> <code>4242 4242 4242 4242</code></p>
+            <p><strong>Requiere autenticación:</strong> <code>4000 0025 0000 3155</code></p>
+            <p><strong>Declinada:</strong> <code>4000 0000 0000 9995</code></p>
+            <p><strong>Fecha:</strong> Cualquier fecha futura | <strong>CVC:</strong> Cualquier 3 dígitos</p>
+            <p><strong>ZIP:</strong> Cualquier 5 dígitos</p>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:8081/api/stripe';
+        const checkoutBtn = document.getElementById('checkoutBtn');
+        const loading = document.getElementById('loading');
+
+        checkoutBtn.addEventListener('click', async () => {
+            try {
+                checkoutBtn.disabled = true;
+                loading.classList.add('active');
+
+                const checkoutData = {
+                    items: [
+                        {
+                            name: "Entrada - Fiesta Electronica 2025",
+                            description: "Acceso general al evento",
+                            quantity: 1,
+                            unitAmount: 5000, // $50.00 en centavos
+                            currency: "usd"
+                        },
+                        {
+                            name: "Cerveza",
+                            description: "Consumición prepagada",
+                            quantity: 3,
+                            unitAmount: 800, // $8.00 en centavos
+                            currency: "usd"
+                        },
+                        {
+                            name: "Fernet con Cola",
+                            description: "Consumición prepagada",
+                            quantity: 2,
+                            unitAmount: 1200, // $12.00 en centavos
+                            currency: "usd"
+                        }
+                    ],
+                    successUrl: "http://localhost:3000/stripe-success.html",
+                    cancelUrl: "http://localhost:3000/stripe-checkout.html",
+                    customerEmail: "test@packedgo.com",
+                    externalReference: "PACKEDGO-" + Date.now()
+                };
+
+                const response = await fetch(`${API_URL}/create-checkout-session`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(checkoutData)
+                });
+
+                if (!response.ok) {
+                    throw new Error('Error al crear sesión de checkout');
+                }
+
+                const data = await response.json();
+                
+                // Redirigir a Stripe Checkout
+                window.location.href = data.url;
+
+            } catch (error) {
+                console.error('Error:', error);
+                Swal.fire('Error', 'Error al crear la sesión de checkout. Verifica que la API esté corriendo en http://localhost:8081', 'error');
+                checkoutBtn.disabled = false;
+                loading.classList.remove('active');
+            }
+        });
+    </script>
+</body>
+</html>

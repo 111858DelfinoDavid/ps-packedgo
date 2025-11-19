@@ -130,4 +130,119 @@ export class EmployeeService {
       this.getHeaders()
     ).pipe(map(response => response.data));
   }
+
+  // ========================================
+  // MÉTODOS PARA DASHBOARD DE EMPLEADOS
+  // ========================================
+
+  private employeeApiUrl = `${environment.usersServiceUrl}/employee`;
+
+  /**
+   * Obtiene los eventos asignados al empleado actual
+   */
+  getAssignedEvents(): Observable<AssignedEvent[]> {
+    return this.http.get<ApiResponse<AssignedEvent[]>>(
+      `${this.employeeApiUrl}/assigned-events`,
+      this.getHeaders()
+    ).pipe(map(response => response.data));
+  }
+
+  /**
+   * Valida un ticket de entrada escaneando el QR
+   */
+  validateTicket(qrCode: string, eventId: number): Observable<TicketValidationResponse> {
+    return this.http.post<ApiResponse<TicketValidationResponse>>(
+      `${this.employeeApiUrl}/validate-ticket`,
+      { qrCode, eventId },
+      this.getHeaders()
+    ).pipe(map(response => response.data));
+  }
+
+  /**
+   * Obtiene las consumiciones disponibles de un ticket
+   */
+  getTicketConsumptions(ticketConsumptionId: number): Observable<ConsumptionDetail[]> {
+    return this.http.get<ConsumptionDetail[]>(
+      `${environment.eventServiceUrl}/event-service/ticket-consumption/${ticketConsumptionId}/details`
+    );
+  }
+
+  /**
+   * Registra/canjea una consumición
+   */
+  registerConsumption(request: RegisterConsumptionRequest): Observable<ConsumptionResponse> {
+    return this.http.post<ApiResponse<ConsumptionResponse>>(
+      `${this.employeeApiUrl}/register-consumption`,
+      request,
+      this.getHeaders()
+    ).pipe(map(response => response.data));
+  }
+
+  /**
+   * Obtiene estadísticas del empleado
+   */
+  getStats(): Observable<EmployeeStats> {
+    return this.http.get<ApiResponse<EmployeeStats>>(
+      `${this.employeeApiUrl}/stats`,
+      this.getHeaders()
+    ).pipe(map(response => response.data));
+  }
+}
+
+// ========================================
+// INTERFACES ADICIONALES
+// ========================================
+
+export interface TicketValidationResponse {
+  valid: boolean;
+  message: string;
+  ticketInfo?: {
+    ticketId: number;
+    userId: number;
+    customerName: string;
+    eventName: string;
+    passType: string;
+    alreadyUsed: boolean;
+  };
+}
+
+export interface ConsumptionDetail {
+  id: number;
+  consumption: {
+    id: number;
+    name: string;
+    description?: string;
+  };
+  quantity: number;
+  priceAtPurchase: number;
+  active: boolean;
+  redeem: boolean;
+}
+
+export interface RegisterConsumptionRequest {
+  qrCode: string;
+  eventId: number;
+  detailId: number;
+  quantity?: number;
+}
+
+export interface ConsumptionResponse {
+  success: boolean;
+  message: string;
+  consumptionInfo?: {
+    detailId: number;
+    consumptionId: number;
+    consumptionName: string;
+    consumptionType: string;
+    quantityRedeemed: number;
+    remainingQuantity: number;
+    fullyRedeemed: boolean;
+    eventName: string;
+  };
+}
+
+export interface EmployeeStats {
+  ticketsScannedToday: number;
+  consumptionsToday: number;
+  totalScannedToday: number;
 }

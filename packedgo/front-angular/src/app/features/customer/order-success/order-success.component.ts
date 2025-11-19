@@ -5,7 +5,7 @@ import { OrderService } from '../../../core/services/order.service';
 import { TicketService, Ticket } from '../../../core/services/ticket.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { PaymentService } from '../../../core/services/payment.service';
-import { MultiOrderCheckoutResponse } from '../../../shared/models/order.model';
+import { MultiOrderCheckoutResponse, SessionStateResponse, SessionPaymentGroup } from '../../../shared/models/order.model';
 import { forkJoin } from 'rxjs';
 
 @Component({
@@ -24,7 +24,7 @@ export class OrderSuccessComponent implements OnInit {
   private paymentService = inject(PaymentService);
 
   sessionId: string = '';
-  sessionData: MultiOrderCheckoutResponse | null = null;
+  sessionData: SessionStateResponse | null = null;
   tickets: Ticket[] = [];
   isLoading = true;
   isLoadingTickets = false;
@@ -35,10 +35,36 @@ export class OrderSuccessComponent implements OnInit {
     // Obtener el sessionId de los query params
     this.route.queryParams.subscribe(params => {
       this.sessionId = params['sessionId'];
-      if (this.sessionId) {
+      const orderId = params['orderId'];
+      
+      // Priorizar orderId si está disponible, ya que el sessionId de Stripe 
+      // no es compatible con el endpoint de sesión de órdenes actual
+      if (orderId) {
+        this.loadSingleOrderData(orderId);
+      } else if (this.sessionId) {
         this.loadSessionData();
       } else {
         this.router.navigate(['/customer/dashboard']);
+      }
+    });
+  }
+
+  loadSingleOrderData(orderId: string): void {
+    this.isLoading = true;
+    console.log('🔄 Verificando estado del pago para orden:', orderId);
+    
+    // Verificar estado del pago antes de cargar tickets
+    this.paymentService.verifyPaymentStatus(orderId).subscribe({
+      next: (status) => {
+        console.log('✅ Estado de pago verificado:', status);
+        // Esperar un momento para asegurar que el backend procesó todo (generación de tickets)
+        setTimeout(() => {
+          this.loadTickets();
+        }, 1500);
+      },
+      error: (error) => {
+        console.warn('⚠️ No se pudo verificar el pago, intentando cargar tickets de todos modos:', error);
+        this.loadTickets();
       }
     });
   }
@@ -51,7 +77,7 @@ export class OrderSuccessComponent implements OnInit {
         
         // Verificar si hay órdenes pendientes de pago
         const pendingOrders = data.paymentGroups?.filter(
-          group => group.status === 'PENDING_PAYMENT'
+          group => group.paymentStatus === 'PENDING_PAYMENT'
         ) || [];
         
         if (pendingOrders.length > 0) {
@@ -73,7 +99,7 @@ export class OrderSuccessComponent implements OnInit {
     this.isVerifyingPayments = true;
     this.verificationMessage = 'Verificando estado de los pagos...';
     
-    // Esperar 2 segundos antes de verificar (dar tiempo a MercadoPago)
+    // Esperar 2 segundos antes de verificar (dar tiempo al webhook de Stripe)
     setTimeout(() => {
       const verifications = orders.map(order => 
         this.paymentService.verifyPaymentStatus(order.orderNumber)
@@ -121,6 +147,7 @@ export class OrderSuccessComponent implements OnInit {
     const userId = this.authService.getUserId();
     if (!userId) {
       console.error('No user ID available');
+      this.isLoading = false;
       return;
     }
 
@@ -129,11 +156,13 @@ export class OrderSuccessComponent implements OnInit {
       next: (tickets) => {
         this.tickets = tickets;
         this.isLoadingTickets = false;
+        this.isLoading = false; // Desactivar loading principal
         console.log('✅ Tickets loaded:', tickets);
       },
       error: (error) => {
         console.error('❌ Error loading tickets:', error);
         this.isLoadingTickets = false;
+        this.isLoading = false; // Desactivar loading principal incluso en error
       }
     });
   }

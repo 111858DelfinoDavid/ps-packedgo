@@ -10,7 +10,7 @@
     <p>{{ verificationMessage }}</p>
   </div>
 
-  <div *ngIf="!isLoading && sessionData" class="success-content">
+  <div *ngIf="!isLoading && (sessionData || tickets.length > 0)" class="success-content">
     <!-- Success Icon -->
     <div class="success-icon">
       <div class="checkmark-circle">
@@ -27,8 +27,8 @@
       <p class="subtitle">Tu pago ha sido procesado exitosamente</p>
     </div>
 
-    <!-- Session Summary -->
-    <div class="session-summary-card">
+    <!-- Session Summary (Only for Multi-Order Session) -->
+    <div class="session-summary-card" *ngIf="sessionData">
       <div class="summary-header">
         <h2>Resumen de tu Compra</h2>
         <span class="session-id">Sesión: {{ sessionId }}</span>
@@ -37,11 +37,11 @@
       <div class="summary-body">
         <div class="summary-item">
           <span class="label">Total Pagado:</span>
-          <span class="value success">${{ sessionData.totalPaid | number:'1.2-2' }}</span>
+          <span class="value success">${{ sessionData.totalAmount | number:'1.2-2' }}</span>
         </div>
         <div class="summary-item">
           <span class="label">Órdenes Completadas:</span>
-          <span class="value">{{ sessionData.paidOrders }} / {{ sessionData.totalOrders }}</span>
+          <span class="value">{{ sessionData.paidGroups }} / {{ sessionData.totalGroups }}</span>
         </div>
         <div class="summary-item">
           <span class="label">Estado:</span>
@@ -55,13 +55,13 @@
         <div *ngFor="let group of sessionData.paymentGroups" class="order-card">
           <div class="order-header">
             <span class="order-number">{{ group.orderNumber }}</span>
-            <span class="badge badge-success" *ngIf="group.status === 'PAID'">✓ Pagado</span>
+            <span class="badge badge-success" *ngIf="group.paymentStatus === 'PAID'">✓ Pagado</span>
           </div>
           <div class="order-items">
             <div *ngFor="let item of group.items" class="order-item">
               <span>{{ item.eventName }}</span>
               <span>x{{ item.quantity }}</span>
-              <span>${{ item.totalPrice | number:'1.2-2' }}</span>
+              <span>${{ item.subtotal | number:'1.2-2' }}</span>
             </div>
           </div>
           <div class="order-total">
@@ -190,7 +190,7 @@
     </div>
   </div>
 
-  <div *ngIf="!isLoading && !sessionData" class="error-message">
+  <div *ngIf="!isLoading && !sessionData && tickets.length === 0" class="error-message">
     <h2>No se pudo cargar la información de la compra</h2>
     <button class="btn btn-primary" (click)="goToDashboard()">
       Volver al Inicio

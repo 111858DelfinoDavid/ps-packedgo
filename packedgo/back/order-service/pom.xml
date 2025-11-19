@@ -102,6 +102,12 @@
 			<version>3.1.1</version>
 		</dependency>
 
+		<!-- Mail Support -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-mail</artifactId>
+		</dependency>
+
 		<!-- Testing -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>

@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterModule } from '@angular/router';
+import Swal from 'sweetalert2';
 import { AuthService } from '../../../core/services/auth.service';
 
 @Component({
@@ -96,7 +97,7 @@ export class VerifyEmailRequiredComponent implements OnInit {
     if (user?.isEmailVerified) {
       this.redirectToDashboard(user.role);
     } else {
-      alert('Tu correo aún no ha sido verificado. Por favor, revisa tu bandeja de entrada.');
+      Swal.fire('No verificado', 'Tu correo aún no ha sido verificado. Por favor, revisa tu bandeja de entrada.', 'info');
     }
   }
 

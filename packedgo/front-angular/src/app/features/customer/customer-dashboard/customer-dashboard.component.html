@@ -132,8 +132,12 @@
     <!-- ==================== CART TAB ==================== -->
     <div *ngIf="activeTab === 'cart'" class="tab-content">
       <div class="cart-section">
-        <div class="section-header">
+        <div class="section-header d-flex justify-content-between align-items-center">
           <h2><i class="bi bi-cart me-2"></i>Mi Carrito de Compras</h2>
+          <button *ngIf="cart && cart.items.length > 0" class="btn btn-outline-danger" (click)="clearCart()">
+            <i class="bi bi-trash me-2"></i>
+            Vaciar Todo el Carrito
+          </button>
         </div>
 
         <div *ngIf="!cart || cart.items.length === 0" class="empty-cart">
@@ -147,115 +151,83 @@
         </div>
 
         <div *ngIf="cart && cart.items.length > 0" class="cart-content">
-          <div class="cart-items">
-            <div *ngFor="let item of cart.items" class="cart-item-card">
-              <div class="item-header">
-                <h4>{{ item.eventName }}</h4>
-                <button class="btn-remove" (click)="removeFromCart(item.id)" title="Eliminar del carrito">
-                  <i class="bi bi-trash"></i>
-                </button>
-              </div>
-              
-              <div class="item-details">
-                <!-- Entradas -->
-                <div class="detail-section">
-                  <div class="section-title">
-                    <i class="bi bi-ticket-perforated"></i>
-                    <span>Entradas</span>
-                  </div>
-                  <div class="detail-row">
-                    <span>Precio por entrada:</span>
-                    <span>{{ item.unitPrice | currency: 'USD':'symbol':'1.2-2' }}</span>
-                  </div>
-                  <div class="detail-row">
-                    <span>Cantidad:</span>
-                    <div class="quantity-controls">
-                      <span class="quantity-display">{{ item.quantity }}</span>
-                      <button class="btn-quantity" (click)="duplicateItem(item)" title="Agregar otra entrada">
-                        <i class="bi bi-plus"></i>
-                      </button>
-                    </div>
-                  </div>
-                  <div class="detail-row subtotal-row">
-                    <span>Subtotal entradas:</span>
-                    <strong>{{ item.unitPrice * item.quantity | currency: 'USD':'symbol':'1.2-2' }}</strong>
-                  </div>
-                </div>
+          
+          <div *ngFor="let group of groupedItems" class="cart-group mb-4 border rounded shadow-sm">
+            <div class="group-header bg-light p-3 border-bottom d-flex justify-content-between align-items-center">
+              <h4 class="m-0 fs-5"><i class="bi bi-shop me-2"></i>Organizador #{{ group.adminId }}</h4>
+              <span class="badge bg-primary">{{ group.items.length }} items</span>
+            </div>
 
-                <!-- Consumiciones (si hay) -->
-                <div class="detail-section" *ngIf="item.consumptions && item.consumptions.length > 0">
-                  <div class="section-title">
-                    <i class="bi bi-cup-straw"></i>
-                    <span>Consumiciones Incluidas</span>
-                  </div>
-                  <div class="detail-row consumption-row" *ngFor="let consumption of item.consumptions">
-                    <div class="consumption-info">
-                      <span class="consumption-name">{{ consumption.consumptionName }}</span>
-                      <span class="consumption-price">{{ consumption.unitPrice | currency: 'USD':'symbol':'1.2-2' }} c/u</span>
-                    </div>
-                    <div class="consumption-controls">
-                      <div class="quantity-controls">
-                        <button class="btn-quantity" 
-                                (click)="decrementConsumption(item.id, consumption)"
-                                title="Disminuir cantidad">
-                          <i class="bi bi-dash"></i>
-                        </button>
-                        <span class="quantity-display">{{ consumption.quantity }}</span>
-                        <button class="btn-quantity" 
-                                (click)="incrementConsumption(item.id, consumption)"
-                                title="Aumentar cantidad">
-                          <i class="bi bi-plus"></i>
+            <div class="cart-items p-3">
+              <div *ngFor="let item of group.items" class="cart-item-card mb-3 pb-3 border-bottom">
+                <div class="item-header d-flex justify-content-between align-items-center">
+                  <h5 class="m-0">{{ item.eventName }}</h5>
+                  <button class="btn btn-link text-danger p-0" (click)="removeFromCart(item.id)" title="Eliminar del carrito">
+                    <i class="bi bi-trash"></i>
+                  </button>
+                </div>
+                
+                <div class="item-details mt-3">
+                  <!-- Entradas -->
+                  <div class="detail-section mb-2">
+                    <div class="d-flex justify-content-between align-items-center">
+                      <span>Entrada ({{ item.unitPrice | currency: 'USD':'symbol':'1.2-2' }})</span>
+                      <div class="quantity-controls d-flex align-items-center gap-2">
+                        <span class="fw-bold badge bg-secondary">{{ item.quantity }}</span>
+                        <button class="btn btn-sm btn-outline-primary" (click)="duplicateItem(item)" title="Agregar otra entrada">
+                          <i class="bi bi-plus-lg"></i> Duplicar
                         </button>
                       </div>
-                      <span class="consumption-subtotal">{{ consumption.subtotal | currency: 'USD':'symbol':'1.2-2' }}</span>
-                      <button class="btn-remove-consumption" 
-                              (click)="removeConsumption(item.id, consumption)" 
-                              title="Eliminar consumición">
-                        <i class="bi bi-trash"></i>
-                      </button>
                     </div>
                   </div>
-                  <div class="detail-row subtotal-row">
-                    <span>Subtotal consumiciones:</span>
-                    <strong>{{ getConsumptionsTotal(item.consumptions) | currency: 'USD':'symbol':'1.2-2' }}</strong>
+
+                  <!-- Consumiciones -->
+                  <div class="detail-section mt-3 p-2 bg-light rounded" *ngIf="item.consumptions && item.consumptions.length > 0">
+                    <h6 class="text-muted small mb-2 fw-bold">Consumiciones Incluidas:</h6>
+                    <div class="consumption-row d-flex justify-content-between align-items-center mb-2" *ngFor="let consumption of item.consumptions">
+                      <span class="small">{{ consumption.consumptionName }} ({{ consumption.unitPrice | currency: 'USD':'symbol':'1.2-2' }})</span>
+                      <div class="d-flex align-items-center gap-2">
+                        <div class="btn-group btn-group-sm">
+                          <button class="btn btn-outline-secondary" (click)="decrementConsumption(item.id, consumption)">-</button>
+                          <button class="btn btn-outline-secondary disabled text-dark">{{ consumption.quantity }}</button>
+                          <button class="btn btn-outline-secondary" (click)="incrementConsumption(item.id, consumption)">+</button>
+                        </div>
+                        <button class="btn btn-sm text-danger" (click)="removeConsumption(item.id, consumption)">
+                          <i class="bi bi-x-lg"></i>
+                        </button>
+                      </div>
+                    </div>
+                    <div class="text-end border-top pt-1 mt-1">
+                      <small class="text-muted">Subtotal Consumiciones: {{ getConsumptionsTotal(item.consumptions) | currency: 'USD':'symbol':'1.2-2' }}</small>
+                    </div>
+                  </div>
+
+                  <!-- Add Consumption Button -->
+                  <div class="mt-2">
+                    <button class="btn btn-sm btn-link text-decoration-none p-0" (click)="showAddConsumptionModal(item)">
+                      <i class="bi bi-plus-circle me-1"></i>Agregar consumición
+                    </button>
+                  </div>
+
+                  <!-- Item Total -->
+                  <div class="item-total text-end mt-2 pt-2 border-top">
+                    <span class="text-muted me-2">Subtotal Item:</span>
+                    <strong class="text-primary">{{ item.subtotal | currency: 'USD':'symbol':'1.2-2' }}</strong>
                   </div>
                 </div>
-
-                <!-- Total del item -->
-                <div class="detail-row total">
-                  <strong>Total:</strong>
-                  <strong>{{ item.subtotal | currency: 'USD':'symbol':'1.2-2' }}</strong>
-                </div>
-
-                <!-- Botón para agregar más consumiciones -->
-                <button class="btn-add-consumption" (click)="showAddConsumptionModal(item)">
-                  <i class="bi bi-plus-circle"></i>
-                  Agregar consumición
-                </button>
               </div>
             </div>
-          </div>
 
-          <div class="cart-summary">
-            <h3>Resumen de Compra</h3>
-            <div class="summary-row">
-              <span>Total de items:</span>
-              <strong>{{ cartCount }}</strong>
+            <div class="group-footer p-3 bg-light border-top d-flex justify-content-between align-items-center">
+              <div class="group-total">
+                <span class="text-muted me-2">Total Grupo:</span>
+                <strong class="fs-4 text-success">{{ group.total | currency: 'USD':'symbol':'1.2-2' }}</strong>
+              </div>
+              <button class="btn btn-success btn-lg" (click)="payAdminGroup(group.adminId)">
+                <i class="bi bi-credit-card me-2"></i>
+                Pagar este Grupo
+              </button>
             </div>
-            <div class="summary-row total">
-              <strong>Total a pagar:</strong>
-              <strong class="total-amount">{{ cartTotal | currency: 'USD':'symbol':'1.2-2' }}</strong>
-            </div>
-            
-            <button class="btn btn-checkout" (click)="proceedToCheckout()">
-              <i class="bi bi-credit-card me-2"></i>
-              Proceder al Pago
-            </button>
-            
-            <button class="btn btn-clear" (click)="clearCart()">
-              <i class="bi bi-trash me-2"></i>
-              Vaciar Carrito
-            </button>
           </div>
         </div>
       </div>

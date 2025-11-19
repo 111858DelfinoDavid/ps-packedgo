@@ -1,13 +1,16 @@
 package com.packed_go.users_service.controller;
 
 import com.packed_go.users_service.dto.EmployeeDTO.*;
+import com.packed_go.users_service.security.JwtTokenValidator;
 import com.packed_go.users_service.service.EmployeeService;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 
 import java.util.HashMap;
 import java.util.List;
@@ -20,14 +23,14 @@ import java.util.Map;
 public class AdminEmployeeController {
 
     private final EmployeeService employeeService;
+    private final JwtTokenValidator jwtTokenValidator;
 
     @PostMapping
     public ResponseEntity<Map<String, Object>> createEmployee(
-            @RequestBody CreateEmployeeRequest request,
-            Authentication authentication) {
-        
+            @RequestBody CreateEmployeeRequest request) {
+
         try {
-            Long adminId = extractAdminId(authentication);
+            Long adminId = extractAdminId();
             EmployeeResponse employee = employeeService.createEmployee(request, adminId);
 
             Map<String, Object> response = new HashMap<>();
@@ -52,9 +55,9 @@ public class AdminEmployeeController {
     }
 
     @GetMapping
-    public ResponseEntity<Map<String, Object>> getEmployees(Authentication authentication) {
+    public ResponseEntity<Map<String, Object>> getEmployees() {
         try {
-            Long adminId = extractAdminId(authentication);
+            Long adminId = extractAdminId();
             List<EmployeeResponse> employees = employeeService.getEmployeesByAdmin(adminId);
 
             Map<String, Object> response = new HashMap<>();
@@ -73,11 +76,10 @@ public class AdminEmployeeController {
 
     @GetMapping("/{id}")
     public ResponseEntity<Map<String, Object>> getEmployeeById(
-            @PathVariable Long id,
-            Authentication authentication) {
-        
+            @PathVariable Long id) {
+
         try {
-            Long adminId = extractAdminId(authentication);
+            Long adminId = extractAdminId();
             EmployeeResponse employee = employeeService.getEmployeeById(id, adminId);
 
             Map<String, Object> response = new HashMap<>();
@@ -103,11 +105,10 @@ public class AdminEmployeeController {
     @PutMapping("/{id}")
     public ResponseEntity<Map<String, Object>> updateEmployee(
             @PathVariable Long id,
-            @RequestBody UpdateEmployeeRequest request,
-            Authentication authentication) {
-        
+            @RequestBody UpdateEmployeeRequest request) {
+
         try {
-            Long adminId = extractAdminId(authentication);
+            Long adminId = extractAdminId();
             EmployeeResponse employee = employeeService.updateEmployee(id, request, adminId);
 
             Map<String, Object> response = new HashMap<>();
@@ -133,11 +134,10 @@ public class AdminEmployeeController {
 
     @PatchMapping("/{id}/toggle-status")
     public ResponseEntity<Map<String, Object>> toggleEmployeeStatus(
-            @PathVariable Long id,
-            Authentication authentication) {
-        
+            @PathVariable Long id) {
+
         try {
-            Long adminId = extractAdminId(authentication);
+            Long adminId = extractAdminId();
             employeeService.toggleEmployeeStatus(id, adminId);
 
             Map<String, Object> response = new HashMap<>();
@@ -162,11 +162,10 @@ public class AdminEmployeeController {
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Map<String, Object>> deleteEmployee(
-            @PathVariable Long id,
-            Authentication authentication) {
-        
+            @PathVariable Long id) {
+
         try {
-            Long adminId = extractAdminId(authentication);
+            Long adminId = extractAdminId();
             employeeService.deleteEmployee(id, adminId);
 
             Map<String, Object> response = new HashMap<>();
@@ -189,10 +188,17 @@ public class AdminEmployeeController {
         }
     }
 
-    private Long extractAdminId(Authentication authentication) {
-        // Extraer adminId del JWT token
-        // El JWT debe contener el userId del admin
-        Map<String, Object> claims = (Map<String, Object>) authentication.getPrincipal();
-        return Long.valueOf(claims.get("userId").toString());
+    private Long extractAdminId() {
+        // Extraer adminId del JWT token desde el header
+        HttpServletRequest request =
+            ((ServletRequestAttributes) RequestContextHolder.getRequestAttributes()).getRequest();
+        String authHeader = request.getHeader("Authorization");
+
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            String token = authHeader.substring(7);
+            return jwtTokenValidator.getUserIdFromToken(token);
+        }
+
+        throw new RuntimeException("No JWT token found in request");
     }
 }

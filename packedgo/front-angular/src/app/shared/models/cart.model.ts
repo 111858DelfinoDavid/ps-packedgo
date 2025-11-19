@@ -1,7 +1,7 @@
 export interface Cart {
   id: number;
   userId: number;
-  status: 'ACTIVE' | 'EXPIRED' | 'CHECKED_OUT';
+  status: 'ACTIVE' | 'EXPIRED' | 'COMPLETED';
   expiresAt: string;
   createdAt: string;
   updatedAt: string;
@@ -15,6 +15,7 @@ export interface CartItem {
   id: number;
   eventId: number;
   eventName: string;
+  adminId: number;
   quantity: number;
   unitPrice: number;
   subtotal: number;

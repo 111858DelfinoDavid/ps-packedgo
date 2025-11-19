@@ -20,10 +20,8 @@ import lombok.NoArgsConstructor;
 
 @Entity
 @Table(name = "payments", indexes = {
-        @Index(name = "idx_payments_admin_id", columnList = "admin_id"),
         @Index(name = "idx_payments_order_id", columnList = "order_id"),
-        @Index(name = "idx_payments_mp_payment_id", columnList = "mp_payment_id"),
-        @Index(name = "idx_payments_preference_id", columnList = "preference_id"),
+        @Index(name = "idx_payments_stripe_session_id", columnList = "stripe_session_id"),
         @Index(name = "idx_payments_status", columnList = "status")
 })
 @Data
@@ -40,9 +38,6 @@ public class Payment {
 
     @Column(name = "order_id", nullable = false, unique = true, length = 255)
     private String orderId;
-
-    @Column(name = "mp_payment_id")
-    private Long mpPaymentId;
 
     @Column(name = "amount", nullable = false, precision = 10, scale = 2)
     private BigDecimal amount;
@@ -67,14 +62,16 @@ public class Payment {
     @Column(name = "description", length = 500)
     private String description;
 
-    @Column(name = "external_reference", length = 255)
-    private String externalReference;
+    // Stripe fields
+    @Column(name = "stripe_session_id", length = 255)
+    private String stripeSessionId;
 
-    @Column(name = "preference_id", length = 255)
-    private String preferenceId;
+    @Column(name = "stripe_payment_intent_id", length = 255)
+    private String stripePaymentIntentId;
 
-    @Column(name = "merchant_order_id")
-    private Long merchantOrderId;
+    @Column(name = "payment_provider", length = 50)
+    @lombok.Builder.Default
+    private String paymentProvider = "STRIPE"; // Only STRIPE
 
     @Column(name = "transaction_amount", precision = 10, scale = 2)
     private BigDecimal transactionAmount;

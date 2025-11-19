@@ -452,6 +452,20 @@
   flex-wrap: wrap;
 }
 
+.no-payment-link {
+  padding: 1rem;
+  background: #fff3cd;
+  border: 2px dashed #ffc107;
+  border-radius: 6px;
+  text-align: center;
+}
+
+.no-payment-link .text-warning {
+  margin: 0 0 0.75rem 0;
+  color: #856404;
+  font-weight: 500;
+}
+
 /* Buttons */
 .btn {
   padding: 0.75rem 1.5rem;

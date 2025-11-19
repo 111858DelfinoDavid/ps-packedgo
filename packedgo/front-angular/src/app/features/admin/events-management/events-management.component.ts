@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
+import Swal from 'sweetalert2';
 import { EventService } from '../../../core/services/event.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { Event, EventCategory, Consumption } from '../../../shared/models/event.model';
@@ -283,20 +284,26 @@ export class EventsManagementComponent implements OnInit {
   }
 
   deleteEvent(eventId: number, eventName: string): void {
-    if (!confirm(`¿Estás seguro de que deseas eliminar el evento "${eventName}"?`)) {
-      return;
-    }
-
-    this.eventService.deleteEvent(eventId).subscribe({
-      next: () => {
-        this.successMessage = 'Evento eliminado exitosamente';
-        this.loadData();
-        setTimeout(() => this.successMessage = '', 3000);
-      },
-      error: (error: any) => {
-        console.error('Error al eliminar evento:', error);
-        this.errorMessage = error.error?.message || 'Error al eliminar el evento. Por favor, intenta nuevamente.';
-        setTimeout(() => this.errorMessage = '', 3000);
+    Swal.fire({
+      title: '¿Eliminar evento?',
+      text: `¿Estás seguro de que deseas eliminar el evento "${eventName}"?`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Sí, eliminar',
+      cancelButtonText: 'Cancelar',
+      confirmButtonColor: '#d33'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        this.eventService.deleteEvent(eventId).subscribe({
+          next: () => {
+            Swal.fire('Eliminado', 'Evento eliminado exitosamente', 'success');
+            this.loadData();
+          },
+          error: (error: any) => {
+            console.error('Error al eliminar evento:', error);
+            Swal.fire('Error', error.error?.message || 'Error al eliminar el evento. Por favor, intenta nuevamente.', 'error');
+          }
+        });
       }
     });
   }
@@ -542,20 +549,26 @@ export class EventsManagementComponent implements OnInit {
   }
 
   deleteCategory(categoryId: number, categoryName: string): void {
-    if (!confirm(`¿Estás seguro de que deseas eliminar la categoría "${categoryName}"?`)) {
-      return;
-    }
-
-    this.eventService.deleteEventCategory(categoryId).subscribe({
-      next: () => {
-        this.successMessage = 'Categoría eliminada exitosamente';
-        this.loadCategories();
-        setTimeout(() => this.successMessage = '', 3000);
-      },
-      error: (error: any) => {
-        console.error('Error al eliminar categoría:', error);
-        this.errorMessage = error.error?.message || 'Error al eliminar la categoría. Por favor, intenta nuevamente.';
-        setTimeout(() => this.errorMessage = '', 3000);
+    Swal.fire({
+      title: '¿Eliminar categoría?',
+      text: `¿Estás seguro de que deseas eliminar la categoría "${categoryName}"?`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Sí, eliminar',
+      cancelButtonText: 'Cancelar',
+      confirmButtonColor: '#d33'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        this.eventService.deleteEventCategory(categoryId).subscribe({
+          next: () => {
+            Swal.fire('Eliminado', 'Categoría eliminada exitosamente', 'success');
+            this.loadCategories();
+          },
+          error: (error: any) => {
+            console.error('Error al eliminar categoría:', error);
+            Swal.fire('Error', error.error?.message || 'Error al eliminar la categoría. Por favor, intenta nuevamente.', 'error');
+          }
+        });
       }
     });
   }

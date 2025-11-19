@@ -2,6 +2,7 @@ import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
+import Swal from 'sweetalert2';
 import { AuthService } from '../../../core/services/auth.service';
 import { EmployeeService, EmployeeWithEvents, CreateEmployeeRequest, UpdateEmployeeRequest } from '../../../core/services/employee.service';
 import { EventService } from '../../../core/services/event.service';
@@ -243,43 +244,51 @@ export class EmployeeManagementComponent implements OnInit {
   }
 
   toggleEmployeeStatus(employee: EmployeeWithEvents): void {
-    if (!confirm(`¿Está seguro de ${employee.isActive ? 'desactivar' : 'activar'} a ${employee.username}?`)) {
-      return;
-    }
-
-    this.employeeService.toggleEmployeeStatus(employee.id).subscribe({
-      next: () => {
-        employee.isActive = !employee.isActive;
-        this.successMessage = `Empleado ${employee.isActive ? 'activado' : 'desactivado'} exitosamente`;
-        
-        setTimeout(() => {
-          this.successMessage = '';
-        }, 3000);
-      },
-      error: (error) => {
-        console.error('Error al cambiar estado del empleado:', error);
-        this.errorMessage = error.error?.message || 'Error al cambiar estado del empleado.';
+    const action = employee.isActive ? 'desactivar' : 'activar';
+    Swal.fire({
+      title: `¿${action.charAt(0).toUpperCase() + action.slice(1)} empleado?`,
+      text: `¿Está seguro de ${action} a ${employee.username}?`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: `Sí, ${action}`,
+      cancelButtonText: 'Cancelar'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        this.employeeService.toggleEmployeeStatus(employee.id).subscribe({
+          next: () => {
+            employee.isActive = !employee.isActive;
+            Swal.fire('Actualizado', `Empleado ${employee.isActive ? 'activado' : 'desactivado'} exitosamente`, 'success');
+          },
+          error: (error) => {
+            console.error('Error al cambiar estado del empleado:', error);
+            Swal.fire('Error', error.error?.message || 'Error al cambiar estado del empleado.', 'error');
+          }
+        });
       }
     });
   }
 
   deleteEmployee(employee: EmployeeWithEvents): void {
-    if (!confirm(`¿Está seguro de eliminar al empleado ${employee.username}? Esta acción no se puede deshacer.`)) {
-      return;
-    }
-
-    this.employeeService.deleteEmployee(employee.id).subscribe({
-      next: () => {
-        this.employees = this.employees.filter(e => e.id !== employee.id);
-        this.successMessage = 'Empleado eliminado exitosamente';
-        
-        setTimeout(() => {
-          this.successMessage = '';
-        }, 3000);
-      },
-      error: (error) => {
-        console.error('Error al eliminar empleado:', error);
-        this.errorMessage = error.error?.message || 'Error al eliminar empleado.';
+    Swal.fire({
+      title: '¿Eliminar empleado?',
+      text: `¿Está seguro de eliminar al empleado ${employee.username}? Esta acción no se puede deshacer.`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Sí, eliminar',
+      cancelButtonText: 'Cancelar',
+      confirmButtonColor: '#d33'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        this.employeeService.deleteEmployee(employee.id).subscribe({
+          next: () => {
+            this.employees = this.employees.filter(e => e.id !== employee.id);
+            Swal.fire('Eliminado', 'Empleado eliminado exitosamente', 'success');
+          },
+          error: (error) => {
+            console.error('Error al eliminar empleado:', error);
+            Swal.fire('Error', error.error?.message || 'Error al eliminar empleado.', 'error');
+          }
+        });
       }
     });
   }

@@ -84,6 +84,18 @@ public class TicketConsumptionController {
         return ResponseEntity.ok(detail);
     }
 
+    /**
+     * Endpoint para obtener todas las consumiciones de un ticket.
+     * Usado por el empleado para ver qué consumiciones puede canjear.
+     */
+    @GetMapping("/{ticketConsumptionId}/details")
+    public ResponseEntity<List<TicketConsumptionDetailDTO>> getTicketConsumptionDetails(
+            @PathVariable Long ticketConsumptionId) {
+        log.info("Obteniendo detalles del ticket de consumición: {}", ticketConsumptionId);
+        List<TicketConsumptionDetailDTO> details = ticketDetailService.findAllByTicketId(ticketConsumptionId);
+        return ResponseEntity.ok(details);
+    }
+
     @GetMapping("/{ticketId}/details")
     public ResponseEntity<List<TicketConsumptionDetailDTO>> getTicketDetails(@PathVariable Long ticketId) {
         log.info("Obteniendo detalles del ticket con ID: {}", ticketId);

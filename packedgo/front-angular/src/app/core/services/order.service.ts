@@ -29,112 +29,18 @@ export class OrderService {
   }
 
   /**
-   * Realiza el checkout multi-admin
-   * Agrupa los items del carrito por adminId y crea múltiples órdenes
-   * @returns Observable con la respuesta del checkout incluyendo los grupos de pago
+   * Realiza el checkout para un admin específico
+   * @param adminId ID del admin
+   * @returns Observable con la URL de pago
    */
-  checkoutMulti(): Observable<MultiOrderCheckoutResponse> {
-    return this.http.post<MultiOrderCheckoutResponse>(
-      `${this.apiUrl}/orders/checkout/multi`,
-      {}, // Body vacío, el backend obtiene el userId del token
+  checkoutSingleAdmin(adminId: number): Observable<{ paymentUrl: string, preferenceId: string }> {
+    return this.http.post<{ paymentUrl: string, preferenceId: string }>(
+      `${this.apiUrl}/orders/checkout/single`,
+      { adminId },
       { headers: this.getHeaders() }
     ).pipe(
       tap(response => {
-        console.log('Checkout multi completado:', response);
-      }),
-      catchError(this.handleError)
-    );
-  }
-
-  /**
-   * Obtiene el estado de una sesión multi-orden
-   * @param sessionId ID de la sesión
-   * @returns Observable con el estado actualizado de la sesión
-   */
-  getSessionStatus(sessionId: string): Observable<MultiOrderCheckoutResponse> {
-    return this.http.get<MultiOrderCheckoutResponse>(
-      `${this.apiUrl}/orders/sessions/${sessionId}`,
-      { headers: this.getHeaders() }
-    ).pipe(
-      tap(response => {
-        console.log('Estado de sesión:', response);
-      }),
-      catchError(this.handleError)
-    );
-  }
-
-  /**
-   * Recupera una sesión usando el token de recuperación (sin JWT)
-   * @param sessionToken Token de recuperación de la sesión
-   * @returns Observable con el estado de la sesión
-   */
-  recoverSession(sessionToken: string): Observable<MultiOrderCheckoutResponse> {
-    const headers = new HttpHeaders({
-      'Content-Type': 'application/json',
-      'X-Session-Token': sessionToken
-    });
-
-    return this.http.get<MultiOrderCheckoutResponse>(
-      `${this.apiUrl}/orders/session/recover`,
-      { headers }
-    ).pipe(
-      tap(response => {
-        console.log('Sesión recuperada:', response);
-      }),
-      catchError(this.handleError)
-    );
-  }
-
-  /**
-   * Backend State Authority: Obtiene o crea la sesión actual del usuario
-   * El frontend NO guarda sessionId, el backend lo maneja TODO automáticamente
-   * Usa JWT del usuario para identificar sesión activa o crear nueva
-   * @returns Observable con el estado completo de la sesión (NUNCA falla)
-   */
-  getCurrentCheckoutState(): Observable<SessionStateResponse> {
-    return this.http.get<SessionStateResponse>(
-      `${this.apiUrl}/orders/checkout/current`
-    ).pipe(
-      tap(response => {
-        console.log('✅ Estado actual de checkout:', response);
-        console.log(`📊 Session: ${response.sessionId}, Status: ${response.sessionStatus}`);
-        console.log(`💰 ${response.paidGroups}/${response.totalGroups} pagos completados`);
-        console.log(`⏱️  ${response.secondsUntilExpiration}s restantes`);
-      }),
-      catchError(this.handleError)
-    );
-  }
-
-  /**
-   * Obtiene todos los tickets generados en una sesión
-   * @param sessionId ID de la sesión
-   * @returns Observable con la lista de tickets
-   */
-  getSessionTickets(sessionId: string): Observable<any[]> {
-    return this.http.get<any[]>(
-      `${this.apiUrl}/orders/session/${sessionId}/tickets`
-    ).pipe(
-      tap(response => {
-        console.log('Tickets de sesión:', response);
-      }),
-      catchError(this.handleError)
-    );
-  }
-
-  /**
-   * Abandona una sesión de checkout y devuelve los items al carrito
-   * Solo funciona si no hay pagos completados en la sesión
-   * @param sessionId ID de la sesión a abandonar
-   * @returns Observable con el resultado de la operación
-   */
-  abandonSession(sessionId: string): Observable<{ message: string }> {
-    return this.http.post<{ message: string }>(
-      `${this.apiUrl}/orders/sessions/${sessionId}/abandon`,
-      {}, // Body vacío
-      { headers: this.getHeaders() }
-    ).pipe(
-      tap(response => {
-        console.log('Sesión abandonada:', response);
+        console.log('Checkout single iniciado:', response);
       }),
       catchError(this.handleError)
     );
@@ -161,6 +67,44 @@ export class OrderService {
   getOrderById(orderId: number): Observable<Order> {
     return this.http.get<Order>(
       `${this.apiUrl}/orders/${orderId}`,
+      { headers: this.getHeaders() }
+    ).pipe(
+      catchError(this.handleError)
+    );
+  }
+
+  /**
+   * Obtiene el estado de una sesión de checkout
+   * @param sessionId ID de la sesión
+   */
+  getSessionStatus(sessionId: string): Observable<SessionStateResponse> {
+    return this.http.get<SessionStateResponse>(
+      `${this.apiUrl}/orders/checkout/session/${sessionId}`,
+      { headers: this.getHeaders() }
+    ).pipe(
+      catchError(this.handleError)
+    );
+  }
+
+  /**
+   * Obtiene el estado actual del checkout (si existe)
+   */
+  getCurrentCheckoutState(): Observable<SessionStateResponse> {
+    return this.http.get<SessionStateResponse>(
+      `${this.apiUrl}/orders/checkout/current`,
+      { headers: this.getHeaders() }
+    ).pipe(
+      catchError(this.handleError)
+    );
+  }
+
+  /**
+   * Abandona la sesión actual
+   */
+  abandonSession(sessionId: string): Observable<any> {
+    return this.http.post(
+      `${this.apiUrl}/orders/checkout/session/${sessionId}/abandon`,
+      {},
       { headers: this.getHeaders() }
     ).pipe(
       catchError(this.handleError)

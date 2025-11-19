@@ -78,6 +78,17 @@ public class EventServiceImpl implements EventService {
                 .toList();
     }
 
+    @Override
+    public List<EventDTO> findAllByIds(List<Long> ids) {
+        if (ids == null || ids.isEmpty()) {
+            return List.of();
+        }
+        List<Event> events = eventRepository.findAllById(ids);
+        return events.stream()
+                .map(this::mapEventToDTO)
+                .toList();
+    }
+
 
     @Override
     public List<EventDTO> findAllByStatus(String status) {

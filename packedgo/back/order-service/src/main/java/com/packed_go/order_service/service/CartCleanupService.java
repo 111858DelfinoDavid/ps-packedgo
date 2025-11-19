@@ -65,7 +65,7 @@ public class CartCleanupService {
     /**
      * Tarea programada para eliminar carritos muy antiguos
      * Cron: cada día a las 3:00 AM
-     * Elimina carritos con status EXPIRED o CHECKED_OUT de más de 30 días
+     * Elimina carritos con status EXPIRED o COMPLETED de más de 30 días
      */
     @Scheduled(cron = "0 0 3 * * *") // Diario a las 3 AM
     @Transactional
@@ -80,8 +80,8 @@ public class CartCleanupService {
             log.info("Deleted old EXPIRED carts from before {}", thirtyDaysAgo);
             
             // Eliminar carritos completados de hace más de 30 días
-            cartRepository.deleteByStatusAndCreatedAtBefore("CHECKED_OUT", thirtyDaysAgo);
-            log.info("Deleted old CHECKED_OUT carts from before {}", thirtyDaysAgo);
+            cartRepository.deleteByStatusAndCreatedAtBefore("COMPLETED", thirtyDaysAgo);
+            log.info("Deleted old COMPLETED carts from before {}", thirtyDaysAgo);
             
             log.info("Old cart deletion task completed");
             

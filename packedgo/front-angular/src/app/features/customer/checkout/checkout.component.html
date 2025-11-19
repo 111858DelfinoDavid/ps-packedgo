@@ -18,7 +18,7 @@
 
   <!-- Checkout Content -->
   <div *ngIf="!isLoading && !errorMessage && checkoutResponse" class="checkout-content">
-    <!-- Mensaje de retorno de MercadoPago -->
+    <!-- Mensaje de retorno de Stripe -->
     <div *ngIf="paymentReturnMessage" 
          class="payment-return-message"
          [ngClass]="{
@@ -50,23 +50,23 @@
       </div>
       <div class="summary-item">
         <span class="label">Órdenes:</span>
-        <span class="value">{{ checkoutResponse.totalOrders }}</span>
+        <span class="value">{{ checkoutResponse.totalGroups }}</span>
       </div>
       <div class="summary-item">
         <span class="label">Pagadas:</span>
-        <span class="value success">{{ checkoutResponse.paidOrders }} / {{ checkoutResponse.totalOrders }}</span>
+        <span class="value success">{{ checkoutResponse.paidGroups }} / {{ checkoutResponse.totalGroups }}</span>
       </div>
       <div class="summary-item">
         <span class="label">Pendiente:</span>
-        <span class="value warning">${{ checkoutResponse.totalPending | number:'1.2-2' }}</span>
+        <span class="value warning">${{ pendingAmount | number:'1.2-2' }}</span>
       </div>
     </div>
 
     <!-- Warning Message -->
     <div class="warning-box">
-      <p><strong>⚠️ Importante:</strong> Tu compra incluye eventos de {{ checkoutResponse.totalOrders }} organizador(es) diferente(s).</p>
-      <p>Deberás completar {{ checkoutResponse.totalOrders }} pago(s) separado(s) para confirmar tu compra.</p>
-      <p><strong>💡 Después de pagar:</strong> Si MercadoPago no te redirige automáticamente, cierra la ventana y presiona el botón "✅ Verificar mi pago".</p>
+      <p><strong>⚠️ Importante:</strong> Tu compra incluye eventos de {{ checkoutResponse.totalGroups }} organizador(es) diferente(s).</p>
+      <p>Deberás completar {{ checkoutResponse.totalGroups }} pago(s) separado(s) para confirmar tu compra.</p>
+      <p><strong>💡 Después de pagar:</strong> Serás redirigido automáticamente de vuelta al checkout. Si tienes más pagos pendientes, aparecerán aquí.</p>
     </div>
 
     <!-- Payment Groups -->
@@ -81,8 +81,8 @@
             <span class="order-number">Orden: {{ group.orderNumber }}</span>
           </div>
           <div class="header-right">
-            <span class="badge" [ngClass]="getStatusBadgeClass(group.status)">
-              {{ getStatusText(group.status) }}
+            <span class="badge" [ngClass]="getStatusBadgeClass(group.paymentStatus)">
+              {{ getStatusText(group.paymentStatus) }}
             </span>
           </div>
         </div>
@@ -97,7 +97,7 @@
               <div class="item-row main-item">
                 <span class="item-name">{{ item.eventName }}</span>
                 <span class="item-quantity">x{{ item.quantity }}</span>
-                <span class="item-price">${{ item.price | number:'1.2-2' }}</span>
+                <span class="item-price">${{ item.unitPrice | number:'1.2-2' }}</span>
               </div>
               
               <!-- Consumiciones del evento -->
@@ -119,41 +119,34 @@
           </div>
 
           <!-- Payment Actions -->
-          <div class="payment-actions" *ngIf="group.status !== 'PAID'">
+          <div class="payment-actions" *ngIf="group.status !== 'PAID' && group.status !== 'COMPLETED'">
             <!-- Generating Payments State -->
             <div *ngIf="isGeneratingPayments && !group.initPoint" class="generating-payment">
               <div class="spinner-small"></div>
-              <span>Generando pago...</span>
+              <span>Generando sesión de pago...</span>
             </div>
 
-            <!-- Payment Buttons -->
+            <!-- Payment Button -->
             <div *ngIf="!isGeneratingPayments && group.initPoint" class="payment-buttons">
               <button 
                 class="btn btn-primary btn-pay" 
                 (click)="openPaymentCheckout(group)"
                 [disabled]="!group.initPoint">
-                💳 Pagar ${{ group.amount | number:'1.2-2' }}
+                💳 Pagar con Stripe - ${{ group.amount | number:'1.2-2' }}
               </button>
-              
-              <button 
-                class="btn btn-secondary btn-qr" 
-                (click)="showQRCode(group)"
-                [disabled]="!group.qrUrl">
-                📱 Ver QR
-              </button>
-              
-              <button 
-                class="btn btn-success btn-verify" 
-                (click)="verifyPaymentManually(group)"
-                [disabled]="!group.paymentPreferenceId"
-                title="Haz clic aquí después de pagar en MercadoPago">
-                ✅ Verificar mi pago
+            </div>
+            
+            <!-- No Payment Link Yet -->
+            <div *ngIf="!isGeneratingPayments && !group.initPoint" class="no-payment-link">
+              <p class="text-warning">⚠️ Esperando link de pago...</p>
+              <button class="btn btn-secondary" (click)="refreshPaymentStatus(group)">
+                🔄 Actualizar
               </button>
             </div>
           </div>
 
           <!-- Paid Status -->
-          <div class="paid-status" *ngIf="group.status === 'PAID'">
+          <div class="paid-status" *ngIf="group.status === 'PAID' || group.status === 'COMPLETED'">
             <p class="success-message">✅ Pago completado exitosamente</p>
           </div>
         </div>
@@ -164,9 +157,9 @@
     <div class="instructions">
       <h3>📋 Instrucciones:</h3>
       <ol>
-        <li>Haz clic en el botón "Pagar" de cada organizador para completar el pago.</li>
-        <li>Serás redirigido a Mercado Pago para realizar cada pago de forma segura.</li>
-        <li>También puedes escanear el código QR con tu app de Mercado Pago.</li>
+        <li>Haz clic en el botón "Pagar con Stripe" de cada organizador para completar el pago.</li>
+        <li>Serás redirigido a Stripe para realizar cada pago de forma segura con tarjeta.</li>
+        <li>Después de pagar, serás devuelto automáticamente a esta página.</li>
         <li>Una vez completados todos los pagos, recibirás la confirmación de tu compra.</li>
         <li>Tienes {{ formatTimeRemaining() }} para completar todos los pagos.</li>
       </ol>

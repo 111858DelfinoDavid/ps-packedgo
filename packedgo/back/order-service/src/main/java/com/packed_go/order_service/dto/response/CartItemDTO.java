@@ -23,6 +23,8 @@ public class CartItemDTO {
     
     private String eventName;
     
+    private Long adminId;
+    
     private Integer quantity;
     
     private BigDecimal unitPrice;

@@ -105,12 +105,11 @@ export const routes: Routes = [
     loadComponent: () => import('./features/customer/event-detail/event-detail.component').then(m => m.EventDetailComponent),
     canActivate: [authGuard, emailVerifiedGuard]
   },
-  // TEMPORALMENTE COMENTADO - Checkout tiene errores de compilación
-  // {
-  //   path: 'customer/checkout',
-  //   loadComponent: () => import('./features/customer/checkout/checkout.component').then(m => m.CheckoutComponent),
-  //   canActivate: [authGuard, emailVerifiedGuard]
-  // },
+  {
+    path: 'customer/checkout',
+    loadComponent: () => import('./features/customer/checkout/checkout.component').then(m => m.CheckoutComponent),
+    canActivate: [authGuard, emailVerifiedGuard]
+  },
   {
     path: 'customer/orders/success',
     loadComponent: () => import('./features/customer/order-success/order-success.component').then(m => m.OrderSuccessComponent),

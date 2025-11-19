@@ -98,11 +98,22 @@
       </div>
       
       <div class="scanner-container">
-        <!-- TODO: Integrar librería de escaneo QR aquí -->
-        <div class="scanner-placeholder">
+        <zxing-scanner
+          *ngIf="hasPermission && hasDevices"
+          [formats]="allowedFormats"
+          [device]="currentDevice"
+          (scanSuccess)="onScanSuccess($event)"
+          (camerasFound)="onCamerasFound($event)"
+          (permissionResponse)="onCameraPermission($event)"
+          (scanError)="onScanError($event)"
+          [tryHarder]="true"
+          style="width: 100%; max-width: 500px; height: 400px;">
+        </zxing-scanner>
+
+        <div class="scanner-placeholder" *ngIf="!hasPermission || !hasDevices">
           <i class="bi bi-camera-video"></i>
-          <p>Apunta la cámara al código QR</p>
-          <div class="scanner-frame"></div>
+          <p *ngIf="!hasPermission">Necesitas permitir el acceso a la cámara</p>
+          <p *ngIf="hasPermission && !hasDevices">No se detectó ninguna cámara</p>
         </div>
       </div>
 

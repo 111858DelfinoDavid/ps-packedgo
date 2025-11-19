@@ -2,6 +2,7 @@ import { Component, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
+import Swal from 'sweetalert2';
 import { EventService } from '../../../core/services/event.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { EventCategory, ConsumptionCategory } from '../../../shared/models/event.model';
@@ -174,24 +175,30 @@ export class CategoriesManagementComponent implements OnInit {
 
   deleteCategory(categoryId: number, categoryName: string, type: CategoryType): void {
     const typeText = type === 'event' ? 'de evento' : 'de consumición';
-    if (!confirm(`¿Estás seguro de que deseas eliminar la categoría ${typeText} "${categoryName}"?`)) {
-      return;
-    }
+    Swal.fire({
+      title: `¿Eliminar categoría ${typeText}?`,
+      text: `¿Estás seguro de que deseas eliminar la categoría ${typeText} "${categoryName}"?`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Sí, eliminar',
+      cancelButtonText: 'Cancelar',
+      confirmButtonColor: '#d33'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        const request$ = type === 'event'
+          ? this.eventService.deleteEventCategory(categoryId)
+          : this.eventService.deleteConsumptionCategory(categoryId);
 
-    const request$ = type === 'event'
-      ? this.eventService.deleteEventCategory(categoryId)
-      : this.eventService.deleteConsumptionCategory(categoryId);
-
-    request$.subscribe({
-      next: () => {
-        this.successMessage = `Categoría ${typeText} eliminada exitosamente`;
-        this.loadCategories();
-        setTimeout(() => this.successMessage = '', 3000);
-      },
-      error: (error: any) => {
-        console.error('Error al eliminar categoría:', error);
-        this.errorMessage = error.error?.message || 'Error al eliminar la categoría. Por favor, intenta nuevamente.';
-        setTimeout(() => this.errorMessage = '', 3000);
+        request$.subscribe({
+          next: () => {
+            Swal.fire('Eliminado', `Categoría ${typeText} eliminada exitosamente`, 'success');
+            this.loadCategories();
+          },
+          error: (error: any) => {
+            console.error('Error al eliminar categoría:', error);
+            Swal.fire('Error', error.error?.message || 'Error al eliminar la categoría. Por favor, intenta nuevamente.', 'error');
+          }
+        });
       }
     });
   }

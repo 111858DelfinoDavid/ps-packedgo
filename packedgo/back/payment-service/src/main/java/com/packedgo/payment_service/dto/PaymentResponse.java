@@ -13,13 +13,23 @@ import java.math.BigDecimal;
 @AllArgsConstructor
 public class PaymentResponse {
 
+    private Long id;
     private Long paymentId;
     private String orderId;
     private String status;
     private BigDecimal amount;
     private String currency;
+    
+    // MercadoPago fields (LEGACY)
     private String initPoint; // URL de MercadoPago para realizar el pago
     private String preferenceId;
     private String sandboxInitPoint;
+    
+    // Stripe fields (RECOMMENDED)
+    private String sessionId;           // Stripe session ID
+    private String checkoutUrl;         // Stripe checkout URL
+    private String paymentProvider;     // "STRIPE" or "MERCADOPAGO"
+    private String createdAt;
+    
     private String message;
 }

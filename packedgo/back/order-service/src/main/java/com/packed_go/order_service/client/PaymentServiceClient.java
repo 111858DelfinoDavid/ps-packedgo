@@ -22,10 +22,11 @@ public class PaymentServiceClient {
     private String paymentServiceBaseUrl;
     
     /**
-     * Crea un pago en payment-service
+     * Crea un pago en payment-service (LEGACY - MercadoPago)
      */
     public PaymentServiceResponse createPayment(PaymentServiceRequest request) {
-        String url = paymentServiceBaseUrl + "/api/payments/create";
+        // Fix: paymentServiceBaseUrl already includes /api from .env
+        String url = paymentServiceBaseUrl + "/payments/create";
         
         log.info("Calling payment-service: POST {} with orderId: {}", url, request.getOrderId());
         
@@ -49,12 +50,44 @@ public class PaymentServiceClient {
             throw new RuntimeException("Failed to create payment: " + e.getMessage(), e);
         }
     }
+
+    /**
+     * Crea un pago con Stripe en payment-service (RECOMENDADO)
+     */
+    public PaymentServiceResponse createPaymentStripe(PaymentServiceRequest request) {
+        // Fix: paymentServiceBaseUrl already includes /api from .env
+        String url = paymentServiceBaseUrl + "/payments/create-checkout-stripe";
+        
+        log.info("🔷 Calling payment-service Stripe: POST {} with orderId: {}", url, request.getOrderId());
+        
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        
+        HttpEntity<PaymentServiceRequest> entity = new HttpEntity<>(request, headers);
+        
+        try {
+            PaymentServiceResponse response = restTemplate.postForObject(
+                    url,
+                    entity,
+                    PaymentServiceResponse.class
+            );
+            
+            log.info("✅ Stripe payment created successfully. SessionId: {}, CheckoutUrl: {}", 
+                response.getSessionId(), response.getCheckoutUrl());
+            return response;
+            
+        } catch (Exception e) {
+            log.error("❌ Error calling payment-service Stripe: {}", e.getMessage(), e);
+            throw new RuntimeException("Failed to create Stripe payment: " + e.getMessage(), e);
+        }
+    }
     
     /**
      * Obtiene el estado de un pago por orderId
      */
     public PaymentServiceResponse getPaymentByOrderId(String orderId) {
-        String url = paymentServiceBaseUrl + "/api/payments/order/" + orderId;
+        // Fix: paymentServiceBaseUrl already includes /api from .env
+        String url = paymentServiceBaseUrl + "/payments/order/" + orderId;
         
         log.info("Calling payment-service: GET {}", url);
         

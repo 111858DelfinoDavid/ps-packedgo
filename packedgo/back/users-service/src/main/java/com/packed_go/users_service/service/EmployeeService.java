@@ -5,11 +5,15 @@ import com.packed_go.users_service.entity.Employee;
 import com.packed_go.users_service.repository.EmployeeRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.client.RestTemplate;
+import org.springframework.web.reactive.function.client.WebClient;
 
+import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -21,10 +25,9 @@ public class EmployeeService {
 
     private final EmployeeRepository employeeRepository;
     private final PasswordEncoder passwordEncoder;
-    private final RestTemplate restTemplate;
 
-    // URL del event-service (configurar en application.properties)
-    private static final String EVENT_SERVICE_URL = "http://localhost:8083/api/events";
+    @Qualifier("eventServiceWebClient")
+    private final WebClient eventServiceWebClient;
 
     @Transactional
     public EmployeeResponse createEmployee(CreateEmployeeRequest request, Long adminId) {
@@ -169,16 +172,65 @@ public class EmployeeService {
             throw new IllegalArgumentException("Employee is not active");
         }
 
-        // TODO: Llamar al event-service para obtener información completa de los eventos
-        // Por ahora retornamos solo los IDs
-        return employee.getAssignedEventIds().stream()
-                .map(eventId -> {
-                    AssignedEventInfo eventInfo = new AssignedEventInfo();
-                    eventInfo.setId(eventId);
-                    eventInfo.setName("Event " + eventId); // Placeholder
-                    return eventInfo;
-                })
-                .collect(Collectors.toList());
+        Set<Long> eventIds = employee.getAssignedEventIds();
+        if (eventIds == null || eventIds.isEmpty()) {
+            return new ArrayList<>();
+        }
+
+        try {
+            // Llamar al event-service para obtener información completa de los eventos
+            log.info("Fetching events from event-service for employee {}: {}", employeeId, eventIds);
+
+            List<EventDTO> events = eventServiceWebClient.post()
+                    .uri("/event-service/event/by-ids")
+                    .bodyValue(new ArrayList<>(eventIds))
+                    .retrieve()
+                    .bodyToMono(new ParameterizedTypeReference<List<EventDTO>>() {})
+                    .block();
+
+            if (events == null) {
+                log.warn("No events returned from event-service for employee {}", employeeId);
+                return new ArrayList<>();
+            }
+
+            // Mapear EventDTO a AssignedEventInfo
+            return events.stream()
+                    .map(event -> {
+                        AssignedEventInfo info = new AssignedEventInfo();
+                        info.setId(event.getId());
+                        info.setName(event.getName());
+                        info.setLocation(event.getLocation());
+                        info.setEventDate(event.getStartDate());
+                        info.setStatus(event.isActive() ? "ACTIVE" : "INACTIVE");
+                        return info;
+                    })
+                    .collect(Collectors.toList());
+
+        } catch (Exception e) {
+            log.error("Error fetching events from event-service for employee {}", employeeId, e);
+            // En caso de error, retornar lista vacía en lugar de fallar completamente
+            return new ArrayList<>();
+        }
+    }
+
+    // DTO interno para mapear respuestas de event-service
+    private static class EventDTO {
+        private Long id;
+        private String name;
+        private String location;
+        private LocalDateTime startDate;
+        private boolean active;
+
+        public Long getId() { return id; }
+        public void setId(Long id) { this.id = id; }
+        public String getName() { return name; }
+        public void setName(String name) { this.name = name; }
+        public String getLocation() { return location; }
+        public void setLocation(String location) { this.location = location; }
+        public LocalDateTime getStartDate() { return startDate; }
+        public void setStartDate(LocalDateTime startDate) { this.startDate = startDate; }
+        public boolean isActive() { return active; }
+        public void setActive(boolean active) { this.active = active; }
     }
 
     public boolean hasAccessToEvent(Long employeeId, Long eventId) {
@@ -192,6 +244,38 @@ public class EmployeeService {
         return employee.hasAccessToEvent(eventId);
     }
 
+    /**
+     * Método helper para obtener eventos asignados desde un Set de IDs (usado por mapToResponse)
+     */
+    private List<AssignedEventInfo> getAssignedEventsForMapping(Set<Long> eventIds) {
+        if (eventIds == null || eventIds.isEmpty()) {
+            return new ArrayList<>();
+        }
+
+        List<EventDTO> events = eventServiceWebClient.post()
+                .uri("/event-service/event/by-ids")
+                .bodyValue(new ArrayList<>(eventIds))
+                .retrieve()
+                .bodyToMono(new ParameterizedTypeReference<List<EventDTO>>() {})
+                .block();
+
+        if (events == null) {
+            return new ArrayList<>();
+        }
+
+        return events.stream()
+                .map(event -> {
+                    AssignedEventInfo info = new AssignedEventInfo();
+                    info.setId(event.getId());
+                    info.setName(event.getName());
+                    info.setLocation(event.getLocation());
+                    info.setEventDate(event.getStartDate());
+                    info.setStatus(event.isActive() ? "ACTIVE" : "INACTIVE");
+                    return info;
+                })
+                .collect(Collectors.toList());
+    }
+
     private EmployeeResponse mapToResponse(Employee employee) {
         EmployeeResponse response = new EmployeeResponse();
         response.setId(employee.getId());
@@ -203,17 +287,23 @@ public class EmployeeService {
         response.setCreatedAt(employee.getCreatedAt());
         response.setAssignedEventIds(employee.getAssignedEventIds());
 
-        // TODO: Enriquecer con información completa de eventos desde event-service
-        List<AssignedEventInfo> eventInfos = employee.getAssignedEventIds().stream()
-                .map(eventId -> {
-                    AssignedEventInfo info = new AssignedEventInfo();
-                    info.setId(eventId);
-                    info.setName("Event " + eventId); // Placeholder
-                    return info;
-                })
-                .collect(Collectors.toList());
-        
-        response.setAssignedEvents(eventInfos);
+        // Obtener información completa de eventos desde event-service
+        try {
+            List<AssignedEventInfo> eventInfos = getAssignedEventsForMapping(employee.getAssignedEventIds());
+            response.setAssignedEvents(eventInfos);
+        } catch (Exception e) {
+            log.error("Error fetching event details for employee {}", employee.getId(), e);
+            // En caso de error, usar solo los IDs
+            List<AssignedEventInfo> fallbackEventInfos = employee.getAssignedEventIds().stream()
+                    .map(eventId -> {
+                        AssignedEventInfo info = new AssignedEventInfo();
+                        info.setId(eventId);
+                        info.setName("Event " + eventId);
+                        return info;
+                    })
+                    .collect(Collectors.toList());
+            response.setAssignedEvents(fallbackEventInfos);
+        }
 
         return response;
     }

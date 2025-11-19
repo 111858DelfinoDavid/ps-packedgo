@@ -10,8 +10,10 @@ import { AuthService } from '../../../core/services/auth.service';
 import { 
   MultiOrderCheckoutResponse, 
   PaymentGroup,
-  SessionStateResponse
+  SessionStateResponse,
+  SessionPaymentGroup
 } from '../../../shared/models/order.model';
+import Swal from 'sweetalert2';
 
 @Component({
   selector: 'app-checkout',
@@ -29,8 +31,8 @@ export class CheckoutComponent implements OnInit, OnDestroy {
   private authService = inject(AuthService);
 
   // Estado del checkout
-  checkoutResponse: MultiOrderCheckoutResponse | null = null;
-  paymentGroups: PaymentGroup[] = [];
+  checkoutResponse: SessionStateResponse | null = null;
+  paymentGroups: SessionPaymentGroup[] = [];
   sessionId: string = '';
   expiresAt: Date | null = null;
   timeRemaining: number = 0; // en segundos
@@ -39,7 +41,7 @@ export class CheckoutComponent implements OnInit, OnDestroy {
   isLoading = true;
   errorMessage = '';
   isGeneratingPayments = false;
-  paymentReturnMessage: string = ''; // Mensaje de retorno de MercadoPago
+  paymentReturnMessage: string = ''; // Mensaje de retorno de Stripe
   paymentReturnType: 'success' | 'error' | 'pending' | '' = ''; // Tipo de mensaje
   
   // Subscriptions
@@ -51,12 +53,12 @@ export class CheckoutComponent implements OnInit, OnDestroy {
    * El backend maneja TODO, frontend solo renderiza
    */
   ngOnInit(): void {
-    // Detectar si venimos de un retorno de MercadoPago
+    // Detectar si venimos de un retorno de Stripe
     this.route.queryParams.subscribe(params => {
-      const comesFromMercadoPago = params['status'] || params['paymentStatus'] || params['payment_id'];
+      const comesFromStripe = params['status'] || params['paymentStatus'] || params['session_id'];
       
-      if (comesFromMercadoPago) {
-        this.handleMercadoPagoReturn(params);
+      if (comesFromStripe) {
+        this.handleStripeReturn(params);
       }
     });
 
@@ -108,6 +110,12 @@ export class CheckoutComponent implements OnInit, OnDestroy {
         // Mapear estado a la UI existente
         this.mapStateToUI(state);
         
+        // Generar preferencias de pago para grupos sin payment preference
+        this.generateMissingPaymentPreferences();
+        
+        // Iniciar polling de estado
+        this.startPollingCheckoutState();
+        
         // Timer countdown
         this.startCountdown();
         
@@ -128,32 +136,8 @@ export class CheckoutComponent implements OnInit, OnDestroy {
     this.sessionId = state.sessionId;
     this.expiresAt = new Date(state.expiresAt);
     
-    // Convertir SessionPaymentGroup[] a PaymentGroup[]
-    this.paymentGroups = state.paymentGroups.map(spg => ({
-      adminId: spg.adminId,
-      adminName: spg.adminName,
-      orderId: spg.orderId,
-      orderNumber: spg.orderNumber,
-      amount: spg.amount,
-      paymentStatus: spg.paymentStatus,
-      initPoint: spg.initPoint,
-      items: spg.items.map(item => ({
-        eventId: item.eventId,
-        eventName: item.eventName,
-        quantity: item.quantity,
-        unitPrice: item.unitPrice,
-        subtotal: item.subtotal
-      }))
-    }));
-
-    // Construir checkoutResponse sintético para mantener compatibilidad con UI existente
-    this.checkoutResponse = {
-      sessionId: state.sessionId,
-      expiresAt: state.expiresAt,
-      totalAmount: state.totalAmount,
-      paymentGroups: this.paymentGroups,
-      sessionToken: '' // Ya no se usa
-    };
+    this.paymentGroups = state.paymentGroups;
+    this.checkoutResponse = state;
 
     console.log(`💰 ${state.paidGroups}/${state.totalGroups} grupos pagados`);
     console.log(`⏱️  ${state.secondsUntilExpiration}s restantes hasta expiración`);
@@ -193,7 +177,7 @@ export class CheckoutComponent implements OnInit, OnDestroy {
   /**
    * Carga un checkout existente por sessionId
    */
-  private loadExistingCheckout(sessionId: string, comesFromMercadoPago: boolean = false): void {
+  private loadExistingCheckout(sessionId: string, comesFromStripe: boolean = false): void {
     this.isLoading = true;
     this.errorMessage = '';
 
@@ -223,15 +207,15 @@ export class CheckoutComponent implements OnInit, OnDestroy {
         this.isLoading = false;
         
         // Si el error es de sesión inválida/expirada y el usuario no está autenticado
-        // PERO NO VIENE DE MERCADOPAGO, redirigir al login
-        if (!comesFromMercadoPago && !this.authService.isAuthenticated()) {
+        // PERO NO VIENE DE STRIPE, redirigir al login
+        if (!comesFromStripe && !this.authService.isAuthenticated()) {
           console.warn('Session invalid and user not authenticated, redirecting to login');
           this.router.navigate(['/customer/login'], { 
             queryParams: { returnUrl: '/customer/checkout', sessionId: sessionId } 
           });
-        } else if (comesFromMercadoPago) {
-          // Si viene de MercadoPago pero hay error, mostrar mensaje pero NO redirigir
-          console.warn('Error loading session after MercadoPago return, but not redirecting to login');
+        } else if (comesFromStripe) {
+          // Si viene de Stripe pero hay error, mostrar mensaje pero NO redirigir
+          console.warn('Error loading session after Stripe return, but not redirecting to login');
           this.errorMessage = 'Error al cargar el estado de la sesión. Por favor, verifica tu pago en "Mis Órdenes".';
         }
       }
@@ -239,15 +223,15 @@ export class CheckoutComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Maneja el retorno desde MercadoPago
+   * Maneja el retorno desde Stripe
    */
-  private handleMercadoPagoReturn(params: any): void {
+  private handleStripeReturn(params: any): void {
     const status = params['status'] || params['paymentStatus']; // Puede venir de dos formas
     const orderId = params['orderId'];
-    const paymentId = params['payment_id'];
-    const merchantOrderId = params['merchant_order_id'];
+    const sessionId = params['session_id'];
+    const paymentIntentId = params['payment_intent'];
 
-    console.log('Retorno de MercadoPago:', { status, orderId, paymentId, merchantOrderId });
+    console.log('Retorno de Stripe:', { status, orderId, sessionId, paymentIntentId });
 
     // Scroll al inicio para que el usuario vea el mensaje
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -389,9 +373,12 @@ El botón de pago aparece más abajo.`;
     this.isGeneratingPayments = true;
 
     for (const group of this.paymentGroups) {
-      // Solo generar si no tiene preferencia de pago Y está pendiente
-      if (!group.paymentPreferenceId && group.status === 'PENDING_PAYMENT') {
+      // Solo generar si no tiene initPoint Y está pendiente (PENDING o PENDING_PAYMENT)
+      const isPending = group.paymentStatus === 'PENDING_PAYMENT' || group.paymentStatus === 'PENDING';
+      if (!group.initPoint && isPending) {
         try {
+          console.log(`🔄 Generando pago para orden ${group.orderNumber}...`);
+          
           const payment = await firstValueFrom(
             this.paymentService.createPaymentPreference(
               group.adminId,
@@ -404,11 +391,13 @@ El botón de pago aparece más abajo.`;
           if (payment) {
             group.paymentPreferenceId = payment.preferenceId;
             group.qrUrl = payment.qrUrl;
-            // Usar sandboxInitPoint para testing, initPoint para producción
-            group.initPoint = payment.sandboxInitPoint || payment.initPoint;
+            // Para Stripe, usar initPoint (Stripe Checkout URL)
+            group.initPoint = payment.initPoint;
+            
+            console.log(`✅ Link de pago generado para orden ${group.orderNumber}:`, group.initPoint);
           }
         } catch (error: any) {
-          console.error(`Error generando pago para orden ${group.orderNumber}:`, error);
+          console.error(`❌ Error generando pago para orden ${group.orderNumber}:`, error);
           
           // Si es error 401 (Unauthorized), el token expiró - redirigir al login
           if (error.status === 401 || error.status === 0) {
@@ -424,6 +413,8 @@ El botón de pago aparece más abajo.`;
             return; // Detener el proceso
           }
         }
+      } else if (group.initPoint) {
+        console.log(`✓ Orden ${group.orderNumber} ya tiene link de pago:`, group.initPoint);
       }
     }
 
@@ -478,11 +469,11 @@ El botón de pago aparece más abajo.`;
   /**
    * Actualiza el estado de los grupos de pago
    */
-  private updatePaymentGroupsStatus(updatedGroups: PaymentGroup[]): void {
+  private updatePaymentGroupsStatus(updatedGroups: SessionPaymentGroup[]): void {
     updatedGroups.forEach(updatedGroup => {
       const existingGroup = this.paymentGroups.find(g => g.orderId === updatedGroup.orderId);
       if (existingGroup) {
-        existingGroup.status = updatedGroup.status;
+        existingGroup.paymentStatus = updatedGroup.paymentStatus;
       }
     });
   }
@@ -545,161 +536,124 @@ El botón de pago aparece más abajo.`;
   }
 
   /**
-   * Abre el checkout de Mercado Pago en una nueva pestaña para mantener el polling activo
+   * Abre el checkout de Stripe (redirige en la misma ventana)
    */
-  openPaymentCheckout(group: PaymentGroup): void {
+  openPaymentCheckout(group: SessionPaymentGroup): void {
     if (group.initPoint) {
-      // Abrir en nueva pestaña para que el checkout actual siga con polling
-      window.open(group.initPoint, '_blank');
-    }
-  }
-
-  /**
-   * Muestra el QR de un grupo de pago en tamaño grande
-   */
-  showQRCode(group: PaymentGroup): void {
-    if (group.qrUrl) {
-      // Implementar modal con QR en grande (por ahora abre en nueva ventana)
-      window.open(group.qrUrl, '_blank', 'width=400,height=500');
+      // Stripe redirige en la misma ventana y luego regresa
+      window.location.href = group.initPoint;
     }
   }
 
   /**
    * Verifica manualmente el estado de un pago
    */
-  refreshPaymentStatus(group: PaymentGroup): void {
-    if (!group.paymentPreferenceId) return;
+  refreshPaymentStatus(group: SessionPaymentGroup): void {
+    console.log('Actualizando estado de pago para:', group);
 
-    console.log('Simulando aprobación de pago para:', group);
-
-    // Primero, simular la aprobación del pago (esto dispara el webhook simulado)
-    this.paymentService.simulatePaymentApproval(group.paymentPreferenceId).subscribe({
-      next: (approvalResponse) => {
-        console.log('Payment approval simulation response:', approvalResponse);
+    // Actualizar el estado de la sesión directamente
+    this.orderService.getCurrentCheckoutState().subscribe({
+      next: (state) => {
+        console.log('Session status refreshed:', state);
         
-        // Después de simular la aprobación, actualizar el estado de la sesión
-        this.orderService.getSessionStatus(this.sessionId!).subscribe({
-          next: (sessionStatus) => {
-            console.log('Session status after approval:', sessionStatus);
-            
-            // Actualizar el estado local
-            this.checkoutResponse = sessionStatus;
-            this.paymentGroups = sessionStatus.paymentGroups;
-            
-            // Verificar si el pago fue aprobado
-            const updatedGroup = this.paymentGroups.find(g => g.orderId === group.orderId);
-            if (updatedGroup?.status === 'PAID') {
-              alert('✅ ¡Pago aprobado exitosamente! Las entradas han sido generadas.');
-              
-              // Si todos los pagos están completos, redirigir
-              if (sessionStatus.sessionStatus === 'COMPLETED') {
-                this.stopPolling();
-                this.stopTimer();
-                this.cartService.loadCart();
-                
-                setTimeout(() => {
-                  
-                  this.router.navigate(['/customer/orders/success'], {
-                    queryParams: { sessionId: this.sessionId }
-                  });
-                }, 2000);
-              }
-            } else if (updatedGroup?.status === 'PENDING') {
-              alert('⏳ El pago aún está pendiente de confirmación');
-            } else {
-              alert('Estado del pago actualizado: ' + (updatedGroup?.status || 'desconocido'));
-            }
-          },
-          error: (error) => {
-            console.error('Error updating session status:', error);
-            alert('Error al actualizar el estado de la sesión');
-          }
-        });
-      },
-      error: (error) => {
-        console.error('Error simulating payment approval:', error);
+        // Mapear el estado actualizado
+        this.mapStateToUI(state);
         
-        // Si ya estaba aprobado, solo actualizar la sesión
-        if (error.error?.status === 'already_approved') {
-          alert('✅ El pago ya estaba aprobado');
+        // Verificar si el pago fue aprobado
+        const updatedGroup = this.paymentGroups.find(g => g.orderId === group.orderId);
+        if (updatedGroup?.paymentStatus === 'PAID' || updatedGroup?.paymentStatus === 'COMPLETED') {
+          Swal.fire({
+            title: '¡Pago aprobado!',
+            text: 'Las entradas han sido generadas exitosamente.',
+            icon: 'success',
+            confirmButtonText: 'Genial'
+          });
           
-          // Actualizar el estado de la sesión
-          this.orderService.getSessionStatus(this.sessionId!).subscribe({
-            next: (sessionStatus) => {
-              this.checkoutResponse = sessionStatus;
-              this.paymentGroups = sessionStatus.paymentGroups;
-            }
+          // Si todos los pagos están completos, redirigir
+          if (state.isCompleted) {
+            this.stopPolling();
+            this.stopTimer();
+            this.cartService.loadCart();
+            
+            setTimeout(() => {
+              this.router.navigate(['/customer/orders/success'], {
+                queryParams: { sessionId: this.sessionId }
+              });
+            }, 2000);
+          }
+        } else if (updatedGroup?.paymentStatus === 'PENDING_PAYMENT') {
+          Swal.fire({
+            title: 'Pago pendiente',
+            text: 'El pago aún está pendiente de confirmación.',
+            icon: 'info',
+            confirmButtonText: 'Entendido'
           });
         } else {
-          alert('Error al verificar el estado del pago: ' + (error.error?.error || error.message));
+          Swal.fire({
+            title: 'Estado actualizado',
+            text: 'Estado del pago: ' + (updatedGroup?.paymentStatus || 'desconocido'),
+            icon: 'info',
+            confirmButtonText: 'OK'
+          });
         }
+      },
+      error: (error) => {
+        console.error('Error refreshing payment status:', error);
+        Swal.fire({
+          title: 'Error',
+          text: 'Error al actualizar el estado del pago: ' + (error.message || 'Error desconocido'),
+          icon: 'error',
+          confirmButtonText: 'Cerrar'
+        });
       }
     });
   }
 
   /**
-   * Simula la aprobación de TODOS los pagos pendientes en el checkout multi-admin
-   * Útil para testing sin MercadoPago real
+   * Actualiza el estado de TODOS los pagos desde el backend
+   * NOTA: simulateAllPayments removido con MercadoPago, ahora solo actualiza estado
    */
   simulateAllPayments(): void {
-    const pendingGroups = this.paymentGroups.filter(g => g.status === 'PENDING_PAYMENT');
+    console.log('Actualizando estado de todos los pagos...');
     
-    if (pendingGroups.length === 0) {
-      alert('No hay pagos pendientes para simular');
-      return;
-    }
-
-    console.log(`Simulando ${pendingGroups.length} pagos pendientes...`);
-    
-    // Simular todos los pagos en paralelo
-    const simulationObservables = pendingGroups.map(group => 
-      this.paymentService.simulatePaymentApproval(group.paymentPreferenceId!)
-    );
-
-    // Ejecutar todas las simulaciones en paralelo usando forkJoin
-    const forkJoinObservable = pendingGroups.length === 1 
-      ? simulationObservables[0].pipe(map(result => [result]))
-      : forkJoin(simulationObservables);
-
-    forkJoinObservable.subscribe({
-      next: (results) => {
-        console.log('All payments simulated:', results);
+    // Actualizar el estado de la sesión
+    this.orderService.getCurrentCheckoutState().subscribe({
+      next: (state) => {
+        console.log('Session state refreshed:', state);
         
-        // Actualizar el estado de la sesión después de simular todos
-        this.orderService.getSessionStatus(this.sessionId!).subscribe({
-          next: (sessionStatus) => {
-            console.log('Session status after simulating all payments:', sessionStatus);
-            
-            // Actualizar el estado local
-            this.checkoutResponse = sessionStatus;
-            this.paymentGroups = sessionStatus.paymentGroups;
-            
-            // Verificar cuántos pagos fueron aprobados
-            const approvedCount = this.paymentGroups.filter(g => g.status === 'PAID').length;
-            alert(`✅ ${approvedCount} de ${this.paymentGroups.length} pagos aprobados exitosamente!`);
-            
-            // Si todos los pagos están completos, redirigir
-            if (sessionStatus.sessionStatus === 'COMPLETED') {
-              this.stopPolling();
-              this.stopTimer();
-              this.cartService.loadCart();
-              
-              setTimeout(() => {
-                this.router.navigate(['/customer/orders/success'], {
-                  queryParams: { sessionId: this.sessionId }
-                });
-              }, 2000);
-            }
-          },
-          error: (error) => {
-            console.error('Error updating session status:', error);
-            alert('Error al actualizar el estado de la sesión');
-          }
+        // Mapear el estado actualizado
+        this.mapStateToUI(state);
+        
+        // Verificar cuántos pagos fueron aprobados
+        const approvedCount = this.paymentGroups.filter(g => g.paymentStatus === 'PAID' || g.paymentStatus === 'COMPLETED').length;
+        Swal.fire({
+          title: 'Estado actualizado',
+          text: `${approvedCount} de ${this.paymentGroups.length} pagos completados`,
+          icon: 'info',
+          confirmButtonText: 'OK'
         });
+        
+        // Si todos los pagos están completos, redirigir
+        if (state.isCompleted) {
+          this.stopPolling();
+          this.stopTimer();
+          this.cartService.loadCart();
+          
+          setTimeout(() => {
+            this.router.navigate(['/customer/orders/success'], {
+              queryParams: { sessionId: this.sessionId }
+            });
+          }, 2000);
+        }
       },
       error: (error) => {
-        console.error('Error simulating payments:', error);
-        alert('Error al simular algunos pagos: ' + (error.error?.message || error.message));
+        console.error('Error refreshing session state:', error);
+        Swal.fire({
+          title: 'Error',
+          text: 'Error al actualizar el estado: ' + (error.message || 'Error desconocido'),
+          icon: 'error',
+          confirmButtonText: 'Cerrar'
+        });
       }
     });
   }
@@ -708,18 +662,27 @@ El botón de pago aparece más abajo.`;
    * Cancela el checkout y vuelve al carrito
    */
   cancelCheckout(): void {
-    if (confirm('¿Estás seguro de que quieres cancelar? Los pagos ya realizados seguirán activos.')) {
-      this.stopPolling();
-      this.stopTimer();
-      this.router.navigate(['/customer/dashboard']);
-    }
+    Swal.fire({
+      title: '¿Estás seguro?',
+      text: 'Los pagos ya realizados seguirán activos.',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Sí, cancelar',
+      cancelButtonText: 'No, continuar'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        this.stopPolling();
+        this.stopTimer();
+        this.router.navigate(['/customer/dashboard']);
+      }
+    });
   }
 
   /**
    * Verifica si se puede abandonar la sesión (no hay pagos completados)
    */
   get canAbandonSession(): boolean {
-    return !this.paymentGroups.some(group => group.status === 'PAID');
+    return !this.paymentGroups.some(group => group.paymentStatus === 'PAID');
   }
 
   /**
@@ -735,16 +698,34 @@ El botón de pago aparece más abajo.`;
   handleCancelClick(): void {
     if (this.canAbandonSession) {
       // Si no hay pagos, ofrecer recuperar items al carrito
-      if (confirm('¿Deseas cancelar el checkout? Los items volverán a tu carrito.')) {
-        this.abandonCheckout();
-      }
+      Swal.fire({
+        title: '¿Cancelar checkout?',
+        text: 'Los items volverán a tu carrito.',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'Sí, cancelar',
+        cancelButtonText: 'No, seguir comprando'
+      }).then((result) => {
+        if (result.isConfirmed) {
+          this.abandonCheckout();
+        }
+      });
     } else {
       // Si hay pagos, solo volver al dashboard
-      if (confirm('¿Deseas salir del checkout? Los pagos completados se mantendrán.')) {
-        this.stopPolling();
-        this.stopTimer();
-        this.router.navigate(['/customer/dashboard']);
-      }
+      Swal.fire({
+        title: '¿Salir del checkout?',
+        text: 'Los pagos completados se mantendrán.',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'Sí, salir',
+        cancelButtonText: 'No, quedarme'
+      }).then((result) => {
+        if (result.isConfirmed) {
+          this.stopPolling();
+          this.stopTimer();
+          this.router.navigate(['/customer/dashboard']);
+        }
+      });
     }
   }
 
@@ -758,12 +739,24 @@ El botón de pago aparece más abajo.`;
         this.stopPolling();
         this.stopTimer();
         // Redirigir al dashboard (no existe ruta /customer/cart)
-        alert('Checkout cancelado. Los items han sido devueltos al carrito.');
-        this.router.navigate(['/customer/dashboard']);
+        Swal.fire({
+          title: 'Checkout cancelado',
+          text: 'Los items han sido devueltos al carrito.',
+          icon: 'success',
+          timer: 2000,
+          showConfirmButton: false
+        }).then(() => {
+          this.router.navigate(['/customer/dashboard']);
+        });
       },
       error: (error) => {
         console.error('Error al abandonar sesión:', error);
-        alert('Error al cancelar el checkout: ' + error.message);
+        Swal.fire({
+          title: 'Error',
+          text: 'Error al cancelar el checkout: ' + error.message,
+          icon: 'error',
+          confirmButtonText: 'Cerrar'
+        });
       }
     });
   }
@@ -774,10 +767,14 @@ El botón de pago aparece más abajo.`;
   getStatusBadgeClass(status: string): string {
     switch (status) {
       case 'PAID':
+      case 'COMPLETED':
         return 'badge-success';
       case 'PENDING':
+      case 'PENDING_PAYMENT':
         return 'badge-warning';
       case 'EXPIRED':
+      case 'FAILED':
+      case 'CANCELLED':
         return 'badge-danger';
       default:
         return 'badge-secondary';
@@ -790,11 +787,17 @@ El botón de pago aparece más abajo.`;
   getStatusText(status: string): string {
     switch (status) {
       case 'PAID':
+      case 'COMPLETED':
         return 'Pagado ✓';
       case 'PENDING':
+      case 'PENDING_PAYMENT':
         return 'Pendiente';
       case 'EXPIRED':
         return 'Expirado';
+      case 'FAILED':
+        return 'Fallido';
+      case 'CANCELLED':
+        return 'Cancelado';
       default:
         return status;
     }
@@ -817,7 +820,7 @@ El botón de pago aparece más abajo.`;
   }
 
   /**
-   * Obtiene el texto del estado de la sesión en español
+   * Obtiene el texto de la sesión en español
    */
   getSessionStatusText(status: string): string {
     switch (status) {
@@ -830,5 +833,14 @@ El botón de pago aparece más abajo.`;
       default:
         return status;
     }
+  }
+
+  /**
+   * Calcula el monto pendiente de pago
+   */
+  get pendingAmount(): number {
+    return this.paymentGroups
+      .filter(g => g.paymentStatus !== 'PAID' && g.paymentStatus !== 'COMPLETED')
+      .reduce((sum, g) => sum + g.amount, 0);
   }
 }

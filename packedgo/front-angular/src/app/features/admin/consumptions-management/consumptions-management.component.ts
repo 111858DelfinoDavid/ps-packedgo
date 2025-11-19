@@ -2,6 +2,7 @@ import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule, Router } from '@angular/router';
+import Swal from 'sweetalert2';
 import { EventService } from '../../../core/services/event.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { Consumption, ConsumptionCategory } from '../../../shared/models/event.model';
@@ -140,17 +141,25 @@ export class ConsumptionsManagementComponent implements OnInit {
   }
 
   deleteConsumption(id: number): void {
-    if (!confirm('¿Estás seguro de que deseas eliminar este consumo?')) {
-      return;
-    }
-
-    this.eventService.deleteConsumption(id).subscribe({
-      next: () => {
-        this.showSuccess('Consumo eliminado exitosamente');
-        this.loadConsumptions();
-      },
-      error: (error) => {
-        this.showError('Error al eliminar consumo: ' + error.message);
+    Swal.fire({
+      title: '¿Eliminar consumo?',
+      text: '¿Estás seguro de que deseas eliminar este consumo?',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Sí, eliminar',
+      cancelButtonText: 'Cancelar',
+      confirmButtonColor: '#d33'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        this.eventService.deleteConsumption(id).subscribe({
+          next: () => {
+            Swal.fire('Eliminado', 'Consumo eliminado exitosamente', 'success');
+            this.loadConsumptions();
+          },
+          error: (error) => {
+            this.showError('Error al eliminar consumo: ' + error.message);
+          }
+        });
       }
     });
   }
@@ -206,17 +215,25 @@ export class ConsumptionsManagementComponent implements OnInit {
   }
 
   deleteCategory(id: number): void {
-    if (!confirm('¿Estás seguro de que deseas eliminar esta categoría?')) {
-      return;
-    }
-
-    this.eventService.deleteConsumptionCategory(id).subscribe({
-      next: () => {
-        this.showSuccess('Categoría eliminada exitosamente');
-        this.loadCategories();
-      },
-      error: (error) => {
-        this.showError('Error al eliminar categoría: ' + error.message);
+    Swal.fire({
+      title: '¿Eliminar categoría?',
+      text: '¿Estás seguro de que deseas eliminar esta categoría?',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Sí, eliminar',
+      cancelButtonText: 'Cancelar',
+      confirmButtonColor: '#d33'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        this.eventService.deleteConsumptionCategory(id).subscribe({
+          next: () => {
+            Swal.fire('Eliminado', 'Categoría eliminada exitosamente', 'success');
+            this.loadCategories();
+          },
+          error: (error) => {
+            this.showError('Error al eliminar categoría: ' + error.message);
+          }
+        });
       }
     });
   }

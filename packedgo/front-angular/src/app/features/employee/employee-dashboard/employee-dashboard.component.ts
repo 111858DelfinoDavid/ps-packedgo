@@ -1,17 +1,22 @@
 import { Component, OnInit, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
+import Swal from 'sweetalert2';
 import { AuthService } from '../../../core/services/auth.service';
+import { EmployeeService } from '../../../core/services/employee.service';
+import { ZXingScannerModule } from '@zxing/ngx-scanner';
+import { BarcodeFormat } from '@zxing/library';
 
 @Component({
   selector: 'app-employee-dashboard',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, ZXingScannerModule],
   templateUrl: './employee-dashboard.component.html',
   styleUrl: './employee-dashboard.component.css'
 })
 export class EmployeeDashboardComponent implements OnInit, OnDestroy {
   private authService = inject(AuthService);
+  private employeeService = inject(EmployeeService);
   private router = inject(Router);
 
   employeeName: string = '';
@@ -27,6 +32,13 @@ export class EmployeeDashboardComponent implements OnInit, OnDestroy {
   isScanning: boolean = false;
   lastScanResult: string | null = null;
   scanHistory: ScanRecord[] = [];
+
+  // Scanner configuration
+  availableDevices: MediaDeviceInfo[] = [];
+  currentDevice: MediaDeviceInfo | undefined;
+  hasDevices: boolean = false;
+  hasPermission: boolean = false;
+  allowedFormats = [BarcodeFormat.QR_CODE];
 
   // Stats
   stats = {
@@ -54,32 +66,28 @@ export class EmployeeDashboardComponent implements OnInit, OnDestroy {
   }
 
   loadAssignedEvents(): void {
-    // TODO: Llamar al backend para obtener eventos asignados al empleado
-    // GET /employee/assigned-events con JWT
     console.log('Cargando eventos asignados al empleado...');
-    
-    // Mock data
-    this.assignedEvents = [
-      {
-        id: 1,
-        name: 'Fiesta de Año Nuevo 2025',
-        date: new Date('2024-12-31'),
-        location: 'Club Central',
-        status: 'ACTIVE'
-      },
-      {
-        id: 2,
-        name: 'Concierto Rock en Vivo',
-        date: new Date('2024-12-15'),
-        location: 'Estadio Municipal',
-        status: 'ACTIVE'
-      }
-    ];
 
-    // Auto-select first event if available
-    if (this.assignedEvents.length > 0) {
-      this.selectedEventId = this.assignedEvents[0].id;
-    }
+    this.employeeService.getAssignedEvents().subscribe({
+      next: (events) => {
+        this.assignedEvents = events.map(e => ({
+          id: e.id,
+          name: e.name,
+          date: e.eventDate ? new Date(e.eventDate) : new Date(),
+          location: e.location || 'Sin ubicación',
+          status: e.status || 'ACTIVE'
+        }));
+
+        // Auto-select first event if available
+        if (this.assignedEvents.length > 0) {
+          this.selectedEventId = this.assignedEvents[0].id;
+        }
+      },
+      error: (err) => {
+        console.error('Error cargando eventos:', err);
+        Swal.fire('Error', 'No se pudieron cargar los eventos asignados', 'error');
+      }
+    });
   }
 
   selectEvent(eventId: number): void {
@@ -101,7 +109,7 @@ export class EmployeeDashboardComponent implements OnInit, OnDestroy {
 
   startScanMode(mode: 'ticket' | 'consumption'): void {
     if (!this.selectedEventId) {
-      alert('Por favor, selecciona un evento primero');
+      Swal.fire('Atención', 'Por favor, selecciona un evento primero', 'warning');
       return;
     }
 
@@ -128,73 +136,282 @@ export class EmployeeDashboardComponent implements OnInit, OnDestroy {
     if (this.scanMode === 'ticket') {
       this.validateTicket(result);
     } else if (this.scanMode === 'consumption') {
-      this.registerConsumption(result);
+      this.handleConsumptionScan(result);
     }
+  }
+
+  onCamerasFound(devices: MediaDeviceInfo[]): void {
+    this.availableDevices = devices;
+    this.hasDevices = devices && devices.length > 0;
+
+    // Select back camera by default if available
+    const backCamera = devices.find(device =>
+      device.label.toLowerCase().includes('back') ||
+      device.label.toLowerCase().includes('rear')
+    );
+    this.currentDevice = backCamera || devices[0];
+  }
+
+  onCameraPermission(hasPermission: boolean): void {
+    this.hasPermission = hasPermission;
+    if (!hasPermission) {
+      Swal.fire('Permiso denegado', 'Necesitas permitir el acceso a la cámara para escanear QR', 'warning');
+    }
+  }
+
+  onScanError(error: any): void {
+    console.error('Error en scanner:', error);
   }
 
   private validateTicket(qrCode: string): void {
-    // TODO: Llamar al backend para validar el ticket del evento seleccionado
-    // POST /employee/validate-ticket con { qrCode, eventId: this.selectedEventId }
-    console.log('Validando ticket:', qrCode, 'para evento:', this.selectedEventId);
-    
-    // Mock response
-    const scanRecord: ScanRecord = {
-      id: Date.now(),
-      type: 'ticket',
-      qrCode: qrCode,
-      timestamp: new Date(),
-      status: 'success',
-      message: 'Ticket válido - Entrada autorizada',
-      eventName: this.getSelectedEvent()?.name
-    };
+    if (!this.selectedEventId) return;
 
-    this.scanHistory.unshift(scanRecord);
-    this.stats.ticketsScannedToday++;
-    this.stats.totalScannedToday++;
+    console.log('Validando ticket:', qrCode, 'para evento:', this.selectedEventId);
+
+    this.employeeService.validateTicket(qrCode, this.selectedEventId).subscribe({
+      next: (response) => {
+        const scanRecord: ScanRecord = {
+          id: Date.now(),
+          type: 'ticket',
+          qrCode: qrCode,
+          timestamp: new Date(),
+          status: response.valid ? 'success' : 'error',
+          message: response.message,
+          eventName: response.ticketInfo?.eventName || this.getSelectedEvent()?.name
+        };
+
+        this.scanHistory.unshift(scanRecord);
+
+        if (response.valid) {
+          this.stats.ticketsScannedToday++;
+          this.stats.totalScannedToday++;
+          Swal.fire({
+            icon: 'success',
+            title: '¡Entrada autorizada!',
+            html: `
+              <p><strong>Cliente:</strong> ${response.ticketInfo?.customerName}</p>
+              <p><strong>Pass:</strong> ${response.ticketInfo?.passType}</p>
+            `,
+            timer: 2000,
+            showConfirmButton: false
+          });
+        } else {
+          Swal.fire('Entrada denegada', response.message, 'error');
+        }
+      },
+      error: (err) => {
+        console.error('Error validando ticket:', err);
+        const scanRecord: ScanRecord = {
+          id: Date.now(),
+          type: 'ticket',
+          qrCode: qrCode,
+          timestamp: new Date(),
+          status: 'error',
+          message: 'Error al validar ticket',
+          eventName: this.getSelectedEvent()?.name
+        };
+        this.scanHistory.unshift(scanRecord);
+        Swal.fire('Error', 'No se pudo validar el ticket', 'error');
+      }
+    });
   }
 
-  private registerConsumption(qrCode: string): void {
-    // TODO: Llamar al backend para registrar consumo del evento seleccionado
-    // POST /employee/register-consumption con { qrCode, eventId: this.selectedEventId }
-    console.log('Registrando consumo:', qrCode, 'para evento:', this.selectedEventId);
+  private handleConsumptionScan(qrCode: string): void {
+    if (!this.selectedEventId) return;
 
-    // Mock response
-    const scanRecord: ScanRecord = {
-      id: Date.now(),
-      type: 'consumption',
-      qrCode: qrCode,
-      timestamp: new Date(),
-      status: 'success',
-      message: 'Consumo registrado correctamente',
-      eventName: this.getSelectedEvent()?.name
-    };
+    console.log('Escaneando consumo:', qrCode);
 
-    this.scanHistory.unshift(scanRecord);
-    this.stats.consumptionsToday++;
-    this.stats.totalScannedToday++;
+    // Extract ticketConsumptionId from QR
+    const qrPattern = /PACKEDGO\|T:(\d+)\|TC:(\d+)\|E:(\d+)\|U:(\d+)\|TS:(\d+)/;
+    const match = qrCode.match(qrPattern);
+
+    if (!match) {
+      Swal.fire('QR Inválido', 'El código QR no tiene el formato correcto', 'error');
+      return;
+    }
+
+    const ticketConsumptionId = parseInt(match[2]);
+
+    // Get available consumptions for this ticket
+    this.employeeService.getTicketConsumptions(ticketConsumptionId).subscribe({
+      next: (consumptions) => {
+        const availableConsumptions = consumptions.filter(c => c.active && !c.redeem && c.quantity > 0);
+
+        if (availableConsumptions.length === 0) {
+          Swal.fire('Sin consumiciones', 'Este ticket no tiene consumiciones disponibles', 'warning');
+          return;
+        }
+
+        // Show list of consumptions for employee to select
+        this.showConsumptionSelector(qrCode, availableConsumptions);
+      },
+      error: (err) => {
+        console.error('Error obteniendo consumiciones:', err);
+        Swal.fire('Error', 'No se pudieron cargar las consumiciones del ticket', 'error');
+      }
+    });
+  }
+
+  private showConsumptionSelector(qrCode: string, consumptions: any[]): void {
+    const options = consumptions.map(c =>
+      `<div style="padding: 10px; border: 1px solid #ddd; margin: 5px; border-radius: 5px; cursor: pointer;" data-detail-id="${c.id}">
+        <strong>${c.consumption.name}</strong>
+        <p style="margin: 5px 0; color: #666;">${c.consumption.description || ''}</p>
+        <small>Cantidad disponible: ${c.quantity}</small>
+      </div>`
+    ).join('');
+
+    Swal.fire({
+      title: 'Seleccionar consumición',
+      html: `<div id="consumption-list" style="max-height: 400px; overflow-y: auto;">${options}</div>`,
+      showCancelButton: true,
+      confirmButtonText: 'Cancelar',
+      showConfirmButton: false,
+      didOpen: () => {
+        const listContainer = document.getElementById('consumption-list');
+        listContainer?.querySelectorAll('[data-detail-id]').forEach(element => {
+          element.addEventListener('click', () => {
+            const detailId = parseInt(element.getAttribute('data-detail-id') || '0');
+            const consumption = consumptions.find(c => c.id === detailId);
+            Swal.close();
+            this.confirmConsumption(qrCode, detailId, consumption);
+          });
+        });
+      }
+    });
+  }
+
+  private confirmConsumption(qrCode: string, detailId: number, consumption: any): void {
+    if (!this.selectedEventId) return;
+
+    Swal.fire({
+      title: '¿Canjear consumición?',
+      html: `
+        <p><strong>${consumption.consumption.name}</strong></p>
+        <p>Cantidad disponible: ${consumption.quantity}</p>
+      `,
+      input: 'number',
+      inputValue: 1,
+      inputAttributes: {
+        min: '1',
+        max: consumption.quantity.toString(),
+        step: '1'
+      },
+      inputLabel: 'Cantidad a canjear',
+      showCancelButton: true,
+      confirmButtonText: 'Canjear',
+      cancelButtonText: 'Cancelar',
+      inputValidator: (value) => {
+        const qty = parseInt(value);
+        if (!qty || qty < 1) {
+          return 'Ingresa una cantidad válida';
+        }
+        if (qty > consumption.quantity) {
+          return `La cantidad no puede ser mayor a ${consumption.quantity}`;
+        }
+        return null;
+      }
+    }).then((result) => {
+      if (result.isConfirmed) {
+        const quantity = parseInt(result.value);
+        this.registerConsumption(qrCode, detailId, quantity, consumption.consumption.name);
+      }
+    });
+  }
+
+  private registerConsumption(qrCode: string, detailId: number, quantity: number, consumptionName: string): void {
+    if (!this.selectedEventId) return;
+
+    this.employeeService.registerConsumption({
+      qrCode,
+      eventId: this.selectedEventId,
+      detailId,
+      quantity
+    }).subscribe({
+      next: (response) => {
+        const scanRecord: ScanRecord = {
+          id: Date.now(),
+          type: 'consumption',
+          qrCode: qrCode,
+          timestamp: new Date(),
+          status: response.success ? 'success' : 'error',
+          message: `${consumptionName} - ${response.message}`,
+          eventName: this.getSelectedEvent()?.name
+        };
+
+        this.scanHistory.unshift(scanRecord);
+
+        if (response.success) {
+          this.stats.consumptionsToday++;
+          this.stats.totalScannedToday++;
+
+          Swal.fire({
+            icon: 'success',
+            title: '¡Consumición canjeada!',
+            html: `
+              <p><strong>${response.consumptionInfo?.consumptionName}</strong></p>
+              <p>Cantidad: ${response.consumptionInfo?.quantityRedeemed}</p>
+              ${response.consumptionInfo?.remainingQuantity ?
+                `<p>Restante: ${response.consumptionInfo.remainingQuantity}</p>` :
+                '<p>Totalmente canjeado</p>'}
+            `,
+            timer: 2000,
+            showConfirmButton: false
+          });
+        } else {
+          Swal.fire('Error', response.message, 'error');
+        }
+      },
+      error: (err) => {
+        console.error('Error registrando consumo:', err);
+        Swal.fire('Error', 'No se pudo registrar la consumición', 'error');
+      }
+    });
   }
 
   private loadStats(): void {
-    // TODO: Cargar estadísticas reales del backend
-    // Por ahora, valores de ejemplo
-    this.stats = {
-      ticketsScannedToday: 0,
-      consumptionsToday: 0,
-      totalScannedToday: 0
-    };
+    this.employeeService.getStats().subscribe({
+      next: (stats) => {
+        this.stats = stats;
+      },
+      error: (err) => {
+        console.error('Error cargando estadísticas:', err);
+        // Keep default values
+      }
+    });
   }
 
   clearHistory(): void {
-    if (confirm('¿Estás seguro de que quieres limpiar el historial?')) {
-      this.scanHistory = [];
-    }
+    Swal.fire({
+      title: '¿Limpiar historial?',
+      text: '¿Estás seguro de que quieres limpiar el historial?',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Sí, limpiar',
+      cancelButtonText: 'Cancelar',
+      confirmButtonColor: '#d33'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        this.scanHistory = [];
+        Swal.fire('Historial limpiado', '', 'success');
+      }
+    });
   }
 
   logout(): void {
-    if (confirm('¿Estás seguro de que quieres cerrar sesión?')) {
-      this.authService.logout();
-      this.router.navigate(['/employee/login']);
-    }
+    Swal.fire({
+      title: '¿Cerrar sesión?',
+      text: '¿Estás seguro de que quieres cerrar sesión?',
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonText: 'Sí, salir',
+      cancelButtonText: 'Cancelar'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        this.authService.logout();
+        this.router.navigate(['/employee/login']);
+      }
+    });
   }
 }
 

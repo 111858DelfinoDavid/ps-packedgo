@@ -3,11 +3,13 @@ import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
 import { Subscription } from 'rxjs';
+import Swal from 'sweetalert2';
 import { AuthService } from '../../../core/services/auth.service';
 import { EventService } from '../../../core/services/event.service';
 import { UserService } from '../../../core/services/user.service';
 import { CartService } from '../../../core/services/cart.service';
 import { TicketService, Ticket } from '../../../core/services/ticket.service';
+import { OrderService } from '../../../core/services/order.service';
 import { Event } from '../../../shared/models/event.model';
 import { Cart } from '../../../shared/models/cart.model';
 
@@ -25,6 +27,7 @@ export class CustomerDashboardComponent implements OnInit, OnDestroy {
   private userService = inject(UserService);
   private cartService = inject(CartService);
   private ticketService = inject(TicketService);
+  private orderService = inject(OrderService);
   private router = inject(Router);
   private fb = inject(FormBuilder);
 
@@ -40,6 +43,7 @@ export class CustomerDashboardComponent implements OnInit, OnDestroy {
 
   // Cart Section
   cart: Cart | null = null;
+  groupedItems: { adminId: number, items: any[], total: number }[] = [];
   private cartSubscription?: Subscription;
 
   // Tickets Section
@@ -93,6 +97,11 @@ export class CustomerDashboardComponent implements OnInit, OnDestroy {
     // Suscribirse a cambios del carrito
     this.cartSubscription = this.cartService.cart$.subscribe(cart => {
       this.cart = cart;
+      if (cart) {
+        this.groupItemsByAdmin(cart);
+      } else {
+        this.groupedItems = [];
+      }
     });
     
     // SIEMPRE cargar el carrito del backend al iniciar el dashboard
@@ -151,6 +160,51 @@ export class CustomerDashboardComponent implements OnInit, OnDestroy {
     this.cartService.loadCart();
   }
 
+  private groupItemsByAdmin(cart: Cart): void {
+    const groups = new Map<number, { adminId: number, items: any[], total: number }>();
+
+    cart.items.forEach(item => {
+      // Si por alguna razón adminId es null/undefined, usar 0 o un placeholder
+      const adminId = item.adminId || 0;
+      
+      if (!groups.has(adminId)) {
+        groups.set(adminId, { adminId: adminId, items: [], total: 0 });
+      }
+      const group = groups.get(adminId)!;
+      group.items.push(item);
+      group.total += item.subtotal;
+    });
+
+    this.groupedItems = Array.from(groups.values());
+  }
+
+  payAdminGroup(adminId: number): void {
+    Swal.fire({
+      title: '¿Proceder al pago?',
+      text: '¿Deseas pagar los items de este administrador?',
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonText: 'Sí, pagar',
+      cancelButtonText: 'Cancelar'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        this.orderService.checkoutSingleAdmin(adminId).subscribe({
+          next: (response) => {
+            if (response.paymentUrl) {
+              window.location.href = response.paymentUrl;
+            } else {
+              Swal.fire('Error', 'No se recibió URL de pago', 'error');
+            }
+          },
+          error: (error) => {
+            console.error('Error initiating checkout:', error);
+            Swal.fire('Error', 'Error al iniciar el pago: ' + (error.error?.message || error.message), 'error');
+          }
+        });
+      }
+    });
+  }
+
   get cartCount(): number {
     return this.cart ? this.cart.itemCount : 0;
   }
@@ -160,20 +214,37 @@ export class CustomerDashboardComponent implements OnInit, OnDestroy {
   }
 
   removeFromCart(itemId: number): void {
-    if (confirm('¿Estás seguro de que quieres eliminar este item del carrito?')) {
-      this.cartService.removeCartItem(itemId).subscribe({
-        next: (cart) => {
-          console.log('Item removed from cart');
-          if (!cart) {
-            console.log('Cart is now empty');
+    Swal.fire({
+      title: '¿Eliminar item?',
+      text: '¿Estás seguro de que quieres eliminar este item del carrito?',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Sí, eliminar',
+      cancelButtonText: 'Cancelar',
+      confirmButtonColor: '#d33'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        this.cartService.removeCartItem(itemId).subscribe({
+          next: (cart) => {
+            console.log('Item removed from cart');
+            if (!cart) {
+              console.log('Cart is now empty');
+            }
+            Swal.fire({
+              title: 'Eliminado',
+              text: 'El item ha sido eliminado del carrito',
+              icon: 'success',
+              timer: 1500,
+              showConfirmButton: false
+            });
+          },
+          error: (error) => {
+            console.error('Error removing item:', error);
+            Swal.fire('Error', 'Error al eliminar el item del carrito: ' + error.message, 'error');
           }
-        },
-        error: (error) => {
-          console.error('Error removing item:', error);
-          alert('Error al eliminar el item del carrito: ' + error.message);
-        }
-      });
-    }
+        });
+      }
+    });
   }
 
   /**
@@ -181,28 +252,42 @@ export class CustomerDashboardComponent implements OnInit, OnDestroy {
    * Con Opción A: cada item = 1 entrada = 1 QR
    */
   duplicateItem(item: any): void {
-    if (!confirm('¿Deseas duplicar esta entrada? Se creará una copia idéntica con las mismas consumiciones.')) {
-      return;
-    }
+    Swal.fire({
+      title: '¿Duplicar entrada?',
+      text: 'Se creará una copia idéntica con las mismas consumiciones.',
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonText: 'Sí, duplicar',
+      cancelButtonText: 'Cancelar'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        // Construir las consumiciones para el nuevo item
+        const consumptions = item.consumptions?.map((c: any) => ({
+          consumptionId: c.consumptionId,
+          quantity: c.quantity
+        })) || [];
 
-    // Construir las consumiciones para el nuevo item
-    const consumptions = item.consumptions?.map((c: any) => ({
-      consumptionId: c.consumptionId,
-      quantity: c.quantity
-    })) || [];
-
-    // Agregar al carrito (esto creará un nuevo item con quantity=1)
-    this.cartService.addToCart({
-      eventId: item.eventId,
-      quantity: 1,
-      consumptions: consumptions
-    }).subscribe({
-      next: () => {
-        console.log('Item duplicado exitosamente');
-      },
-      error: (error) => {
-        console.error('Error al duplicar item:', error);
-        alert(error.error?.message || 'Error al duplicar la entrada');
+        // Agregar al carrito (esto creará un nuevo item con quantity=1)
+        this.cartService.addToCart({
+          eventId: item.eventId,
+          quantity: 1,
+          consumptions: consumptions
+        }).subscribe({
+          next: () => {
+            console.log('Item duplicado exitosamente');
+            Swal.fire({
+              title: 'Duplicado',
+              text: 'Entrada duplicada exitosamente',
+              icon: 'success',
+              timer: 1500,
+              showConfirmButton: false
+            });
+          },
+          error: (error) => {
+            console.error('Error al duplicar item:', error);
+            Swal.fire('Error', error.error?.message || 'Error al duplicar la entrada', 'error');
+          }
+        });
       }
     });
   }
@@ -219,7 +304,7 @@ export class CustomerDashboardComponent implements OnInit, OnDestroy {
       },
       error: (error) => {
         console.error('Error incrementing consumption:', error);
-        alert(error.error?.message || 'Error al actualizar la cantidad de consumición');
+        Swal.fire('Error', error.error?.message || 'Error al actualizar la cantidad de consumición', 'error');
       }
     });
   }
@@ -243,7 +328,7 @@ export class CustomerDashboardComponent implements OnInit, OnDestroy {
       },
       error: (error) => {
         console.error('Error decrementing consumption:', error);
-        alert(error.error?.message || 'Error al actualizar la cantidad de consumición');
+        Swal.fire('Error', error.error?.message || 'Error al actualizar la cantidad de consumición', 'error');
       }
     });
   }
@@ -252,17 +337,32 @@ export class CustomerDashboardComponent implements OnInit, OnDestroy {
    * Elimina una consumición específica del item del carrito
    */
   removeConsumption(itemId: number, consumption: any): void {
-    if (!confirm(`¿Eliminar "${consumption.consumptionName}" del carrito?`)) {
-      return;
-    }
-
-    this.cartService.removeConsumptionFromItem(itemId, consumption.consumptionId).subscribe({
-      next: () => {
-        console.log('Consumption removed successfully');
-      },
-      error: (error) => {
-        console.error('Error removing consumption:', error);
-        alert(error.error?.message || 'Error al eliminar la consumición');
+    Swal.fire({
+      title: '¿Eliminar consumición?',
+      text: `¿Eliminar "${consumption.consumptionName}" del carrito?`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Sí, eliminar',
+      cancelButtonText: 'Cancelar',
+      confirmButtonColor: '#d33'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        this.cartService.removeConsumptionFromItem(itemId, consumption.consumptionId).subscribe({
+          next: () => {
+            console.log('Consumption removed successfully');
+            Swal.fire({
+              title: 'Eliminado',
+              text: 'Consumición eliminada',
+              icon: 'success',
+              timer: 1500,
+              showConfirmButton: false
+            });
+          },
+          error: (error) => {
+            console.error('Error removing consumption:', error);
+            Swal.fire('Error', error.error?.message || 'Error al eliminar la consumición', 'error');
+          }
+        });
       }
     });
   }
@@ -285,7 +385,7 @@ export class CustomerDashboardComponent implements OnInit, OnDestroy {
       },
       error: (err: any) => {
         console.error('Error loading consumptions:', err);
-        alert('No se pudieron cargar las consumiciones del evento');
+        Swal.fire('Error', 'No se pudieron cargar las consumiciones del evento', 'error');
         this.closeModal();
       }
     });
@@ -301,10 +401,17 @@ export class CustomerDashboardComponent implements OnInit, OnDestroy {
       next: () => {
         console.log('Consumption added successfully');
         this.closeModal();
+        Swal.fire({
+          title: 'Agregado',
+          text: 'Consumición agregada exitosamente',
+          icon: 'success',
+          timer: 1500,
+          showConfirmButton: false
+        });
       },
       error: (err) => {
         console.error('Error adding consumption:', err);
-        alert(err.error?.message || 'Error al agregar consumición');
+        Swal.fire('Error', err.error?.message || 'Error al agregar consumición', 'error');
       }
     });
   }
@@ -320,17 +427,34 @@ export class CustomerDashboardComponent implements OnInit, OnDestroy {
   }
 
   clearCart(): void {
-    if (confirm('¿Estás seguro de que quieres vaciar todo el carrito?')) {
-      this.cartService.clearCart().subscribe({
-        next: () => {
-          console.log('Cart cleared successfully');
-        },
-        error: (error) => {
-          console.error('Error clearing cart:', error);
-          alert('Error al vaciar el carrito: ' + error.message);
-        }
-      });
-    }
+    Swal.fire({
+      title: '¿Vaciar carrito?',
+      text: '¿Estás seguro de que quieres vaciar todo el carrito?',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Sí, vaciar',
+      cancelButtonText: 'Cancelar',
+      confirmButtonColor: '#d33'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        this.cartService.clearCart().subscribe({
+          next: () => {
+            console.log('Cart cleared successfully');
+            Swal.fire({
+              title: 'Vaciado',
+              text: 'El carrito ha sido vaciado',
+              icon: 'success',
+              timer: 1500,
+              showConfirmButton: false
+            });
+          },
+          error: (error) => {
+            console.error('Error clearing cart:', error);
+            Swal.fire('Error', 'Error al vaciar el carrito: ' + error.message, 'error');
+          }
+        });
+      }
+    });
   }
 
   getConsumptionsTotal(consumptions: any[]): number {
@@ -340,7 +464,7 @@ export class CustomerDashboardComponent implements OnInit, OnDestroy {
 
   proceedToCheckout(): void {
     if (!this.cart || this.cart.itemCount === 0) {
-      alert('Tu carrito está vacío');
+      Swal.fire('Carrito vacío', 'Tu carrito está vacío', 'info');
       return;
     }
     
@@ -371,7 +495,7 @@ export class CustomerDashboardComponent implements OnInit, OnDestroy {
         console.error('❌ Error cargando tickets:', error);
         this.myTickets = [];
         this.isLoadingTickets = false;
-        alert('Error al cargar tus entradas: ' + (error.error?.message || error.message));
+        Swal.fire('Error', 'Error al cargar tus entradas: ' + (error.error?.message || error.message), 'error');
       }
     });
   }
@@ -427,9 +551,9 @@ export class CustomerDashboardComponent implements OnInit, OnDestroy {
         
         if (error.status === 500 || error.status === 404) {
           // Perfil no existe - mostrar mensaje informativo
-          alert('⚠️ Tu perfil no está disponible. Por favor, contacta con el administrador o intenta registrarte nuevamente.');
+          Swal.fire('Perfil no disponible', 'Tu perfil no está disponible. Por favor, contacta con el administrador o intenta registrarte nuevamente.', 'warning');
         } else {
-          alert('Error al cargar el perfil. Por favor, intenta nuevamente.');
+          Swal.fire('Error', 'Error al cargar el perfil. Por favor, intenta nuevamente.', 'error');
         }
         
         this.isLoadingProfile = false;
@@ -485,12 +609,12 @@ export class CustomerDashboardComponent implements OnInit, OnDestroy {
         this.isEditingProfile = false;
         this.profileForm.disable();
         this.isLoadingProfile = false;
-        alert('Perfil actualizado exitosamente');
+        Swal.fire('Éxito', 'Perfil actualizado exitosamente', 'success');
       },
       error: (error: any) => {
         console.error('Error al actualizar perfil:', error);
         this.isLoadingProfile = false;
-        alert('Error al actualizar el perfil. Intenta nuevamente.');
+        Swal.fire('Error', 'Error al actualizar el perfil. Intenta nuevamente.', 'error');
       }
     });
   }
@@ -503,7 +627,7 @@ export class CustomerDashboardComponent implements OnInit, OnDestroy {
 
     const user = this.authService.getCurrentUser();
     if (!user) {
-      alert('Error: Usuario no encontrado');
+      Swal.fire('Error', 'Usuario no encontrado', 'error');
       return;
     }
 
@@ -512,12 +636,12 @@ export class CustomerDashboardComponent implements OnInit, OnDestroy {
 
     this.authService.changePassword(user.id, currentPassword, newPassword).subscribe({
       next: () => {
-        alert('✓ Contraseña actualizada exitosamente');
+        Swal.fire('Éxito', 'Contraseña actualizada exitosamente', 'success');
         this.changePasswordForm.reset();
       },
       error: (error) => {
         const errorMessage = error.error?.message || 'Error al cambiar la contraseña. Verifica que la contraseña actual sea correcta.';
-        alert('❌ ' + errorMessage);
+        Swal.fire('Error', errorMessage, 'error');
         console.error('Error al cambiar contraseña:', error);
       }
     });

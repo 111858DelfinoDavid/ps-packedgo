@@ -59,6 +59,17 @@ public class EventController {
     }
 
     /**
+     * 🔓 POST /event/by-ids - Obtener múltiples eventos por sus IDs
+     * Usado internamente por users-service para obtener eventos asignados a empleados
+     */
+    @PostMapping("/by-ids")
+    public ResponseEntity<List<EventDTO>> getEventsByIds(@RequestBody List<Long> eventIds) {
+        log.info("🔓 Fetching events for IDs: {}", eventIds);
+        List<EventDTO> events = service.findAllByIds(eventIds);
+        return ResponseEntity.ok(events);
+    }
+
+    /**
      * 🔒 GET /event/my-events - Listar solo los eventos del admin autenticado
      */
     @GetMapping("/my-events")

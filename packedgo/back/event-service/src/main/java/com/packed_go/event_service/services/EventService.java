@@ -12,6 +12,7 @@ import jakarta.transaction.Transactional;
 public interface EventService {
     EventDTO findById(Long id);
     List<EventDTO> findAll();
+    List<EventDTO> findAllByIds(List<Long> ids);
 
     List<EventDTO> findAllByStatus(String status);
 

@@ -12,7 +12,7 @@
 	<artifactId>payment-service</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
 	<name>payment-service</name>
-	<description>Microservicio de pasarela de pago con MercadoPago</description>
+	<description>Microservicio de pasarela de pago con Stripe</description>
 	<url/>
 	<licenses>
 		<license/>
@@ -28,7 +28,6 @@
 	</scm>
 	<properties>
 		<java.version>17</java.version>
-        <mercadopago.version>2.2.0</mercadopago.version>
 	</properties>
     <dependencies>
         <!-- Spring Boot Starters -->
@@ -52,11 +51,17 @@
             <artifactId>spring-boot-starter-security</artifactId>
         </dependency>
 
-        <!-- MercadoPago SDK -->
+        <!-- Stripe SDK -->
         <dependency>
-            <groupId>com.mercadopago</groupId>
-            <artifactId>sdk-java</artifactId>
-            <version>2.2.0</version>
+            <groupId>com.stripe</groupId>
+            <artifactId>stripe-java</artifactId>
+            <version>26.7.0</version>
+        </dependency>
+
+        <!-- Gson for JSON processing -->
+        <dependency>
+            <groupId>com.google.code.gson</groupId>
+            <artifactId>gson</artifactId>
         </dependency>
 
         <!-- Database -->

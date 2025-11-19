@@ -1,0 +1,25 @@
+version: '3.8'
+
+services:
+  stripe-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: stripe-api
+    ports:
+      - "8081:8081"
+    environment:
+      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY}
+      - STRIPE_PUBLISHABLE_KEY=${STRIPE_PUBLISHABLE_KEY}
+      - BASE_URL=${BASE_URL}
+      - FRONTEND_URL=${FRONTEND_URL}
+      - SERVER_PORT=${SERVER_PORT}
+    env_file:
+      - .env
+    restart: unless-stopped
+    networks:
+      - packedgo-network
+
+networks:
+  packedgo-network:
+    driver: bridge

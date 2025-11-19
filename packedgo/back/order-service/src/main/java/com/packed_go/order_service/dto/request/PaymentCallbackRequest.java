@@ -21,4 +21,5 @@ public class PaymentCallbackRequest {
     
     private Long mpPaymentId;
     private String paymentMethod;
+    private String customerEmail;
 }

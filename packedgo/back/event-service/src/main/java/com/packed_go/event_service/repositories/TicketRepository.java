@@ -61,4 +61,8 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT t FROM Ticket t WHERE t.id = :id")
     Optional<Ticket> findByIdWithLock(@Param("id") Long id);
+
+    // Buscar ticket por TicketConsumption
+    @Query("SELECT t FROM Ticket t WHERE t.ticketConsumption = :ticketConsumption")
+    Optional<Ticket> findByTicketConsumption(@Param("ticketConsumption") com.packed_go.event_service.entities.TicketConsumption ticketConsumption);
 }

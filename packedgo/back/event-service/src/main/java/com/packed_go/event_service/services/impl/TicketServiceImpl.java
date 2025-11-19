@@ -324,11 +324,12 @@ public class TicketServiceImpl implements TicketService {
 
     /**
      * Generates QR code data for a ticket
-     * Format: PACKEDGO|TICKET_ID|EVENT_ID|USER_ID|TIMESTAMP
+     * Format: PACKEDGO|T:ticketId|TC:ticketConsumptionId|E:eventId|U:userId|TS:timestamp
      */
     private String generateQRData(Ticket ticket, Event event) {
-        return String.format("PACKEDGO|T:%d|E:%d|U:%d|TS:%d",
+        return String.format("PACKEDGO|T:%d|TC:%d|E:%d|U:%d|TS:%d",
                 ticket.getId(),
+                ticket.getTicketConsumption().getId(),
                 event.getId(),
                 ticket.getUserId(),
                 System.currentTimeMillis()
