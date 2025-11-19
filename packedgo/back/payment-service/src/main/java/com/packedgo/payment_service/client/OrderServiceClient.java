@@ -35,21 +35,26 @@ public class OrderServiceClient {
      * 
      * @param orderNumber Número de la orden (ej: ORD-202510-123)
      * @param paymentId ID del pago de MercadoPago
+     * @param customerEmail Email del cliente (opcional)
      * @return true si la notificación fue exitosa
      */
-    public boolean notifyPaymentApproved(String orderNumber, Long paymentId) {
+    public boolean notifyPaymentApproved(String orderNumber, Long paymentId, String customerEmail) {
         String url = orderServiceUrl + "/api/orders/payment-callback";
 
         try {
-            log.info("Notificando a order-service: orderNumber={}, paymentId={}", orderNumber, paymentId);
+            log.info("Notificando a order-service: orderNumber={}, paymentId={}, email={}", orderNumber, paymentId, customerEmail);
 
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
 
-            Map<String, Object> request = Map.of(
+            Map<String, Object> request = new java.util.HashMap<>(Map.of(
                     "orderNumber", orderNumber,
                     "mpPaymentId", paymentId,
-                    "paymentStatus", "APPROVED");
+                    "paymentStatus", "APPROVED"));
+            
+            if (customerEmail != null) {
+                request.put("customerEmail", customerEmail);
+            }
 
             HttpEntity<Map<String, Object>> entity = new HttpEntity<>(request, headers);
 

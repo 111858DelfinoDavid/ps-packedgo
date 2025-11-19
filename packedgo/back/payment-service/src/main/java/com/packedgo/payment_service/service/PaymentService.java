@@ -185,9 +185,15 @@ public class PaymentService {
             log.info(" Pago Stripe aprobado. PaymentId: {}, PaymentIntentId: {}", 
                 payment.getId(), paymentIntentId);
             
+            // Obtener email del cliente
+            String customerEmail = null;
+            if (session.getCustomerDetails() != null) {
+                customerEmail = session.getCustomerDetails().getEmail();
+            }
+            
             // Notificar a Order Service si el estado cambió
             if (previousStatus != Payment.PaymentStatus.APPROVED) {
-                notifyOrderService(payment, Payment.PaymentStatus.APPROVED, "approved");
+                notifyOrderService(payment, Payment.PaymentStatus.APPROVED, "approved", customerEmail);
             }
             
         } catch (Exception e) {
@@ -199,13 +205,14 @@ public class PaymentService {
     /**
      * Notifica a order-service sobre el cambio de estado del pago
      */
-    private void notifyOrderService(Payment payment, Payment.PaymentStatus newStatus, String statusDetail) {
+    private void notifyOrderService(Payment payment, Payment.PaymentStatus newStatus, String statusDetail, String customerEmail) {
         try {
             if (newStatus == Payment.PaymentStatus.APPROVED) {
                 log.info("Notificando aprobación de pago a order-service: orderId={}", payment.getOrderId());
                 boolean success = orderServiceClient.notifyPaymentApproved(
                         payment.getOrderId(),
-                        payment.getId());
+                        payment.getId(),
+                        customerEmail);
 
                 if (success) {
                     log.info("Order-service notificado exitosamente para orden: {}", payment.getOrderId());
