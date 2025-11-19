@@ -175,8 +175,12 @@ public class EmployeeController {
     }
 
     private Long extractEmployeeId(Authentication authentication) {
-        // Extraer employeeId del JWT token
+        // Extraer username del JWT token y buscar el empleado
         Map<String, Object> claims = (Map<String, Object>) authentication.getPrincipal();
-        return Long.valueOf(claims.get("userId").toString());
+        String username = (String) claims.get("username");
+        
+        // Buscar el empleado por username para obtener su ID real en este servicio
+        // Esto maneja el caso donde el ID del token (auth-service) no coincide con el ID local
+        return employeeService.getEmployeeByUsername(username).getId();
     }
 }

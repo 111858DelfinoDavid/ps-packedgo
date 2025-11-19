@@ -28,12 +28,21 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
         
         // Guardar la URL actual para redirigir después del login
         const currentUrl = router.url;
+        
+        // Determinar a qué login redirigir basado en la URL actual
+        let loginRoute = '/customer/login';
+        if (currentUrl.includes('/admin')) {
+          loginRoute = '/admin/login';
+        } else if (currentUrl.includes('/employee')) {
+          loginRoute = '/employee/login';
+        }
+
         if (!currentUrl.includes('/login') && !currentUrl.includes('/register')) {
-          router.navigate(['/customer/login'], {
+          router.navigate([loginRoute], {
             queryParams: { returnUrl: currentUrl }
           });
         } else {
-          router.navigate(['/customer/login']);
+          router.navigate([loginRoute]);
         }
       }
       

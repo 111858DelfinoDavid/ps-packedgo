@@ -172,16 +172,48 @@ public class TicketServiceImpl implements TicketService {
         log.info("QR Code value from ticket {}: {}", ticket.getId(), qrCodeValue != null ? "present (length: " + qrCodeValue.length() + ")" : "null");
         dto.setQrCode(qrCodeValue);
         
-        // Mapear el pass
+        // Mapear el pass y detalles del evento
         if (ticket.getPass() != null) {
             dto.setPass(modelMapper.map(ticket.getPass(), PassDTO.class));
             dto.setPassCode(ticket.getPass().getCode());
             log.info("Pass code set for ticket {}: {}", ticket.getId(), ticket.getPass().getCode());
+            
+            // Mapear detalles del evento desde el Pass
+            if (ticket.getPass().getEvent() != null) {
+                Event event = ticket.getPass().getEvent();
+                dto.setEventId(event.getId());
+                dto.setEventName(event.getName());
+                dto.setEventDate(event.getEventDate());
+                
+                // Formatear ubicación
+                String location = "";
+                if (event.getLat() != null && event.getLng() != null) {
+                    location = event.getLat() + ", " + event.getLng();
+                }
+                dto.setEventLocation(location);
+            }
         }
         
         // Mapear el consumption
         if (ticket.getTicketConsumption() != null) {
-            dto.setTicketConsumption(modelMapper.map(ticket.getTicketConsumption(), TicketConsumptionDTO.class));
+            TicketConsumptionDTO consumptionDTO = modelMapper.map(ticket.getTicketConsumption(), TicketConsumptionDTO.class);
+            
+            // Force mapping of details because ModelMapper might fail with different field names (consumptionDetails vs ticketDetails)
+            List<TicketConsumptionDetail> entityDetails = ticket.getTicketConsumption().getConsumptionDetails();
+            if (entityDetails != null && !entityDetails.isEmpty()) {
+                List<TicketConsumptionDetailDTO> detailDTOs = entityDetails.stream()
+                    .map(detail -> {
+                        TicketConsumptionDetailDTO detailDTO = modelMapper.map(detail, TicketConsumptionDetailDTO.class);
+                        if (detail.getConsumption() != null) {
+                            detailDTO.setConsumptionName(detail.getConsumption().getName());
+                        }
+                        return detailDTO;
+                    })
+                    .toList();
+                consumptionDTO.setTicketDetails(detailDTOs);
+            }
+            
+            dto.setTicketConsumption(consumptionDTO);
         }
         
         log.info("DTO created for ticket {}. QR Code in DTO: {}", ticket.getId(), dto.getQrCode() != null && !dto.getQrCode().isEmpty());
@@ -282,6 +314,7 @@ public class TicketServiceImpl implements TicketService {
 
                 // Mapear a DTO
                 TicketConsumptionDetailDTO detailDTO = modelMapper.map(detail, TicketConsumptionDetailDTO.class);
+                detailDTO.setConsumptionName(consumption.getName());
                 detailDTOs.add(detailDTO);
             }
         }

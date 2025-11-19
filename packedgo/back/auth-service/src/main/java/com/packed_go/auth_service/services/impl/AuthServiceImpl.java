@@ -178,6 +178,7 @@ public class AuthServiceImpl implements AuthService {
                     .loginType("EMAIL")
                     .isEmailVerified(true) // Los empleados son creados por admins
                     .failedLoginAttempts(0)
+                    .userProfileId(0L) // Default value for employees
                     .build();
                 return authUserRepository.save(newUser);
             });

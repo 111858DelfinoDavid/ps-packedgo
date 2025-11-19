@@ -16,7 +16,9 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -39,6 +41,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
             if (StringUtils.hasText(jwt) && tokenValidator.validateToken(jwt)) {
                 String username = tokenValidator.getUsernameFromToken(jwt);
+                Long userId = tokenValidator.getUserIdFromToken(jwt);
                 String role = tokenValidator.getRoleFromToken(jwt);
                 List<String> authorities = tokenValidator.getAuthoritiesFromToken(jwt);
 
@@ -53,9 +56,15 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     grantedAuthorities = Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + role));
                 }
 
+                // Create principal map expected by controllers
+                Map<String, Object> principal = new HashMap<>();
+                principal.put("username", username);
+                principal.put("userId", userId);
+                principal.put("role", role);
+
                 // Create authentication object
                 UsernamePasswordAuthenticationToken authentication =
-                        new UsernamePasswordAuthenticationToken(username, null, grantedAuthorities);
+                        new UsernamePasswordAuthenticationToken(principal, null, grantedAuthorities);
                 authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
 
                 SecurityContextHolder.getContext().setAuthentication(authentication);

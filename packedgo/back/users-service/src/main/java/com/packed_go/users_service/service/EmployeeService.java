@@ -160,6 +160,11 @@ public class EmployeeService {
                 .orElseThrow(() -> new IllegalArgumentException("Employee not found"));
     }
 
+    public Employee getEmployeeByUsername(String username) {
+        return employeeRepository.findByUsername(username)
+                .orElseThrow(() -> new IllegalArgumentException("Employee not found with username: " + username));
+    }
+
     public boolean validatePassword(Employee employee, String rawPassword) {
         return passwordEncoder.matches(rawPassword, employee.getPasswordHash());
     }

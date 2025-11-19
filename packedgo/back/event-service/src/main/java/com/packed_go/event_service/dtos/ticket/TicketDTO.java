@@ -16,6 +16,13 @@ public class TicketDTO {
     private String passCode; // Código del pase (para mostrar en UI)
     private String qrCode; // QR code en formato base64
     private TicketConsumptionDTO ticketConsumption;
+    
+    // Event details
+    private Long eventId;
+    private String eventName;
+    private LocalDateTime eventDate;
+    private String eventLocation;
+    
     private boolean active;
     private boolean redeemed;
     private LocalDateTime createdAt;

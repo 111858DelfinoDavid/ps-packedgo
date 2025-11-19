@@ -14,4 +14,5 @@ public class TicketConsumptionDetailDTO {
     private Integer quantity;
     private BigDecimal priceAtPurchase;
     private boolean redeem;
+    private String consumptionName;
 }

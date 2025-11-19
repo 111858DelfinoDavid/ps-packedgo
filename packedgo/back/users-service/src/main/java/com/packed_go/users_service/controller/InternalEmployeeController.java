@@ -35,12 +35,24 @@ public class InternalEmployeeController {
         log.info("Validating employee credentials for email: {}", email);
         
         // Find employee by email
-        Employee employee = employeeService.findByEmail(email);
+        Employee employee;
+        try {
+            employee = employeeService.findByEmail(email);
+        } catch (IllegalArgumentException e) {
+            log.error("Employee not found: {}", email);
+            return ResponseEntity.status(401).build();
+        }
         
+        log.info("Employee found: ID={}, Hash={}", employee.getId(), employee.getPasswordHash());
+        log.info("Received password length: {}", (password != null ? password.length() : "null"));
+
         // Validate password
-        if (!employeeService.validatePassword(employee, password)) {
+        boolean isValid = employeeService.validatePassword(employee, password);
+        log.info("Password validation result: {}", isValid);
+
+        if (!isValid) {
             log.error("Invalid password for employee: {}", email);
-            throw new RuntimeException("Invalid credentials");
+            return ResponseEntity.status(401).build();
         }
         
         // Build response

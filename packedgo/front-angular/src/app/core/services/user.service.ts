@@ -11,47 +11,33 @@ export class UserService {
   private http = inject(HttpClient);
   private apiUrl = environment.usersServiceUrl;
 
-  /**
-   * Obtiene los headers con el token JWT
-   */
-  private getHeaders(): { headers: { Authorization: string } } {
-    const token = localStorage.getItem('token');
-    return {
-      headers: {
-        'Authorization': `Bearer ${token}`
-      }
-    };
-  }
-
   // Get user profile by authUserId
   getUserProfile(authUserId: number): Observable<UserProfile> {
     return this.http.get<UserProfile>(
-      `${this.apiUrl}/user-profiles/by-auth-user/${authUserId}`,
-      this.getHeaders()
+      `${this.apiUrl}/user-profiles/by-auth-user/${authUserId}`
     );
   }
 
   // Get current logged user profile
   getMyProfile(): Observable<UserProfile> {
-    return this.http.get<UserProfile>(`${this.apiUrl}/user-profiles/me`, this.getHeaders());
+    return this.http.get<UserProfile>(`${this.apiUrl}/user-profiles/me`);
   }
 
   // Update user profile
   updateUserProfile(authUserId: number, profile: UpdateUserProfileRequest): Observable<UserProfile> {
     return this.http.put<UserProfile>(
       `${this.apiUrl}/user-profiles/by-auth-user/${authUserId}`,
-      profile,
-      this.getHeaders()
+      profile
     );
   }
 
   // Update my profile
   updateMyProfile(profile: UpdateUserProfileRequest): Observable<UserProfile> {
-    return this.http.put<UserProfile>(`${this.apiUrl}/user-profiles/me`, profile, this.getHeaders());
+    return this.http.put<UserProfile>(`${this.apiUrl}/user-profiles/me`, profile);
   }
 
   // Get all users (admin only)
   getAllUsers(): Observable<UserProfile[]> {
-    return this.http.get<UserProfile[]>(`${this.apiUrl}/user-profiles`, this.getHeaders());
+    return this.http.get<UserProfile[]>(`${this.apiUrl}/user-profiles`);
   }
 }
