@@ -17,10 +17,10 @@ import lombok.extern.slf4j.Slf4j;
 
 /**
  * Controlador REST para Analytics
- * Endpoint: /api/dashboard
+ * Endpoint: /api/dashboard (context-path ya incluye /api)
  */
 @RestController
-@RequestMapping("/api/dashboard")
+@RequestMapping("/dashboard")
 @Slf4j
 @RequiredArgsConstructor
 @CrossOrigin(origins = "http://localhost:4200")

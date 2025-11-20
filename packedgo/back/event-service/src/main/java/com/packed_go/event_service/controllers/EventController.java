@@ -4,6 +4,8 @@ import com.packed_go.event_service.dtos.consumption.ConsumptionDTO;
 import com.packed_go.event_service.dtos.event.CreateEventDTO;
 import com.packed_go.event_service.dtos.event.EventDTO;
 import com.packed_go.event_service.dtos.eventCategory.EventCategoryDTO;
+import com.packed_go.event_service.dtos.stats.EventStatsDTO;
+import com.packed_go.event_service.repositories.EventRepository;
 import com.packed_go.event_service.security.JwtTokenValidator;
 import com.packed_go.event_service.services.EventService;
 import lombok.RequiredArgsConstructor;
@@ -13,7 +15,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/event-service/event")
@@ -23,6 +27,7 @@ public class EventController {
     private final EventService service;
     private final ModelMapper modelMapper;
     private final JwtTokenValidator jwtValidator;
+    private final EventRepository eventRepository;
 
     /**
      * 🔐 Helper: Extrae userId del JWT
@@ -246,6 +251,44 @@ public class EventController {
         } catch (Exception e) {
             log.error("Error getting image for event {}", id, e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+    
+    /**
+     * 🔒 GET /event/stats - Obtener estadísticas de eventos del admin autenticado
+     */
+    @GetMapping("/stats")
+    public ResponseEntity<?> getEventStats(@RequestHeader("Authorization") String authHeader) {
+        try {
+            Long adminId = extractUserIdFromToken(authHeader);
+            log.info("🔒 User {} fetching event stats", adminId);
+            
+            Long totalEvents = eventRepository.countByCreatedBy(adminId);
+            Long activeEvents = eventRepository.countActiveByCreatedBy(adminId);
+            Long upcomingEvents = eventRepository.countUpcomingByCreatedBy(adminId, LocalDateTime.now());
+            Long pastEvents = eventRepository.countPastByCreatedBy(adminId, LocalDateTime.now());
+            Long totalCapacity = eventRepository.sumMaxCapacityByCreatedBy(adminId);
+            Long availableCapacity = eventRepository.sumAvailablePassesByCreatedBy(adminId);
+            Long soldPasses = eventRepository.sumSoldPassesByCreatedBy(adminId);
+            
+            Double occupancyRate = totalCapacity > 0 ? (soldPasses.doubleValue() / totalCapacity.doubleValue()) * 100 : 0.0;
+            
+            EventStatsDTO stats = EventStatsDTO.builder()
+                    .totalEvents(totalEvents)
+                    .activeEvents(activeEvents)
+                    .totalTicketsSold(soldPasses)
+                    .totalCapacity(totalCapacity)
+                    .availableCapacity(availableCapacity)
+                    .occupancyRate(occupancyRate)
+                    .upcomingEvents(upcomingEvents)
+                    .pastEvents(pastEvents)
+                    .build();
+            
+            return ResponseEntity.ok(stats);
+        } catch (Exception e) {
+            log.error("Error getting event stats", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", e.getMessage()));
         }
     }
 }

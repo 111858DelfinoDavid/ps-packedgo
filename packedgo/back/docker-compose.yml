@@ -215,6 +215,9 @@ services:
     environment:
       - SPRING_PROFILES_ACTIVE=docker
       - JAVA_TOOL_OPTIONS=-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5010
+      - APP_SERVICES_EVENT-SERVICE_BASE-URL=http://event-service:8086
+      - APP_SERVICES_ORDER-SERVICE_BASE-URL=http://order-service:8084
+      - APP_SERVICES_PAYMENT-SERVICE_BASE-URL=http://payment-service:8085
     networks:
       - packedgo-network
 

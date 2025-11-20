@@ -29,28 +29,8 @@ public class SecurityConfig {
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        // Endpoints públicos (webhook de MercadoPago)
-                        .requestMatchers("/payments/webhook", "/api/payments/webhook").permitAll()
-                        .requestMatchers("/payments/health", "/api/payments/health").permitAll()
-                        .requestMatchers("/actuator/health").permitAll()
-                        
-                        // Endpoint de status (polling público) - SIN /api porque context-path ya lo incluye
-                        .requestMatchers("/payments/status/**").permitAll()
-                        
-                        // Endpoint de simulación de aprobación (SOLO PARA TESTING)
-                        .requestMatchers("/payments/simulate-approval/**").permitAll()
-
-                        // Endpoints de admin credentials (temporal - agregar JWT en producción)
-                        .requestMatchers("/admin/credentials/**", "/api/admin/credentials/**").permitAll()
-
-                        // Endpoint de creación de pagos (temporal para testing - agregar JWT en producción)
-                        .requestMatchers("/payments/create", "/api/payments/create").permitAll()
-                        .requestMatchers("/payments/create-checkout-stripe", "/api/payments/create-checkout-stripe").permitAll()
-                        .requestMatchers("/payments/verify/**", "/api/payments/verify/**").permitAll()
-
-                        // Todos los demás endpoints requieren autenticación
-                        // Aquí deberías implementar JWT o el método de autenticación que uses
-                        .anyRequest().authenticated()
+                        // Todos los endpoints permitidos - JWT validado manualmente en controllers
+                        .anyRequest().permitAll()
                 );
 
         return http.build();

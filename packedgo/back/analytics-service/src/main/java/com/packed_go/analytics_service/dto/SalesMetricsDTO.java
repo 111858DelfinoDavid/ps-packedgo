@@ -45,4 +45,7 @@ public class SalesMetricsDTO {
     
     // Ticket promedio (valor medio de venta)
     private BigDecimal averageOrderValue;
+    
+    // Promedio de tickets por orden
+    private Double averageTicketsPerOrder;
 }

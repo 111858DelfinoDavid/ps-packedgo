@@ -12,7 +12,6 @@ import com.packedgo.payment_service.dto.PaymentRequest;
 import com.packedgo.payment_service.dto.PaymentResponse;
 import com.packedgo.payment_service.dto.StripeCheckoutRequest;
 import com.packedgo.payment_service.dto.StripeCheckoutResponse;
-import com.packedgo.payment_service.exception.PaymentException;
 import com.packedgo.payment_service.model.Payment;
 import com.packedgo.payment_service.repository.PaymentRepository;
 
@@ -238,5 +237,34 @@ public class PaymentService {
             log.error("Error al notificar a order-service: {}", e.getMessage());
             // No lanzamos excepción para no fallar el webhook
         }
+    }
+    
+    /**
+     * Obtener estadísticas de pagos para un administrador
+     */
+    public com.packedgo.payment_service.dto.PaymentStatsDTO getPaymentStats(Long adminId) {
+        log.info("📊 Calculating payment stats for adminId: {}", adminId);
+        
+        Long totalPayments = paymentRepository.countByAdminId(adminId);
+        Long approvedPayments = paymentRepository.countByAdminIdAndStatus(adminId, Payment.PaymentStatus.APPROVED);
+        Long pendingPayments = paymentRepository.countByAdminIdAndStatus(adminId, Payment.PaymentStatus.PENDING);
+        Long rejectedPayments = paymentRepository.countByAdminIdAndStatus(adminId, Payment.PaymentStatus.REJECTED);
+        
+        java.math.BigDecimal totalRevenue = paymentRepository.sumAmountByAdminId(adminId);
+        java.math.BigDecimal approvedRevenue = paymentRepository.sumAmountByAdminIdAndStatus(adminId, Payment.PaymentStatus.APPROVED);
+        java.math.BigDecimal pendingRevenue = paymentRepository.sumAmountByAdminIdAndStatus(adminId, Payment.PaymentStatus.PENDING);
+        
+        Double approvalRate = totalPayments > 0 ? (approvedPayments.doubleValue() / totalPayments.doubleValue()) * 100 : 0.0;
+        
+        return com.packedgo.payment_service.dto.PaymentStatsDTO.builder()
+                .totalPayments(totalPayments)
+                .approvedPayments(approvedPayments)
+                .pendingPayments(pendingPayments)
+                .rejectedPayments(rejectedPayments)
+                .totalRevenue(totalRevenue != null ? totalRevenue : java.math.BigDecimal.ZERO)
+                .approvedRevenue(approvedRevenue != null ? approvedRevenue : java.math.BigDecimal.ZERO)
+                .pendingRevenue(pendingRevenue != null ? pendingRevenue : java.math.BigDecimal.ZERO)
+                .approvalRate(approvalRate)
+                .build();
     }
 }

@@ -28,6 +28,27 @@ import java.util.stream.Stream;
 public class AnalyticsService {
 
     private final RestTemplate restTemplate = new RestTemplate();
+    
+    /**
+     * Clase auxiliar para acumular ventas de consumiciones
+     */
+    private static class ConsumptionSalesData {
+        private Long totalQuantity = 0L;
+        private BigDecimal totalRevenue = BigDecimal.ZERO;
+        
+        public void addSale(Integer quantity, BigDecimal revenue) {
+            this.totalQuantity += quantity;
+            this.totalRevenue = this.totalRevenue.add(revenue);
+        }
+        
+        public Long getTotalQuantity() {
+            return totalQuantity;
+        }
+        
+        public BigDecimal getTotalRevenue() {
+            return totalRevenue;
+        }
+    }
 
     @Value("${app.services.event-service.base-url:http://localhost:8086}")
     private String eventServiceUrl;
@@ -80,13 +101,17 @@ public class AnalyticsService {
 
     private List<Map<String, Object>> fetchOrganizerEvents(Long organizerId, String authToken) {
         try {
-            String url = eventServiceUrl + "/api/events/my-events";
+            String url = eventServiceUrl + "/api/event-service/event/my-events";
             log.info("📡 Fetching events from: {}", url);
+            
+            org.springframework.http.HttpHeaders headers = new org.springframework.http.HttpHeaders();
+            headers.set("Authorization", "Bearer " + authToken);
+            org.springframework.http.HttpEntity<?> entity = new org.springframework.http.HttpEntity<>(headers);
             
             ResponseEntity<List<Map<String, Object>>> response = restTemplate.exchange(
                     url,
                     HttpMethod.GET,
-                    null,
+                    entity,
                     new ParameterizedTypeReference<List<Map<String, Object>>>() {}
             );
             
@@ -118,13 +143,17 @@ public class AnalyticsService {
 
     private List<Map<String, Object>> fetchOrganizerConsumptions(Long organizerId, String authToken) {
         try {
-            String url = eventServiceUrl + "/api/consumptions/my-consumptions";
+            String url = eventServiceUrl + "/api/event-service/consumption";
             log.info("📡 Fetching consumptions from: {}", url);
+            
+            org.springframework.http.HttpHeaders headers = new org.springframework.http.HttpHeaders();
+            headers.set("Authorization", "Bearer " + authToken);
+            org.springframework.http.HttpEntity<?> entity = new org.springframework.http.HttpEntity<>(headers);
             
             ResponseEntity<List<Map<String, Object>>> response = restTemplate.exchange(
                     url,
                     HttpMethod.GET,
-                    null,
+                    entity,
                     new ParameterizedTypeReference<List<Map<String, Object>>>() {}
             );
             
@@ -143,13 +172,17 @@ public class AnalyticsService {
         Long pendingOrders = orders.stream().filter(o -> "PENDING_PAYMENT".equals(o.get("status"))).count();
         Long cancelledOrders = orders.stream().filter(o -> "CANCELLED".equals(o.get("status"))).count();
 
-        // Total tickets vendidos (suma de items en órdenes pagadas)
+        // Total tickets vendidos (suma de quantity de items en órdenes pagadas)
         Long totalTicketsSold = orders.stream()
                 .filter(o -> "PAID".equals(o.get("status")))
-                .mapToLong(o -> {
+                .flatMap(o -> {
                     @SuppressWarnings("unchecked")
                     List<Map<String, Object>> items = (List<Map<String, Object>>) o.get("items");
-                    return items != null ? items.size() : 0L;
+                    return items != null ? items.stream() : Stream.empty();
+                })
+                .mapToLong(item -> {
+                    Object quantity = item.get("quantity");
+                    return quantity != null ? ((Number) quantity).longValue() : 1L;
                 })
                 .sum();
 
@@ -161,10 +194,14 @@ public class AnalyticsService {
                     String createdAt = (String) o.get("createdAt");
                     return createdAt != null && createdAt.startsWith(today.toString());
                 })
-                .mapToLong(o -> {
+                .flatMap(o -> {
                     @SuppressWarnings("unchecked")
                     List<Map<String, Object>> items = (List<Map<String, Object>>) o.get("items");
-                    return items != null ? items.size() : 0L;
+                    return items != null ? items.stream() : Stream.empty();
+                })
+                .mapToLong(item -> {
+                    Object quantity = item.get("quantity");
+                    return quantity != null ? ((Number) quantity).longValue() : 1L;
                 })
                 .sum();
 
@@ -178,10 +215,14 @@ public class AnalyticsService {
                     LocalDate orderDate = LocalDate.parse(createdAt.substring(0, 10));
                     return orderDate.isAfter(weekAgo) || orderDate.isEqual(weekAgo);
                 })
-                .mapToLong(o -> {
+                .flatMap(o -> {
                     @SuppressWarnings("unchecked")
                     List<Map<String, Object>> items = (List<Map<String, Object>>) o.get("items");
-                    return items != null ? items.size() : 0L;
+                    return items != null ? items.stream() : Stream.empty();
+                })
+                .mapToLong(item -> {
+                    Object quantity = item.get("quantity");
+                    return quantity != null ? ((Number) quantity).longValue() : 1L;
                 })
                 .sum();
 
@@ -195,10 +236,14 @@ public class AnalyticsService {
                     LocalDate orderDate = LocalDate.parse(createdAt.substring(0, 10));
                     return orderDate.isAfter(monthStart) || orderDate.isEqual(monthStart);
                 })
-                .mapToLong(o -> {
+                .flatMap(o -> {
                     @SuppressWarnings("unchecked")
                     List<Map<String, Object>> items = (List<Map<String, Object>>) o.get("items");
-                    return items != null ? items.size() : 0L;
+                    return items != null ? items.stream() : Stream.empty();
+                })
+                .mapToLong(item -> {
+                    Object quantity = item.get("quantity");
+                    return quantity != null ? ((Number) quantity).longValue() : 1L;
                 })
                 .sum();
 
@@ -215,6 +260,11 @@ public class AnalyticsService {
                 ? totalRevenue.divide(new BigDecimal(paidOrders), 2, RoundingMode.HALF_UP) 
                 : BigDecimal.ZERO;
 
+        // Promedio de tickets por orden
+        Double averageTicketsPerOrder = paidOrders > 0 
+                ? totalTicketsSold.doubleValue() / paidOrders.doubleValue() 
+                : 0.0;
+
         return SalesMetricsDTO.builder()
                 .totalTicketsSold(totalTicketsSold)
                 .ticketsSoldToday(ticketsSoldToday)
@@ -226,6 +276,7 @@ public class AnalyticsService {
                 .cancelledOrders(cancelledOrders)
                 .conversionRate(Math.round(conversionRate * 100.0) / 100.0)
                 .averageOrderValue(averageOrderValue)
+                .averageTicketsPerOrder(Math.round(averageTicketsPerOrder * 100.0) / 100.0)
                 .build();
     }
 
@@ -395,10 +446,35 @@ public class AnalyticsService {
                 .map(o -> new BigDecimal(o.get("totalAmount").toString()))
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        // Separar ingresos por tipo (requiere lógica adicional)
-        // Por ahora, asumimos 70% de tickets y 30% de consumiciones
-        BigDecimal revenueFromTickets = totalRevenue.multiply(new BigDecimal("0.70"));
-        BigDecimal revenueFromConsumptions = totalRevenue.multiply(new BigDecimal("0.30"));
+        // Separar ingresos por tipo - Calcular desde items de órdenes
+        BigDecimal revenueFromTickets = paidOrders.stream()
+                .flatMap(o -> {
+                    @SuppressWarnings("unchecked")
+                    List<Map<String, Object>> items = (List<Map<String, Object>>) o.get("items");
+                    return items != null ? items.stream() : Stream.empty();
+                })
+                .map(item -> {
+                    Object subtotal = item.get("subtotal");
+                    return subtotal != null ? new BigDecimal(subtotal.toString()) : BigDecimal.ZERO;
+                })
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        
+        BigDecimal revenueFromConsumptions = paidOrders.stream()
+                .flatMap(o -> {
+                    @SuppressWarnings("unchecked")
+                    List<Map<String, Object>> items = (List<Map<String, Object>>) o.get("items");
+                    return items != null ? items.stream() : Stream.empty();
+                })
+                .flatMap(item -> {
+                    @SuppressWarnings("unchecked")
+                    List<Map<String, Object>> itemConsumptions = (List<Map<String, Object>>) item.get("consumptions");
+                    return itemConsumptions != null ? itemConsumptions.stream() : Stream.empty();
+                })
+                .map(ic -> {
+                    Object subtotal = ic.get("subtotal");
+                    return subtotal != null ? new BigDecimal(subtotal.toString()) : BigDecimal.ZERO;
+                })
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
 
         // Promedio por evento y por cliente (requiere contar eventos únicos y clientes únicos)
         Long uniqueEvents = paidOrders.stream()
@@ -457,16 +533,52 @@ public class AnalyticsService {
                         .build())
                 .collect(Collectors.toList());
 
-        // Top 5 consumiciones (simplificado)
+        // Top 5 consumiciones - Calcular ventas y revenue desde órdenes
+        Map<Long, ConsumptionSalesData> consumptionSales = new HashMap<>();
+        
+        orders.stream()
+                .filter(o -> "PAID".equals(o.get("status")))
+                .forEach(order -> {
+                    @SuppressWarnings("unchecked")
+                    List<Map<String, Object>> items = (List<Map<String, Object>>) order.get("items");
+                    if (items != null) {
+                        items.forEach(item -> {
+                            @SuppressWarnings("unchecked")
+                            List<Map<String, Object>> itemConsumptions = (List<Map<String, Object>>) item.get("consumptions");
+                            if (itemConsumptions != null) {
+                                itemConsumptions.forEach(ic -> {
+                                    Long consumptionId = ((Number) ic.get("consumptionId")).longValue();
+                                    Integer quantity = ic.get("quantity") != null ? ((Number) ic.get("quantity")).intValue() : 1;
+                                    BigDecimal price = ic.get("unitPrice") != null 
+                                            ? new BigDecimal(ic.get("unitPrice").toString()) 
+                                            : BigDecimal.ZERO;
+                                    BigDecimal subtotal = ic.get("subtotal") != null 
+                                            ? new BigDecimal(ic.get("subtotal").toString()) 
+                                            : price.multiply(new BigDecimal(quantity));
+                                    
+                                    consumptionSales.computeIfAbsent(consumptionId, k -> new ConsumptionSalesData())
+                                            .addSale(quantity, subtotal);
+                                });
+                            }
+                        });
+                    }
+                });
+        
         List<ConsumptionPerformanceDTO> topConsumptions = consumptions.stream()
+                .<ConsumptionPerformanceDTO>map(c -> {
+                    Long consumptionId = ((Number) c.get("id")).longValue();
+                    ConsumptionSalesData salesData = consumptionSales.getOrDefault(consumptionId, new ConsumptionSalesData());
+                    
+                    return ConsumptionPerformanceDTO.builder()
+                            .consumptionId(consumptionId)
+                            .consumptionName((String) c.get("name"))
+                            .quantitySold(salesData.getTotalQuantity())
+                            .revenue(salesData.getTotalRevenue())
+                            .redemptionRate(salesData.getTotalQuantity() > 0 ? 50.0 : 0.0) // Simulado: 50%
+                            .build();
+                })
+                .sorted(Comparator.comparing(ConsumptionPerformanceDTO::getRevenue).reversed())
                 .limit(5)
-                .map(c -> ConsumptionPerformanceDTO.builder()
-                        .consumptionId(((Number) c.get("id")).longValue())
-                        .consumptionName((String) c.get("name"))
-                        .quantitySold(0L) // TODO: Calcular desde órdenes
-                        .revenue(BigDecimal.ZERO) // TODO: Calcular desde órdenes
-                        .redemptionRate(0.0) // TODO: Calcular desde consumption-service
-                        .build())
                 .collect(Collectors.toList());
 
         // Categorías vacías por ahora

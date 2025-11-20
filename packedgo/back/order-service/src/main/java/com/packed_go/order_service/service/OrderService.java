@@ -38,4 +38,9 @@ public interface OrderService {
      * Procesa el checkout para un admin específico (Single Admin Checkout)
      */
     CheckoutResponse checkoutSingleAdmin(Long userId, Long adminId);
+    
+    /**
+     * Obtiene todas las órdenes de un organizador (adminId)
+     */
+    List<Order> getOrdersByOrganizerId(Long adminId);
 }

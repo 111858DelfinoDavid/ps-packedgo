@@ -32,6 +32,7 @@ public class OrderItemConsumption {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "order_item_id", nullable = false)
+    @com.fasterxml.jackson.annotation.JsonBackReference
     private OrderItem orderItem;
 
     @Column(name = "consumption_id", nullable = false)

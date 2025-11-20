@@ -5,11 +5,11 @@ import java.util.Map;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.bind.annotation.PathVariable;
 
 import com.packedgo.payment_service.dto.PaymentRequest;
 import com.packedgo.payment_service.dto.PaymentResponse;
@@ -100,5 +100,31 @@ public class PaymentController {
                 "version", "2.0.0",
                 "provider", "Stripe"
         ));
+    }
+    
+    /**
+     * 🔒 GET /payments/stats - Obtener estadísticas de pagos del admin autenticado
+     */
+    @GetMapping("/stats")
+    public ResponseEntity<?> getPaymentStats(@org.springframework.web.bind.annotation.RequestHeader("Authorization") String authHeader) {
+        try {
+            String token = jwtTokenValidator.extractTokenFromHeader(authHeader);
+            if (!jwtTokenValidator.validateToken(token)) {
+                log.warn("⚠️ Token JWT inválido en /payments/stats");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(Map.of("error", "Token JWT inválido o expirado"));
+            }
+            
+            Long adminId = jwtTokenValidator.getUserIdFromToken(token);
+            log.info("🔒 User {} fetching payment stats", adminId);
+            
+            com.packedgo.payment_service.dto.PaymentStatsDTO stats = paymentService.getPaymentStats(adminId);
+            
+            return ResponseEntity.ok(stats);
+        } catch (Exception e) {
+            log.error("Error getting payment stats", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", e.getMessage()));
+        }
     }
 }

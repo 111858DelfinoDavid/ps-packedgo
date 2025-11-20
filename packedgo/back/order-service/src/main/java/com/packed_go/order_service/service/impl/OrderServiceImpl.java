@@ -1,7 +1,14 @@
 package com.packed_go.order_service.service.impl;
 
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
+
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import com.packed_go.order_service.client.PaymentServiceClient;
-import com.packed_go.order_service.dto.ConsumptionDTO;
 import com.packed_go.order_service.dto.external.CreateTicketWithConsumptionsRequest;
 import com.packed_go.order_service.dto.external.PaymentServiceRequest;
 import com.packed_go.order_service.dto.external.PaymentServiceResponse;
@@ -9,9 +16,8 @@ import com.packed_go.order_service.dto.external.TicketConsumptionDTO;
 import com.packed_go.order_service.dto.external.TicketWithConsumptionsResponse;
 import com.packed_go.order_service.dto.request.CheckoutRequest;
 import com.packed_go.order_service.dto.request.PaymentCallbackRequest;
-import com.packed_go.order_service.dto.response.*;
+import com.packed_go.order_service.dto.response.CheckoutResponse;
 import com.packed_go.order_service.entity.CartItem;
-import com.packed_go.order_service.entity.CartItemConsumption;
 import com.packed_go.order_service.entity.Order;
 import com.packed_go.order_service.entity.OrderItem;
 import com.packed_go.order_service.entity.ShoppingCart;
@@ -22,15 +28,9 @@ import com.packed_go.order_service.repository.OrderRepository;
 import com.packed_go.order_service.repository.ShoppingCartRepository;
 import com.packed_go.order_service.service.EmailService;
 import com.packed_go.order_service.service.OrderService;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
-import java.math.BigDecimal;
-import java.time.LocalDateTime;
-import java.util.*;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -307,6 +307,12 @@ public class OrderServiceImpl implements OrderService {
         if (ticketsFailed > 0) {
             log.warn("⚠️ Some tickets failed to generate. Manual intervention may be required.");
         }
+    }
+    
+    @Override
+    public List<Order> getOrdersByOrganizerId(Long adminId) {
+        log.info("Fetching all orders for organizer: {}", adminId);
+        return orderRepository.findByAdminIdOrderByCreatedAtDesc(adminId);
     }
 }
 
