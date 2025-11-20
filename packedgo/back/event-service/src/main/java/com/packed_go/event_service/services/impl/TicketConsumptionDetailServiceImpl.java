@@ -5,9 +5,11 @@ import com.packed_go.event_service.dtos.ticketConsumptionDetail.TicketConsumptio
 import com.packed_go.event_service.entities.Consumption;
 import com.packed_go.event_service.entities.TicketConsumption;
 import com.packed_go.event_service.entities.TicketConsumptionDetail;
+import com.packed_go.event_service.entities.Ticket;
 import com.packed_go.event_service.repositories.ConsumptionRepository;
 import com.packed_go.event_service.repositories.TicketConsumptionDetailRepository;
 import com.packed_go.event_service.repositories.TicketConsumptionRepository;
+import com.packed_go.event_service.repositories.TicketRepository;
 import com.packed_go.event_service.services.TicketConsumptionDetailService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -26,6 +28,7 @@ public class TicketConsumptionDetailServiceImpl implements TicketConsumptionDeta
     private final ConsumptionRepository consumptionRepository;
     private final TicketConsumptionDetailRepository ticketConsumptionDetailRepository;
     private final TicketConsumptionRepository ticketConsumptionRepository;
+    private final TicketRepository ticketRepository;
     private final ModelMapper modelMapper;
 
     @Override
@@ -68,8 +71,26 @@ public class TicketConsumptionDetailServiceImpl implements TicketConsumptionDeta
     @Override
     public List<TicketConsumptionDetailDTO> findAllByTicketId(Long id) {
         List<TicketConsumptionDetail> ticketDetails = ticketConsumptionDetailRepository.findByTicketConsumption_Id(id);
-        return ticketDetails.stream().map(entity -> modelMapper.map(entity, TicketConsumptionDetailDTO.class)).toList();
+        return ticketDetails.stream().map(entity -> {
+            TicketConsumptionDetailDTO dto = modelMapper.map(entity, TicketConsumptionDetailDTO.class);
+            if (entity.getConsumption() != null) {
+                dto.setConsumptionName(entity.getConsumption().getName());
+            }
+            return dto;
+        }).toList();
 
+    }
+
+    @Override
+    public List<TicketConsumptionDetailDTO> findAllByEntryTicketId(Long ticketId) {
+        Ticket ticket = ticketRepository.findById(ticketId)
+                .orElseThrow(() -> new RuntimeException("Ticket with id " + ticketId + " not found"));
+        
+        if (ticket.getTicketConsumption() == null) {
+            return List.of();
+        }
+        
+        return findAllByTicketId(ticket.getTicketConsumption().getId());
     }
 
     @Override
@@ -190,14 +211,22 @@ public class TicketConsumptionDetailServiceImpl implements TicketConsumptionDeta
         }
 
         detail = ticketConsumptionDetailRepository.save(detail);
-        return modelMapper.map(detail, TicketConsumptionDetailDTO.class);
+        TicketConsumptionDetailDTO dto = modelMapper.map(detail, TicketConsumptionDetailDTO.class);
+        if (detail.getConsumption() != null) {
+            dto.setConsumptionName(detail.getConsumption().getName());
+        }
+        return dto;
     }
 
     @Override
     public TicketConsumptionDetailDTO findById(Long detailId) {
         TicketConsumptionDetail detail = ticketConsumptionDetailRepository.findById(detailId)
                 .orElseThrow(() -> new RuntimeException("TicketConsumptionDetail with id " + detailId + " not found"));
-        return modelMapper.map(detail, TicketConsumptionDetailDTO.class);
+        TicketConsumptionDetailDTO dto = modelMapper.map(detail, TicketConsumptionDetailDTO.class);
+        if (detail.getConsumption() != null) {
+            dto.setConsumptionName(detail.getConsumption().getName());
+        }
+        return dto;
     }
 
     @Recover

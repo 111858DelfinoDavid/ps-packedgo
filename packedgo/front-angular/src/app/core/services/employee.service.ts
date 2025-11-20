@@ -168,6 +168,15 @@ export class EmployeeService {
   }
 
   /**
+   * Obtiene las consumiciones disponibles de un ticket de entrada
+   */
+  getTicketConsumptionsByTicket(ticketId: number): Observable<ConsumptionDetail[]> {
+    return this.http.get<ConsumptionDetail[]>(
+      `${environment.eventServiceUrl}/event-service/ticket-consumption/by-ticket/${ticketId}/details`
+    );
+  }
+
+  /**
    * Registra/canjea una consumición
    */
   registerConsumption(request: RegisterConsumptionRequest): Observable<ConsumptionResponse> {
@@ -208,11 +217,9 @@ export interface TicketValidationResponse {
 
 export interface ConsumptionDetail {
   id: number;
-  consumption: {
-    id: number;
-    name: string;
-    description?: string;
-  };
+  ticketId?: number;
+  consumptionId: number;
+  consumptionName: string;
   quantity: number;
   priceAtPurchase: number;
   active: boolean;

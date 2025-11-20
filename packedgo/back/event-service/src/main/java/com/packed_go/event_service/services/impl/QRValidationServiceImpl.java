@@ -13,6 +13,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.Map;
+import java.util.HashMap;
 
 @Service
 @RequiredArgsConstructor
@@ -26,8 +28,25 @@ public class QRValidationServiceImpl implements QRValidationService {
     private final TicketConsumptionRepository ticketConsumptionRepository;
 
     // Formato QR único: PACKEDGO|T:ticketId|TC:ticketConsumptionId|E:eventId|U:userId|TS:timestamp
-    // Este QR sirve tanto para entrada como para consumiciones
-    private static final Pattern UNIFIED_QR_PATTERN = Pattern.compile("PACKEDGO\\|T:(\\d+)\\|TC:(\\d+)\\|E:(\\d+)\\|U:(\\d+)\\|TS:(\\d+)");
+    // TC es opcional para entradas
+    
+    private Map<String, String> parseQR(String qrCode) {
+        if (qrCode == null || !qrCode.startsWith("PACKEDGO|")) {
+            return null;
+        }
+        Map<String, String> values = new HashMap<>();
+        String[] parts = qrCode.split("\\|");
+        for (String part : parts) {
+            if (part.equals("PACKEDGO")) continue;
+            int idx = part.indexOf(':');
+            if (idx > 0) {
+                String key = part.substring(0, idx);
+                String value = part.substring(idx + 1);
+                values.put(key, value);
+            }
+        }
+        return values;
+    }
 
     @Override
     @Transactional
@@ -36,21 +55,22 @@ public class QRValidationServiceImpl implements QRValidationService {
             log.info("🎫 Validating entry QR: {}", request.getQrCode());
 
             // 1. Parsear QR code
-            Matcher matcher = UNIFIED_QR_PATTERN.matcher(request.getQrCode());
-            if (!matcher.matches()) {
+            Map<String, String> qrData = parseQR(request.getQrCode());
+            if (qrData == null || !qrData.containsKey("T") || !qrData.containsKey("E") || !qrData.containsKey("U")) {
+                log.warn("❌ QR parsing failed or missing keys");
                 return ValidateEntryQRResponse.builder()
                         .valid(false)
                         .message("❌ Código QR inválido")
                         .build();
             }
 
-            Long ticketId = Long.parseLong(matcher.group(1));
-            Long ticketConsumptionId = Long.parseLong(matcher.group(2));
-            Long eventIdFromQR = Long.parseLong(matcher.group(3));
-            Long userId = Long.parseLong(matcher.group(4));
+            Long ticketId = Long.parseLong(qrData.get("T"));
+            Long eventIdFromQR = Long.parseLong(qrData.get("E"));
+            Long userId = Long.parseLong(qrData.get("U"));
 
             // 2. Validar que el evento del QR coincide con el evento solicitado
             if (!eventIdFromQR.equals(request.getEventId())) {
+                log.warn("❌ Event mismatch: QR Event={} vs Request Event={}", eventIdFromQR, request.getEventId());
                 return ValidateEntryQRResponse.builder()
                         .valid(false)
                         .message("❌ Este ticket no corresponde a este evento")
@@ -60,6 +80,7 @@ public class QRValidationServiceImpl implements QRValidationService {
             // 3. Buscar el ticket
             Optional<Ticket> ticketOpt = ticketRepository.findById(ticketId);
             if (ticketOpt.isEmpty()) {
+                log.warn("❌ Ticket not found: {}", ticketId);
                 return ValidateEntryQRResponse.builder()
                         .valid(false)
                         .message("❌ Ticket no encontrado")
@@ -70,6 +91,7 @@ public class QRValidationServiceImpl implements QRValidationService {
 
             // 4. Verificar que el ticket esté activo
             if (!ticket.isActive()) {
+                log.warn("❌ Ticket inactive: {}", ticketId);
                 return ValidateEntryQRResponse.builder()
                         .valid(false)
                         .message("❌ Ticket inactivo")
@@ -78,17 +100,39 @@ public class QRValidationServiceImpl implements QRValidationService {
 
             // 5. Verificar que el ticket pertenece al evento
             if (!ticket.getPass().getEvent().getId().equals(request.getEventId())) {
+                log.warn("❌ Ticket event mismatch: Ticket Event={} vs Request Event={}", ticket.getPass().getEvent().getId(), request.getEventId());
                 return ValidateEntryQRResponse.builder()
                         .valid(false)
                         .message("❌ Ticket no válido para este evento")
                         .build();
             }
 
-            // 6. Marcar como usado si es la primera vez (opcional - según tu lógica de negocio)
-            // Por ahora solo validamos, no marcamos como usado para permitir re-entrada
-
-            // 7. Construir respuesta exitosa
             Event event = ticket.getPass().getEvent();
+
+            // 6. Verificar si ya fue usado (Single Entry)
+            if (ticket.isRedeemed()) {
+                log.warn("❌ Ticket already redeemed: {}", ticketId);
+                return ValidateEntryQRResponse.builder()
+                        .valid(false)
+                        .message("❌ Entrada ya utilizada el " + ticket.getRedeemedAt())
+                        .ticketInfo(ValidateEntryQRResponse.TicketEntryInfo.builder()
+                                .ticketId(ticket.getId())
+                                .userId(ticket.getUserId())
+                                .customerName("Usuario " + userId)
+                                .eventName(event.getName())
+                                .passType(ticket.getPass().getCode())
+                                .alreadyUsed(true)
+                                .build())
+                        .build();
+            }
+
+            // 7. Marcar como usado
+            ticket.setRedeemed(true);
+            ticket.setRedeemedAt(java.time.LocalDateTime.now());
+            ticketRepository.save(ticket);
+
+            // 8. Construir respuesta exitosa
+            log.info("✅ Ticket valid and redeemed: {}", ticketId);
 
             return ValidateEntryQRResponse.builder()
                     .valid(true)
@@ -99,7 +143,7 @@ public class QRValidationServiceImpl implements QRValidationService {
                             .customerName("Usuario " + userId) // TODO: Integrar con users-service
                             .eventName(event.getName())
                             .passType(ticket.getPass().getCode()) // Pass code instead of name
-                            .alreadyUsed(false) // TODO: Implementar lógica de uso único si es necesario
+                            .alreadyUsed(false)
                             .build())
                     .build();
 
@@ -119,17 +163,16 @@ public class QRValidationServiceImpl implements QRValidationService {
             log.info("🍺 Validating consumption QR: {}", request.getQrCode());
 
             // 1. Parsear QR code para obtener ticketConsumptionId
-            Matcher matcher = UNIFIED_QR_PATTERN.matcher(request.getQrCode());
-            if (!matcher.matches()) {
+            Map<String, String> qrData = parseQR(request.getQrCode());
+            if (qrData == null || !qrData.containsKey("T") || !qrData.containsKey("E")) {
                 return ValidateConsumptionQRResponse.builder()
                         .success(false)
                         .message("❌ Código QR inválido")
                         .build();
             }
 
-            Long ticketId = Long.parseLong(matcher.group(1));
-            Long ticketConsumptionId = Long.parseLong(matcher.group(2));
-            Long eventIdFromQR = Long.parseLong(matcher.group(3));
+            Long ticketId = Long.parseLong(qrData.get("T"));
+            Long eventIdFromQR = Long.parseLong(qrData.get("E"));
 
             // 2. Validar que el evento del QR coincide
             if (!eventIdFromQR.equals(request.getEventId())) {

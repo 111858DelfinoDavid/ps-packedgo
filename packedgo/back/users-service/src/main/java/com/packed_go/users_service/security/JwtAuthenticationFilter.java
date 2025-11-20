@@ -46,14 +46,15 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 List<String> authorities = tokenValidator.getAuthoritiesFromToken(jwt);
 
                 // Create authorities list
-                List<SimpleGrantedAuthority> grantedAuthorities;
+                List<SimpleGrantedAuthority> grantedAuthorities = new java.util.ArrayList<>();
+                
+                // Always add the main role as an authority (e.g. ROLE_EMPLOYEE)
+                grantedAuthorities.add(new SimpleGrantedAuthority("ROLE_" + role));
+
                 if (authorities != null && !authorities.isEmpty()) {
-                    grantedAuthorities = authorities.stream()
+                    grantedAuthorities.addAll(authorities.stream()
                             .map(SimpleGrantedAuthority::new)
-                            .collect(Collectors.toList());
-                } else {
-                    // If no authorities, use role
-                    grantedAuthorities = Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + role));
+                            .collect(Collectors.toList()));
                 }
 
                 // Create principal map expected by controllers
