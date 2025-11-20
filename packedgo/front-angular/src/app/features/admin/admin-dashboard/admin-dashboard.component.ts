@@ -4,12 +4,23 @@ import { Router, RouterModule } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
 import { EventService } from '../../../core/services/event.service';
 import { UserService } from '../../../core/services/user.service';
+import { PaymentService } from '../../../core/services/payment.service';
+import { forkJoin } from 'rxjs';
 
 interface DashboardStats {
+  // Event stats
   totalEvents: number;
   activeEvents: number;
-  totalUsers: number;
-  totalCategories: number;
+  upcomingEvents: number;
+  totalTicketsSold: number;
+  occupancyRate: number;
+  
+  // Payment stats
+  totalPayments: number;
+  approvedPayments: number;
+  totalRevenue: number;
+  approvedRevenue: number;
+  approvalRate: number;
 }
 
 @Component({
@@ -22,6 +33,7 @@ export class AdminDashboardComponent implements OnInit {
   private authService = inject(AuthService);
   private eventService = inject(EventService);
   private userService = inject(UserService);
+  private paymentService = inject(PaymentService);
   private router = inject(Router);
 
   currentUser = this.authService.getCurrentUser();
@@ -30,8 +42,14 @@ export class AdminDashboardComponent implements OnInit {
   stats: DashboardStats = {
     totalEvents: 0,
     activeEvents: 0,
-    totalUsers: 0,
-    totalCategories: 0
+    upcomingEvents: 0,
+    totalTicketsSold: 0,
+    occupancyRate: 0,
+    totalPayments: 0,
+    approvedPayments: 0,
+    totalRevenue: 0,
+    approvedRevenue: 0,
+    approvalRate: 0
   };
 
   quickActions = [
@@ -72,31 +90,34 @@ export class AdminDashboardComponent implements OnInit {
   loadDashboardData(): void {
     this.isLoading = true;
 
-    // Cargar eventos
-    this.eventService.getEvents().subscribe({
-      next: (events: any) => {
-        this.stats.totalEvents = events.length;
-        this.stats.activeEvents = events.filter((e: any) => e.isActive).length;
-      },
-      error: (error: any) => console.error('Error al cargar eventos:', error)
-    });
+    // Cargar estadísticas de eventos y pagos simultáneamente
+    forkJoin({
+      eventStats: this.eventService.getEventStats(),
+      paymentStats: this.paymentService.getPaymentStats()
+    }).subscribe({
+      next: (result) => {
+        // Asignar estadísticas de eventos
+        if (result.eventStats) {
+          this.stats.totalEvents = result.eventStats.totalEvents || 0;
+          this.stats.activeEvents = result.eventStats.activeEvents || 0;
+          this.stats.upcomingEvents = result.eventStats.upcomingEvents || 0;
+          this.stats.totalTicketsSold = result.eventStats.totalTicketsSold || 0;
+          this.stats.occupancyRate = result.eventStats.occupancyRate || 0;
+        }
 
-    // Cargar categorías de eventos
-    this.eventService.getEventCategories().subscribe({
-      next: (categories: any) => {
-        this.stats.totalCategories = categories.length;
-      },
-      error: (error: any) => console.error('Error al cargar categorías:', error)
-    });
+        // Asignar estadísticas de pagos
+        if (result.paymentStats) {
+          this.stats.totalPayments = result.paymentStats.totalPayments || 0;
+          this.stats.approvedPayments = result.paymentStats.approvedPayments || 0;
+          this.stats.totalRevenue = result.paymentStats.totalRevenue || 0;
+          this.stats.approvedRevenue = result.paymentStats.approvedRevenue || 0;
+          this.stats.approvalRate = result.paymentStats.approvalRate || 0;
+        }
 
-    // Cargar usuarios
-    this.userService.getAllUsers().subscribe({
-      next: (users: any) => {
-        this.stats.totalUsers = users.length;
         this.isLoading = false;
       },
       error: (error: any) => {
-        console.error('Error al cargar usuarios:', error);
+        console.error('Error al cargar estadísticas del dashboard:', error);
         this.isLoading = false;
       }
     });

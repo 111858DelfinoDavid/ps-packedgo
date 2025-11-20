@@ -12,6 +12,7 @@ export interface Event {
   hasImageData?: boolean;
   imageContentType?: string;
   categoryId: number;
+  category?: EventCategory; // Objeto categoría completo
   status?: string;
   active?: boolean;
   totalPasses?: number;

@@ -301,6 +301,17 @@ export class EmployeeManagementComponent implements OnInit {
     this.errorMessage = '';
     this.successMessage = '';
   }
+
+  isValidDate(date: any): boolean {
+    if (!date) return false;
+    const d = new Date(date);
+    return d instanceof Date && !isNaN(d.getTime());
+  }
+
+  formatDate(date: any): string {
+    if (!this.isValidDate(date)) return 'Fecha no disponible';
+    return new Date(date).toLocaleDateString('es-ES');
+  }
 }
 
 // Interfaces

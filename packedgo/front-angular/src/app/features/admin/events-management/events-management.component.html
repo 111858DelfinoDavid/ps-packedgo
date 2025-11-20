@@ -533,42 +533,18 @@
           Imagen del Evento
         </label>
         
-        <!-- Option Tabs -->
-        <div class="image-option-tabs">
-          <button 
-            type="button" 
-            class="tab-btn" 
-            [class.active]="imageUploadOption === 'url'"
-            (click)="setImageOption('url')"
-          >
-            <i class="bi bi-link-45deg"></i> URL Externa
-          </button>
-          <button 
-            type="button" 
-            class="tab-btn" 
-            [class.active]="imageUploadOption === 'upload'"
-            (click)="setImageOption('upload')"
-          >
-            <i class="bi bi-upload"></i> Subir Archivo
-          </button>
+        <div class="alert alert-info mb-3">
+          <i class="bi bi-info-circle"></i> 
+          Puedes proporcionar <strong>ambas opciones</strong>. 
+          Si cargas un archivo local, ese se mostrará con prioridad. Si no, se usará la URL externa.
         </div>
 
-        <!-- URL Input -->
-        <div *ngIf="imageUploadOption === 'url'" class="image-url-section">
-          <input 
-            type="url" 
-            id="imageUrl"
-            formControlName="imageUrl"
-            class="form-control"
-            placeholder="https://ejemplo.com/imagen.jpg"
-          />
-          <small class="form-text text-muted">
-            <i class="bi bi-info-circle"></i> Ingresa la URL de una imagen externa.
-          </small>
-        </div>
-
-        <!-- File Upload -->
-        <div *ngIf="imageUploadOption === 'upload'" class="image-upload-section">
+        <!-- Subir Archivo Local -->
+        <div class="image-upload-section mb-3">
+          <label class="form-label">
+            <i class="bi bi-upload"></i> 
+            <strong>Opción 1:</strong> Subir Archivo Local
+          </label>
           <div class="file-input-wrapper">
             <input 
               type="file" 
@@ -597,9 +573,27 @@
           </small>
           
           <!-- Preview de la imagen seleccionada -->
-          <div *ngIf="imagePreviewUrl" class="image-preview">
+          <div *ngIf="imagePreviewUrl" class="image-preview mt-2">
             <img [src]="imagePreviewUrl" alt="Vista previa">
           </div>
+        </div>
+
+        <!-- URL Externa -->
+        <div class="image-url-section">
+          <label class="form-label">
+            <i class="bi bi-link-45deg"></i> 
+            <strong>Opción 2:</strong> URL de Imagen Externa
+          </label>
+          <input 
+            type="url" 
+            id="imageUrl"
+            formControlName="imageUrl"
+            class="form-control"
+            placeholder="https://ejemplo.com/imagen.jpg"
+          />
+          <small class="form-text text-muted">
+            <i class="bi bi-info-circle"></i> Se usará como respaldo si no hay archivo local.
+          </small>
         </div>
       </div>
 

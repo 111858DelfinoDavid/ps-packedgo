@@ -124,4 +124,9 @@ export class EventService {
   getEventImageUrl(eventId: number): string {
     return `${this.apiUrl}/event-service/event/${eventId}/image`;
   }
+  
+  // Statistics
+  getEventStats(): Observable<any> {
+    return this.http.get(`${this.apiUrl}/event-service/event/stats`);
+  }
 }

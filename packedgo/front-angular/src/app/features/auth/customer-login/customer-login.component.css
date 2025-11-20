@@ -61,6 +61,18 @@
   margin-bottom: 1rem;
 }
 
+.logo-container .logo-main {
+  width: 200px;
+  height: auto;
+  max-width: 100%;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+
 .title {
   font-size: 1.8rem;
   font-weight: 700;

@@ -1,18 +1,20 @@
 package com.packed_go.event_service.services.impl;
 
+import java.util.List;
+import java.util.Optional;
+
+import org.modelmapper.ModelMapper;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
 import com.packed_go.event_service.dtos.eventCategory.CreateEventCategoryDTO;
 import com.packed_go.event_service.dtos.eventCategory.EventCategoryDTO;
 import com.packed_go.event_service.entities.EventCategory;
 import com.packed_go.event_service.repositories.EventCategoryRepository;
 import com.packed_go.event_service.services.EventCategoryService;
+
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
-import org.modelmapper.ModelMapper;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
-
-import java.util.List;
-import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -77,9 +79,23 @@ public class EventCategoryServiceImpl implements EventCategoryService {
     public EventCategoryDTO update(Long id, CreateEventCategoryDTO createEventCategoryDto) {
         Optional<EventCategory> categoryExist = eventCategoryRepository.findById(id);
         if (categoryExist.isPresent()) {
-            EventCategory entity = modelMapper.map(createEventCategoryDto, EventCategory.class);
-            entity.setId(id);
-            return modelMapper.map(eventCategoryRepository.save(entity), EventCategoryDTO.class);
+            EventCategory existingEntity = categoryExist.get();
+            
+            // Actualizar los campos que vienen en el DTO
+            existingEntity.setName(createEventCategoryDto.getName());
+            if (createEventCategoryDto.getDescription() != null) {
+                existingEntity.setDescription(createEventCategoryDto.getDescription());
+            }
+            
+            // Si viene el campo active en el DTO, usarlo; sino preservar el existente
+            if (createEventCategoryDto.getActive() != null) {
+                existingEntity.setActive(createEventCategoryDto.getActive());
+            }
+            
+            // Preservar createdBy del registro existente
+            
+            EventCategory saved = eventCategoryRepository.save(existingEntity);
+            return modelMapper.map(saved, EventCategoryDTO.class);
         } else {
             throw new RuntimeException("Event category con id " + id + " no encontrado");
         }

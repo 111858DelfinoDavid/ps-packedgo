@@ -127,7 +127,24 @@ export class CustomerDashboardComponent implements OnInit, OnDestroy {
     this.isLoadingEvents = true;
     this.eventService.getEvents().subscribe({
       next: (events: any) => {
-        this.allEvents = events.filter((e: any) => e.active);
+        this.allEvents = events.filter((e: any) => e.active).map((event: any) => {
+          // Prioridad 1: imagen subida al servidor (archivo local)
+          if (event.hasImageData && event.id) {
+            return {
+              ...event,
+              imageUrl: this.eventService.getEventImageUrl(event.id)
+            };
+          }
+          // Prioridad 2: URL externa
+          if (event.imageUrl) {
+            return event;
+          }
+          // Prioridad 3: placeholder
+          return {
+            ...event,
+            imageUrl: 'https://via.placeholder.com/400x250?text=Sin+Imagen'
+          };
+        });
         this.events = [...this.allEvents];
         this.isLoadingEvents = false;
       },

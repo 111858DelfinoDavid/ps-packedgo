@@ -25,7 +25,7 @@
     <!-- Event Header -->
     <div class="event-header">
       <div class="event-image-large">
-        <img [src]="event.imageUrl || 'assets/placeholder-event.jpg'" [alt]="event.name" />
+        <img [src]="getEventImageSrc()" [alt]="event.name" />
         <div class="event-date-badge">
           <i class="bi bi-calendar-event"></i>
           {{ event.eventDate | date: 'dd/MM/yyyy HH:mm' }}
@@ -47,7 +47,7 @@
           </div>
           <div class="meta-item">
             <i class="bi bi-tag-fill"></i>
-            <span>Categoría ID: {{ event.categoryId }}</span>
+            <span>Categoría: {{ getCategoryName() }}</span>
           </div>
         </div>
 

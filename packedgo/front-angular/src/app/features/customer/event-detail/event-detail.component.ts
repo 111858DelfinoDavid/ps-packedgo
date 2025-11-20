@@ -46,6 +46,13 @@ export class EventDetailComponent implements OnInit {
     this.isLoading = true;
     this.eventService.getEventById(eventId).subscribe({
       next: (event) => {
+        // Construir imageUrl con prioridades: archivo local > URL externa > placeholder
+        if (event.hasImageData && event.id) {
+          event.imageUrl = this.eventService.getEventImageUrl(event.id);
+        } else if (!event.imageUrl) {
+          event.imageUrl = 'https://via.placeholder.com/800x400?text=Sin+Imagen';
+        }
+        
         this.event = event;
         this.isLoading = false;
       },
@@ -55,6 +62,32 @@ export class EventDetailComponent implements OnInit {
         this.isLoading = false;
       }
     });
+  }
+
+  /**
+   * Obtiene la URL de la imagen del evento con prioridades
+   */
+  getEventImageSrc(): string {
+    if (!this.event) return 'https://via.placeholder.com/800x400?text=Sin+Imagen';
+    
+    // Prioridad 1: imagen subida al servidor (archivo local)
+    if (this.event.hasImageData && this.event.id) {
+      return this.eventService.getEventImageUrl(this.event.id);
+    }
+    // Prioridad 2: URL externa
+    if (this.event.imageUrl) {
+      return this.event.imageUrl;
+    }
+    // Prioridad 3: placeholder
+    return 'https://via.placeholder.com/800x400?text=Sin+Imagen';
+  }
+
+  /**
+   * Obtiene el nombre de la categoría del evento
+   */
+  getCategoryName(): string {
+    if (!this.event?.category) return 'Sin categoría';
+    return this.event.category.name || `Categoría ${this.event.categoryId}`;
   }
 
   incrementQuantity(): void {

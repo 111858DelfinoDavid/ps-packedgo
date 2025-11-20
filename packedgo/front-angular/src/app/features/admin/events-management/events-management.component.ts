@@ -161,9 +161,9 @@ export class EventsManagementComponent implements OnInit {
       categoryId: event.categoryId
     });
     
-    // Configurar modo de imagen (si tiene URL externa usar 'url', sino dejar en 'url' por defecto)
-    this.imageUploadOption = event.imageUrl ? 'url' : 'url';
-    this.clearImageFile();
+    // Configurar modo de imagen: si tiene archivo local, mostrar 'upload', sino 'url'
+    this.imageUploadOption = event.hasImageData ? 'upload' : 'url';
+    // NO limpiamos nada - conservamos tanto archivo como URL si existen
     
     this.showModal = true;
     this.errorMessage = '';
@@ -351,14 +351,9 @@ export class EventsManagementComponent implements OnInit {
   // ===== IMAGE UPLOAD METHODS =====
   setImageOption(option: 'url' | 'upload'): void {
     this.imageUploadOption = option;
-    
-    if (option === 'url') {
-      // Limpiar archivo seleccionado
-      this.clearImageFile();
-    } else {
-      // Limpiar URL ingresada
-      this.eventForm.patchValue({ imageUrl: '' });
-    }
+    // ✅ AHORA PERMITE AMBAS OPCIONES: No limpiamos nada al cambiar
+    // El usuario puede tener archivo Y URL simultáneamente
+    // Prioridad en visualización: archivo local > URL externa
   }
 
   onImageFileSelected(event: any): void {
@@ -407,11 +402,16 @@ export class EventsManagementComponent implements OnInit {
   }
 
   getEventImageSrc(event: Event): string {
-    // Prioridad: imagen subida > imagen URL externa
+    // Prioridad 1: imagen subida al servidor (archivo local)
     if (event.hasImageData && event.id) {
       return this.eventService.getEventImageUrl(event.id);
     }
-    return event.imageUrl || '';
+    // Prioridad 2: URL externa ingresada
+    if (event.imageUrl) {
+      return event.imageUrl;
+    }
+    // Prioridad 3: placeholder
+    return 'https://via.placeholder.com/400x250?text=Sin+Imagen';
   }
 
   handleImageError(event: Event): void {

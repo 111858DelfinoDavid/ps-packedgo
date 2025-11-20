@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 import com.packed_go.event_service.dtos.consumption.ConsumptionDTO;
 import com.packed_go.event_service.dtos.event.CreateEventDTO;
 import com.packed_go.event_service.dtos.event.EventDTO;
+import com.packed_go.event_service.dtos.eventCategory.EventCategoryDTO;
 import com.packed_go.event_service.entities.Consumption;
 import com.packed_go.event_service.entities.Event;
 import com.packed_go.event_service.entities.EventCategory;
@@ -46,6 +47,13 @@ public class EventServiceImpl implements EventService {
         
         // Indicar si tiene imagen almacenada
         eventDTO.setHasImageData(event.getImageData() != null && event.getImageData().length > 0);
+        
+        // Mapear la categoría completa
+        if (event.getCategory() != null) {
+            EventCategoryDTO categoryDTO = modelMapper.map(event.getCategory(), EventCategoryDTO.class);
+            eventDTO.setCategory(categoryDTO);
+            eventDTO.setCategoryId(event.getCategory().getId());
+        }
         
         // Cargar las consumptions del admin que creó el evento
         if (event.getCreatedBy() != null) {

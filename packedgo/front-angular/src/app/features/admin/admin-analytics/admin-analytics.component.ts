@@ -57,18 +57,21 @@ export class AdminAnalyticsComponent implements OnInit, OnDestroy {
     this.loadDashboard();
   }
 
-  formatCurrency(value: number): string {
+  formatCurrency(value: number | null | undefined): string {
+    if (value == null) return '$0.00';
     return new Intl.NumberFormat('es-AR', {
       style: 'currency',
       currency: 'ARS'
     }).format(value);
   }
 
-  formatPercentage(value: number): string {
+  formatPercentage(value: number | null | undefined): string {
+    if (value == null) return '0.00%';
     return `${value.toFixed(2)}%`;
   }
 
-  formatDate(dateString: string): string {
+  formatDate(dateString: string | null | undefined): string {
+    if (!dateString) return 'N/A';
     return new Date(dateString).toLocaleString('es-AR', {
       year: 'numeric',
       month: 'long',
@@ -78,15 +81,22 @@ export class AdminAnalyticsComponent implements OnInit, OnDestroy {
     });
   }
 
-  getGrowthClass(rate: number): string {
+  getGrowthClass(rate: number | null | undefined): string {
+    if (rate == null) return 'text-secondary';
     if (rate > 0) return 'text-success';
     if (rate < 0) return 'text-danger';
     return 'text-secondary';
   }
 
-  getGrowthIcon(rate: number): string {
+  getGrowthIcon(rate: number | null | undefined): string {
+    if (rate == null) return 'bi-dash';
     if (rate > 0) return 'bi-arrow-up';
     if (rate < 0) return 'bi-arrow-down';
     return 'bi-dash';
+  }
+
+  formatNumber(value: number | null | undefined, decimals: number = 2): string {
+    if (value == null) return '0.00';
+    return value.toFixed(decimals);
   }
 }

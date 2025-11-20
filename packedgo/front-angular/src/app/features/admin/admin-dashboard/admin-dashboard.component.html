@@ -2,7 +2,7 @@
   <!-- Navbar -->
   <nav class="navbar">
     <div class="navbar-brand">
-      <i class="bi bi-box-seam"></i>
+      <img src="images/logo-icon.svg" alt="PackedGo" class="navbar-logo">
       <span>PackedGo Admin</span>
     </div>
     <div class="navbar-user">
@@ -35,6 +35,7 @@
 
     <!-- Stats Cards -->
     <div *ngIf="!isLoading" class="stats-grid">
+      <!-- Estadísticas de Eventos -->
       <div class="stat-card stat-primary">
         <div class="stat-icon">
           <i class="bi bi-calendar-event"></i>
@@ -55,23 +56,84 @@
         </div>
       </div>
 
-      <div class="stat-card stat-warning">
+      <div class="stat-card stat-info">
         <div class="stat-icon">
-          <i class="bi bi-people"></i>
+          <i class="bi bi-clock-history"></i>
         </div>
         <div class="stat-content">
-          <h3>{{ stats.totalUsers }}</h3>
-          <p>Usuarios Registrados</p>
+          <h3>{{ stats.upcomingEvents }}</h3>
+          <p>Próximos Eventos</p>
+        </div>
+      </div>
+
+      <div class="stat-card stat-warning">
+        <div class="stat-icon">
+          <i class="bi bi-ticket-perforated"></i>
+        </div>
+        <div class="stat-content">
+          <h3>{{ stats.totalTicketsSold }}</h3>
+          <p>Entradas Vendidas</p>
+        </div>
+      </div>
+
+      <div class="stat-card stat-primary">
+        <div class="stat-icon">
+          <i class="bi bi-percent"></i>
+        </div>
+        <div class="stat-content">
+          <h3>{{ stats.occupancyRate | number:'1.1-1' }}%</h3>
+          <p>Tasa de Ocupación</p>
+        </div>
+      </div>
+
+      <!-- Estadísticas de Pagos -->
+      <div class="stat-card stat-danger">
+        <div class="stat-icon">
+          <i class="bi bi-credit-card"></i>
+        </div>
+        <div class="stat-content">
+          <h3>{{ stats.totalPayments }}</h3>
+          <p>Total Pagos</p>
+        </div>
+      </div>
+
+      <div class="stat-card stat-success">
+        <div class="stat-icon">
+          <i class="bi bi-check2-circle"></i>
+        </div>
+        <div class="stat-content">
+          <h3>{{ stats.approvedPayments }}</h3>
+          <p>Pagos Aprobados</p>
         </div>
       </div>
 
       <div class="stat-card stat-info">
         <div class="stat-icon">
-          <i class="bi bi-tags"></i>
+          <i class="bi bi-currency-dollar"></i>
         </div>
         <div class="stat-content">
-          <h3>{{ stats.totalCategories }}</h3>
-          <p>Categorías</p>
+          <h3>${{ stats.totalRevenue | number:'1.2-2' }}</h3>
+          <p>Ingresos Totales</p>
+        </div>
+      </div>
+
+      <div class="stat-card stat-success">
+        <div class="stat-icon">
+          <i class="bi bi-cash-stack"></i>
+        </div>
+        <div class="stat-content">
+          <h3>${{ stats.approvedRevenue | number:'1.2-2' }}</h3>
+          <p>Ingresos Aprobados</p>
+        </div>
+      </div>
+
+      <div class="stat-card stat-warning">
+        <div class="stat-icon">
+          <i class="bi bi-graph-up-arrow"></i>
+        </div>
+        <div class="stat-content">
+          <h3>{{ stats.approvalRate | number:'1.1-1' }}%</h3>
+          <p>Tasa de Aprobación</p>
         </div>
       </div>
     </div>

@@ -20,7 +20,7 @@
   </div>
 
   <!-- Success/Error Messages -->
-  <div class="alert alert-success" *ngIf="successMessage" [@slideDown]>
+  <div class="alert alert-success" *ngIf="successMessage">
     <i class="bi bi-check-circle-fill"></i>
     {{ successMessage }}
     <button class="btn-close-alert" (click)="clearMessages()">
@@ -28,7 +28,7 @@
     </button>
   </div>
 
-  <div class="alert alert-danger" *ngIf="errorMessage" [@slideDown]>
+  <div class="alert alert-danger" *ngIf="errorMessage">
     <i class="bi bi-exclamation-triangle-fill"></i>
     {{ errorMessage }}
     <button class="btn-close-alert" (click)="clearMessages()">
@@ -74,7 +74,7 @@
               </span>
             </div>
           </td>
-          <td>{{ employee.createdAt | date:'dd/MM/yyyy' }}</td>
+          <td>{{ formatDate(employee.createdAt) }}</td>
           <td>
             <span class="status-badge" [class.status-active]="employee.isActive" [class.status-inactive]="!employee.isActive">
               <i class="bi" [class.bi-check-circle-fill]="employee.isActive" [class.bi-x-circle-fill]="!employee.isActive"></i>
@@ -198,11 +198,11 @@
                      [id]="'create-event-' + event.id"
                      [checked]="isEventSelected(event.id, createEmployeeForm)"
                      (change)="onEventCheckboxChange(event.id, $any($event.target).checked, createEmployeeForm)">
-              <label [for]="'create-event-' + event.id">
+              <label [for]="'edit-event-' + event.id">
                 <i class="bi bi-calendar-check"></i>
                 <div class="event-info">
                   <strong>{{ event.name }}</strong>
-                  <small>{{ event.date | date:'dd/MM/yyyy' }} - {{ event.location }}</small>
+                  <small>{{ formatDate(event.date) }} - {{ event.location }}</small>
                 </div>
               </label>
             </div>
@@ -294,11 +294,11 @@
                      [id]="'edit-event-' + event.id"
                      [checked]="isEventSelected(event.id, editEmployeeForm)"
                      (change)="onEventCheckboxChange(event.id, $any($event.target).checked, editEmployeeForm)">
-              <label [for]="'edit-event-' + event.id">
+              <label [for]="'event-' + event.id">
                 <i class="bi bi-calendar-check"></i>
                 <div class="event-info">
                   <strong>{{ event.name }}</strong>
-                  <small>{{ event.date | date:'dd/MM/yyyy' }} - {{ event.location }}</small>
+                  <small>{{ formatDate(event.date) }} - {{ event.location }}</small>
                 </div>
               </label>
             </div>

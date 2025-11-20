@@ -37,6 +37,19 @@
   align-items: center;
 }
 
+.navbar-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.navbar-brand .logo-icon {
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+  filter: drop-shadow(2px 2px 4px rgba(0, 0, 0, 0.2));
+}
+
 .navbar-brand .logo {
   font-size: 1.8rem;
   font-weight: 700;

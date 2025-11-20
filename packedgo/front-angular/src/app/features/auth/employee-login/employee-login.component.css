@@ -68,6 +68,13 @@
   margin-bottom: 1.5rem;
 }
 
+.logo-container .logo-main {
+  width: 200px;
+  height: auto;
+  max-width: 100%;
+  animation: pulse 2s ease-in-out infinite;
+}
+
 .logo-container i {
   font-size: 4rem;
   background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);

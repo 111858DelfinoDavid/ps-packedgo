@@ -8,5 +8,7 @@ import lombok.Setter;
 public class EventCategoryDTO {
     private Long id;
     private String name;
+    private String description;
+    private boolean active;
     private Long createdBy;
 }

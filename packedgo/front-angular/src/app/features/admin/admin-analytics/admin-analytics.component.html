@@ -4,6 +4,12 @@
     <div class="col-12">
       <div class="d-flex justify-content-between align-items-center">
         <div>
+          <div class="d-flex align-items-center mb-2">
+            <a routerLink="/admin/dashboard" class="text-decoration-none text-primary d-flex align-items-center">
+              <i class="bi bi-arrow-left-circle me-2 fs-5"></i>
+              <span class="fw-semibold">Volver al Dashboard</span>
+            </a>
+          </div>
           <h2 class="mb-1">
             <i class="bi bi-graph-up me-2"></i>Panel de Analíticas
           </h2>
@@ -46,15 +52,15 @@
               <div class="icon-box bg-primary bg-opacity-10 p-3 rounded">
                 <i class="bi bi-currency-dollar fs-4 text-primary"></i>
               </div>
-              <span class="badge" [ngClass]="getGrowthClass(dashboard.revenueMetrics.growthRate)">
-                <i [ngClass]="getGrowthIcon(dashboard.revenueMetrics.growthRate)"></i>
-                {{ formatPercentage(dashboard.revenueMetrics.growthRate) }}
+              <span class="badge bg-success" *ngIf="dashboard.revenueMetrics?.revenueThisMonth">
+                <i class="bi bi-graph-up-arrow"></i>
+                {{ formatCurrency(dashboard.revenueMetrics?.revenueThisMonth) }}
               </span>
             </div>
             <h6 class="text-muted mb-2">Ingresos Totales</h6>
-            <h3 class="mb-1">{{ formatCurrency(dashboard.revenueMetrics.totalRevenue) }}</h3>
+            <h3 class="mb-1">{{ formatCurrency(dashboard.revenueMetrics?.totalRevenue) }}</h3>
             <small class="text-muted">
-              Este mes: {{ formatCurrency(dashboard.revenueMetrics.thisMonthRevenue) }}
+              Este mes: {{ formatCurrency(dashboard.revenueMetrics?.revenueThisMonth) }}
             </small>
           </div>
         </div>
@@ -129,22 +135,22 @@
               <div class="col-md-6 mb-3">
                 <div class="d-flex justify-content-between align-items-center">
                   <span class="text-muted">Ingresos por Tickets</span>
-                  <strong>{{ formatCurrency(dashboard.revenueMetrics.ticketsRevenue) }}</strong>
+                  <strong>{{ formatCurrency(dashboard.revenueMetrics?.revenueFromTickets) }}</strong>
                 </div>
                 <div class="progress mt-2" style="height: 10px;">
                   <div class="progress-bar bg-primary" 
-                       [style.width.%]="(dashboard.revenueMetrics.ticketsRevenue / dashboard.revenueMetrics.totalRevenue) * 100">
+                       [style.width.%]="((dashboard.revenueMetrics?.revenueFromTickets || 0) / (dashboard.revenueMetrics?.totalRevenue || 1)) * 100">
                   </div>
                 </div>
               </div>
               <div class="col-md-6 mb-3">
                 <div class="d-flex justify-content-between align-items-center">
                   <span class="text-muted">Ingresos por Consumibles</span>
-                  <strong>{{ formatCurrency(dashboard.revenueMetrics.consumptionsRevenue) }}</strong>
+                  <strong>{{ formatCurrency(dashboard.revenueMetrics?.revenueFromConsumptions) }}</strong>
                 </div>
                 <div class="progress mt-2" style="height: 10px;">
                   <div class="progress-bar bg-success" 
-                       [style.width.%]="(dashboard.revenueMetrics.consumptionsRevenue / dashboard.revenueMetrics.totalRevenue) * 100">
+                       [style.width.%]="((dashboard.revenueMetrics?.revenueFromConsumptions || 0) / (dashboard.revenueMetrics?.totalRevenue || 1)) * 100">
                   </div>
                 </div>
               </div>
@@ -157,7 +163,7 @@
               </div>
               <div class="col-md-4 text-center">
                 <h6 class="text-muted mb-2">Tickets por Orden</h6>
-                <h4 class="text-success">{{ dashboard.salesMetrics.averageTicketsPerOrder.toFixed(2) }}</h4>
+                <h4 class="text-success">{{ formatNumber(dashboard.salesMetrics.averageTicketsPerOrder, 2) }}</h4>
               </div>
               <div class="col-md-4 text-center">
                 <h6 class="text-muted mb-2">Tasa de Redención</h6>
@@ -177,18 +183,19 @@
           </div>
           <div class="card-body">
             <div class="text-center mb-3">
-              <h1 class="display-4" [ngClass]="getGrowthClass(dashboard.revenueMetrics.growthRate)">
-                <i [ngClass]="getGrowthIcon(dashboard.revenueMetrics.growthRate)"></i>
-                {{ formatPercentage(Math.abs(dashboard.revenueMetrics.growthRate)) }}
+              <h1 class="display-4 text-success">
+                <i class="bi bi-graph-up-arrow"></i>
+                {{ formatCurrency(dashboard.revenueMetrics?.revenueThisMonth) }}
               </h1>
+              <p class="text-muted">Ingresos este mes</p>
             </div>
             <div class="d-flex justify-content-between mb-2">
-              <span class="text-muted">Este mes:</span>
-              <strong>{{ formatCurrency(dashboard.revenueMetrics.thisMonthRevenue) }}</strong>
+              <span class="text-muted">Esta semana:</span>
+              <strong>{{ formatCurrency(dashboard.revenueMetrics?.revenueThisWeek) }}</strong>
             </div>
             <div class="d-flex justify-content-between">
-              <span class="text-muted">Mes anterior:</span>
-              <strong>{{ formatCurrency(dashboard.revenueMetrics.lastMonthRevenue) }}</strong>
+              <span class="text-muted">Hoy:</span>
+              <strong>{{ formatCurrency(dashboard.revenueMetrics?.revenueToday) }}</strong>
             </div>
           </div>
         </div>
@@ -205,11 +212,11 @@
             </h5>
           </div>
           <div class="card-body">
-            <div *ngIf="dashboard.topPerformers.topEvents.length === 0" class="text-center text-muted py-3">
+            <div *ngIf="!dashboard.topPerformers?.topEvents || dashboard.topPerformers.topEvents.length === 0" class="text-center text-muted py-3">
               <i class="bi bi-inbox fs-1 d-block mb-2"></i>
               No hay datos de eventos disponibles
             </div>
-            <div *ngFor="let event of dashboard.topPerformers.topEvents; let i = index" class="mb-3">
+            <div *ngFor="let event of dashboard.topPerformers?.topEvents; let i = index" class="mb-3">
               <div class="d-flex align-items-center">
                 <span class="badge bg-primary me-3">#{{ i + 1 }}</span>
                 <div class="flex-grow-1">
@@ -221,7 +228,7 @@
                 </div>
                 <strong class="text-primary">{{ formatCurrency(event.revenue) }}</strong>
               </div>
-              <hr *ngIf="i < dashboard.topPerformers.topEvents.length - 1">
+              <hr *ngIf="i < (dashboard.topPerformers?.topEvents?.length || 0) - 1">
             </div>
           </div>
         </div>
@@ -235,11 +242,11 @@
             </h5>
           </div>
           <div class="card-body">
-            <div *ngIf="dashboard.topPerformers.topConsumptions.length === 0" class="text-center text-muted py-3">
+            <div *ngIf="!dashboard.topPerformers?.topConsumptions || dashboard.topPerformers.topConsumptions.length === 0" class="text-center text-muted py-3">
               <i class="bi bi-inbox fs-1 d-block mb-2"></i>
               No hay datos de consumibles disponibles
             </div>
-            <div *ngFor="let consumption of dashboard.topPerformers.topConsumptions; let i = index" class="mb-3">
+            <div *ngFor="let consumption of dashboard.topPerformers?.topConsumptions; let i = index" class="mb-3">
               <div class="d-flex align-items-center">
                 <span class="badge bg-danger me-3">#{{ i + 1 }}</span>
                 <div class="flex-grow-1">
@@ -250,7 +257,7 @@
                 </div>
                 <strong class="text-danger">{{ formatCurrency(consumption.revenue) }}</strong>
               </div>
-              <hr *ngIf="i < dashboard.topPerformers.topConsumptions.length - 1">
+              <hr *ngIf="i < (dashboard.topPerformers?.topConsumptions?.length || 0) - 1">
             </div>
           </div>
         </div>
@@ -267,12 +274,12 @@
             </h5>
           </div>
           <div class="card-body">
-            <div *ngIf="dashboard.trends.dailyTrends.length === 0" class="text-center text-muted py-3">
+            <div *ngIf="!dashboard.trends?.dailyTrends || dashboard.trends.dailyTrends.length === 0" class="text-center text-muted py-3">
               <i class="bi bi-inbox fs-1 d-block mb-2"></i>
               No hay datos de tendencias disponibles
             </div>
             <div class="table-responsive">
-              <table class="table table-hover" *ngIf="dashboard.trends.dailyTrends.length > 0">
+              <table class="table table-hover" *ngIf="dashboard.trends?.dailyTrends && dashboard.trends.dailyTrends.length > 0">
                 <thead>
                   <tr>
                     <th>Fecha</th>
