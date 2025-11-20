@@ -68,6 +68,41 @@ public class UserProfileController {
     }
 
 
+    /**
+     * 🔒 GET /user-profiles - Obtener todos los perfiles (solo ADMIN)
+     * Endpoint para dashboard de administrador
+     */
+    @GetMapping
+    public ResponseEntity<List<UserProfileDTO>> getAllProfiles(
+            @RequestHeader("Authorization") String authHeader) {
+        
+        log.info("🔒 Getting all user profiles");
+        
+        // Validar JWT
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            throw new RuntimeException("Missing or invalid Authorization header");
+        }
+        
+        String token = authHeader.substring(7);
+        if (!jwtValidator.validateToken(token)) {
+            throw new RuntimeException("Invalid JWT token");
+        }
+        
+        // Validar que sea ADMIN
+        String role = jwtValidator.getRoleFromToken(token);
+        if (!"ADMIN".equals(role)) {
+            log.warn("⚠️ Non-admin user attempted to access all profiles");
+            throw new RuntimeException("Access denied: Admin role required");
+        }
+        
+        List<UserProfile> profiles = service.getAll();
+        List<UserProfileDTO> dtos = profiles.stream()
+                .map(profile -> modelMapper.map(profile, UserProfileDTO.class))
+                .collect(java.util.stream.Collectors.toList());
+        
+        return ResponseEntity.ok(dtos);
+    }
+
     @PostMapping
     public ResponseEntity<UserProfileDTO> create(@RequestBody UserProfileDTO dto) {
         UserProfile created = service.create(modelMapper.map(dto,UserProfile.class));
