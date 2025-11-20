@@ -122,6 +122,8 @@ public class EmployeeDTO {
     public static class RegisterConsumptionRequest {
         private String qrCode;
         private Long eventId;
+        private Long detailId;
+        private Integer quantity;
     }
 
     @Data

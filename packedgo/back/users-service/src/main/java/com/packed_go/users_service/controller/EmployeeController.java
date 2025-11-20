@@ -118,7 +118,8 @@ public class EmployeeController {
             Map<String, Object> eventServiceRequest = new HashMap<>();
             eventServiceRequest.put("qrCode", request.getQrCode());
             eventServiceRequest.put("eventId", request.getEventId());
-            eventServiceRequest.put("quantity", 1); // Por defecto canjear 1
+            eventServiceRequest.put("detailId", request.getDetailId());
+            eventServiceRequest.put("quantity", request.getQuantity() != null ? request.getQuantity() : 1);
 
             RegisterConsumptionResponse consumptionResponse = eventServiceWebClient.post()
                     .uri("/event-service/qr-validation/validate-consumption")

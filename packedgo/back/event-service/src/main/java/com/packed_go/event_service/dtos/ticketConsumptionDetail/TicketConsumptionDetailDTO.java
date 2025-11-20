@@ -13,6 +13,7 @@ public class TicketConsumptionDetailDTO {
     private Long consumptionId;
     private Integer quantity;
     private BigDecimal priceAtPurchase;
+    private boolean active;
     private boolean redeem;
     private String consumptionName;
 }

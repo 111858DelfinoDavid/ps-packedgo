@@ -3,7 +3,7 @@ export const environment = {
   apiUrl: 'http://localhost',
   authServiceUrl: 'http://localhost:8081/api',
   usersServiceUrl: 'http://localhost:8082/api',
-  eventServiceUrl: 'http://localhost:8083', // Event Service (sin /api porque tiene context path interno)
+  eventServiceUrl: 'http://localhost:8086/api', // Event Service
   eventsServiceUrl: 'http://localhost:8086/api',
   ordersServiceUrl: 'http://localhost:8084/api',
   paymentsServiceUrl: 'http://localhost:8085/api', // Payment Service

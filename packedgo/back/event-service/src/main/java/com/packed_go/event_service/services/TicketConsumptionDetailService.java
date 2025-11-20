@@ -15,6 +15,7 @@ public interface TicketConsumptionDetailService {
     TicketConsumptionDetailDTO update(Long id, TicketConsumptionDetailDTO ticketConsumptionDetail);
 
     List<TicketConsumptionDetailDTO> findAllByTicketId(Long id);
+    List<TicketConsumptionDetailDTO> findAllByEntryTicketId(Long ticketId);
     List<TicketConsumptionDetailDTO> findAllByConsumptionName(String name);
 
     @Transactional

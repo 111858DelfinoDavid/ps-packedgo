@@ -99,7 +99,6 @@
       
       <div class="scanner-container">
         <zxing-scanner
-          *ngIf="hasPermission && hasDevices"
           [formats]="allowedFormats"
           [device]="currentDevice"
           (scanSuccess)="onScanSuccess($event)"
@@ -110,10 +109,11 @@
           style="width: 100%; max-width: 500px; height: 400px;">
         </zxing-scanner>
 
-        <div class="scanner-placeholder" *ngIf="!hasPermission || !hasDevices">
+        <div class="scanner-placeholder" *ngIf="hasPermission === false || !hasDevices">
           <i class="bi bi-camera-video"></i>
-          <p *ngIf="!hasPermission">Necesitas permitir el acceso a la cámara</p>
-          <p *ngIf="hasPermission && !hasDevices">No se detectó ninguna cámara</p>
+          <p *ngIf="hasPermission === null">Solicitando permisos de cámara...</p>
+          <p *ngIf="hasPermission === false">Necesitas permitir el acceso a la cámara</p>
+          <p *ngIf="hasPermission === true && !hasDevices">No se detectó ninguna cámara</p>
         </div>
       </div>
 

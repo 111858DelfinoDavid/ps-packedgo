@@ -37,7 +37,7 @@ export class EmployeeDashboardComponent implements OnInit, OnDestroy {
   availableDevices: MediaDeviceInfo[] = [];
   currentDevice: MediaDeviceInfo | undefined;
   hasDevices: boolean = false;
-  hasPermission: boolean = false;
+  hasPermission: boolean | null = null;
   allowedFormats = [BarcodeFormat.QR_CODE];
 
   // Stats
@@ -168,6 +168,25 @@ export class EmployeeDashboardComponent implements OnInit, OnDestroy {
 
     console.log('Validando ticket:', qrCode, 'para evento:', this.selectedEventId);
 
+    // Pre-validación del formato y evento
+    const qrPattern = /PACKEDGO\|T:(\d+)(?:\|TC:(\d+))?\|E:(\d+)\|U:(\d+)\|TS:(\d+)/;
+    const match = qrCode.match(qrPattern);
+
+    if (!match) {
+      Swal.fire('QR Inválido', 'El código QR no tiene el formato correcto', 'error');
+      return;
+    }
+
+    const eventIdFromQR = parseInt(match[3]);
+    if (eventIdFromQR !== this.selectedEventId) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Evento Incorrecto',
+        text: `Este QR pertenece al evento #${eventIdFromQR}, pero estás operando en el evento #${this.selectedEventId}. Por favor cambia de evento o escanea el QR correcto.`
+      });
+      return;
+    }
+
     this.employeeService.validateTicket(qrCode, this.selectedEventId).subscribe({
       next: (response) => {
         const scanRecord: ScanRecord = {
@@ -207,11 +226,11 @@ export class EmployeeDashboardComponent implements OnInit, OnDestroy {
           qrCode: qrCode,
           timestamp: new Date(),
           status: 'error',
-          message: 'Error al validar ticket',
+          message: err.error?.message || 'Error al validar ticket',
           eventName: this.getSelectedEvent()?.name
         };
         this.scanHistory.unshift(scanRecord);
-        Swal.fire('Error', 'No se pudo validar el ticket', 'error');
+        Swal.fire('Error', err.error?.message || 'No se pudo validar el ticket', 'error');
       }
     });
   }
@@ -222,7 +241,8 @@ export class EmployeeDashboardComponent implements OnInit, OnDestroy {
     console.log('Escaneando consumo:', qrCode);
 
     // Extract ticketConsumptionId from QR
-    const qrPattern = /PACKEDGO\|T:(\d+)\|TC:(\d+)\|E:(\d+)\|U:(\d+)\|TS:(\d+)/;
+    // Allow TC to be optional (some QRs might only have T which we'll use as ID)
+    const qrPattern = /PACKEDGO\|T:(\d+)(?:\|TC:(\d+))?\|E:(\d+)\|U:(\d+)\|TS:(\d+)/;
     const match = qrCode.match(qrPattern);
 
     if (!match) {
@@ -230,10 +250,29 @@ export class EmployeeDashboardComponent implements OnInit, OnDestroy {
       return;
     }
 
-    const ticketConsumptionId = parseInt(match[2]);
+    const ticketId = parseInt(match[1]);
+    const ticketConsumptionId = match[2] ? parseInt(match[2]) : null;
+    const eventIdFromQR = parseInt(match[3]);
+
+    if (eventIdFromQR !== this.selectedEventId) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Evento Incorrecto',
+        text: `Este QR pertenece al evento #${eventIdFromQR}, pero estás operando en el evento #${this.selectedEventId}.`
+      });
+      return;
+    }
+
+    let requestObservable;
+
+    if (ticketConsumptionId) {
+      requestObservable = this.employeeService.getTicketConsumptions(ticketConsumptionId);
+    } else {
+      requestObservable = this.employeeService.getTicketConsumptionsByTicket(ticketId);
+    }
 
     // Get available consumptions for this ticket
-    this.employeeService.getTicketConsumptions(ticketConsumptionId).subscribe({
+    requestObservable.subscribe({
       next: (consumptions) => {
         const availableConsumptions = consumptions.filter(c => c.active && !c.redeem && c.quantity > 0);
 
@@ -255,8 +294,7 @@ export class EmployeeDashboardComponent implements OnInit, OnDestroy {
   private showConsumptionSelector(qrCode: string, consumptions: any[]): void {
     const options = consumptions.map(c =>
       `<div style="padding: 10px; border: 1px solid #ddd; margin: 5px; border-radius: 5px; cursor: pointer;" data-detail-id="${c.id}">
-        <strong>${c.consumption.name}</strong>
-        <p style="margin: 5px 0; color: #666;">${c.consumption.description || ''}</p>
+        <strong>${c.consumptionName || 'Producto sin nombre'}</strong>
         <small>Cantidad disponible: ${c.quantity}</small>
       </div>`
     ).join('');
@@ -287,7 +325,7 @@ export class EmployeeDashboardComponent implements OnInit, OnDestroy {
     Swal.fire({
       title: '¿Canjear consumición?',
       html: `
-        <p><strong>${consumption.consumption.name}</strong></p>
+        <p><strong>${consumption.consumptionName || 'Producto'}</strong></p>
         <p>Cantidad disponible: ${consumption.quantity}</p>
       `,
       input: 'number',
@@ -314,7 +352,7 @@ export class EmployeeDashboardComponent implements OnInit, OnDestroy {
     }).then((result) => {
       if (result.isConfirmed) {
         const quantity = parseInt(result.value);
-        this.registerConsumption(qrCode, detailId, quantity, consumption.consumption.name);
+        this.registerConsumption(qrCode, detailId, quantity, consumption.consumptionName);
       }
     });
   }
