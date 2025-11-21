@@ -52,6 +52,29 @@ El USERS-SERVICE es el microservicio encargado de gestionar los perfiles de usua
 - `GET /active/{id}` - Obtener perfil activo por ID
 - `GET /active/document/{document}` - Obtener perfil activo por documento
 
+### AdminEmployeeController (`/admin/employees`)
+
+#### Gestión de Empleados (Admin)
+- `POST /` - Crear nuevo empleado
+- `GET /` - Listar empleados del admin
+- `GET /{id}` - Obtener empleado por ID
+- `PUT /{id}` - Actualizar empleado
+- `DELETE /{id}` - Eliminar empleado
+- `PATCH /{id}/toggle-status` - Activar/Desactivar empleado
+
+### EmployeeController (`/employee`)
+
+#### Operaciones de Empleado
+- `GET /assigned-events` - Obtener eventos asignados
+- `POST /validate-ticket` - Validar ticket de entrada (Proxy a event-service)
+- `POST /register-consumption` - Registrar consumo (Proxy a event-service)
+- `GET /stats` - Obtener estadísticas del empleado
+
+### InternalEmployeeController (`/internal/employees`)
+
+#### Uso Interno (Auth Service)
+- `POST /validate` - Validar credenciales de empleado (usado por auth-service durante login)
+
 ## Entities Principales
 
 ### UserProfileEntity

@@ -23,11 +23,10 @@ PackedGo es una plataforma web integral desarrollada bajo una arquitectura de mi
 |----------|--------|---------------|-----------------|
 | [**auth-service**](./packedgo/back/auth-service/) | 8081 | auth_db (5433) | Autenticación y autorización |
 | [**users-service**](./packedgo/back/users-service/) | 8082 | users_db (5434) | Gestión de perfiles de usuario |
-| **event-service** | 8083 | events_db (5435) | Gestión de eventos y consumiciones |
-| **order-service** | 8084 | orders_db (5436) | Carritos y órdenes de compra |
-| **payment-service** | 8085 | payments_db (5437) | Procesamiento de pagos |
-| **qr-service** | 8086 | qr_validation_db (5438) | Códigos QR y validación |
-| **analytics-service** | 8087 | analytics_db (5439) | Métricas y reportes |
+| **event-service** | 8086 | event_db (5435) | Gestión de eventos, consumiciones y validación QR |
+| **order-service** | 8084 | order_db (5436) | Carritos y órdenes de compra |
+| **payment-service** | 8085 | payment_db (5437) | Procesamiento de pagos (Stripe) |
+| **analytics-service** | 8087 | - | Métricas y reportes |
 | **api-gateway** | 8080 | - | Gateway y load balancer |
 
 ---
@@ -113,8 +112,9 @@ JWT_EXPIRATION=3600000
 EMAIL_USERNAME=your_gmail@gmail.com
 EMAIL_PASSWORD=your_app_password
 
-# MercadoPago (payment-service)
-MERCADOPAGO_ACCESS_TOKEN=your_mp_access_token
+# Stripe (payment-service)
+STRIPE_SECRET_KEY=your_stripe_secret_key
+STRIPE_WEBHOOK_SECRET=your_stripe_webhook_secret
 ```
 
 ---
@@ -128,11 +128,9 @@ Cada microservicio mantiene su propia base de datos PostgreSQL independiente par
 |---------------|--------|-------------|
 | auth_db | 5433 | Usuarios, sesiones, tokens de verificación |
 | users_db | 5434 | Perfiles de usuario y datos personales |
-| events_db | 5435 | Eventos, consumiciones y stock |
-| orders_db | 5436 | Carritos, órdenes y paquetes |
-| payments_db | 5437 | Transacciones y pagos MercadoPago |
-| qr_validation_db | 5438 | Códigos QR y validaciones |
-| analytics_db | 5439 | Métricas y datos analíticos |
+| event_db | 5435 | Eventos, consumiciones y stock |
+| payment_db | 5437 | Transacciones y pagos Stripe |
+| payment_db | 5437 | Transacciones y pagos MercadoPago |
 
 ---
 

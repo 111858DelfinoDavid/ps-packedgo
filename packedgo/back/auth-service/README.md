@@ -50,6 +50,7 @@ El AUTH-SERVICE es el microservicio de autenticación y autorización de PackedG
 #### Autenticación
 - `POST /admin/login` - Login de administradores
 - `POST /customer/login` - Login de clientes
+- `POST /employee/login` - Login de empleados
 - `POST /logout` - Cerrar sesión
 - `POST /refresh` - Renovar token
 
@@ -59,8 +60,14 @@ El AUTH-SERVICE es el microservicio de autenticación y autorización de PackedG
 
 #### Verificación y Recuperación
 - `GET /verify-email?token=` - Verificar email
+- `POST /resend-verification` - Reenviar email de verificación
 - `POST /forgot-password` - Solicitar reset de contraseña
 - `POST /reset-password` - Cambiar contraseña con token
+- `POST /change-password/{userId}` - Cambiar contraseña (usuario logueado)
+
+#### Gestión de Perfil
+- `GET /user/{userId}` - Obtener perfil de usuario
+- `PUT /user/{userId}` - Actualizar perfil de usuario
 
 #### Validación de Tokens
 - `POST /validate` - Validar token para otros microservicios

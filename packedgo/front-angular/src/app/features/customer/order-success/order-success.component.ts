@@ -192,7 +192,6 @@ export class OrderSuccessComponent implements OnInit {
   }
 
   goToTickets(): void {
-    // TODO: Navegar a la sección de tickets cuando esté implementada
     this.router.navigate(['/customer/dashboard'], { queryParams: { tab: 'tickets' } });
   }
 }

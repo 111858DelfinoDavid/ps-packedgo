@@ -430,15 +430,7 @@ GET /api/health
 
 ---
 
-### 7. Consumption Service (Puerto: N/A)
-
-**Estado:** ⚠️ Implementación parcial - NO FUNCIONAL
-
-**Nota:** Este servicio está en desarrollo. La funcionalidad de validación QR actualmente se maneja en event-service.
-
----
-
-### 8. API Gateway (Puerto 8080)
+### 7. API Gateway (Puerto 8080)
 
 **Estado:** ❌ PENDIENTE DE IMPLEMENTACIÓN
 

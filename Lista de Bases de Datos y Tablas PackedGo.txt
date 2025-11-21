@@ -1,5 +1,5 @@
 Lista de Bases de Datos y Tablas - PackedGo
-Actualizado: Enero 2025 - Basado en código real implementado
+Actualizado: Noviembre 2025 - Basado en código real implementado
 
 NOTA IMPORTANTE: Este documento refleja la estructura REAL de las entidades implementadas en el código.
 Las tablas marcadas con ⏳ están pendientes de implementación.
@@ -36,7 +36,7 @@ auth_user_id - BIGINT REFERENCES auth_users(id)
 session_token - VARCHAR(500) NOT NULL
 refresh_token - VARCHAR(500)
 device_info - VARCHAR(500)
-ip_address - VARCHAR(100)  [CAMBIO: Era INET, ahora VARCHAR]
+ip_address - VARCHAR(100)
 user_agent - VARCHAR(1000)
 expires_at - TIMESTAMP NOT NULL
 last_activity - TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -51,7 +51,7 @@ token - VARCHAR(255) UNIQUE NOT NULL
 expires_at - TIMESTAMP NOT NULL
 created_at - TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 used_at - TIMESTAMP
-ip_address - VARCHAR(100)  [CAMBIO: Era INET, ahora VARCHAR]
+ip_address - VARCHAR(100)
 is_used - BOOLEAN DEFAULT FALSE
 
 Tabla: email_verification_tokens
@@ -78,7 +78,7 @@ Tabla: login_attempts
 id - BIGSERIAL PRIMARY KEY
 login_identifier - VARCHAR(255) NOT NULL
 login_type - VARCHAR(20) NOT NULL
-ip_address - VARCHAR(100) NOT NULL  [CAMBIO: Era INET, ahora VARCHAR]
+ip_address - VARCHAR(100) NOT NULL
 user_agent - VARCHAR(1000)
 success - BOOLEAN NOT NULL
 failure_reason - VARCHAR(100)
@@ -105,8 +105,22 @@ created_at - TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 updated_at - TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 is_active - BOOLEAN DEFAULT TRUE
 
-[NOTA: Campo 'preferences JSONB' fue eliminado]
-[NOTA: Campo 'email' está comentado, se maneja en auth_users]
+🆕 Tabla: employees (NUEVA)
+---------------------------
+id - BIGSERIAL PRIMARY KEY
+email - VARCHAR(255) UNIQUE NOT NULL
+username - VARCHAR(255) NOT NULL
+password_hash - VARCHAR(255) NOT NULL
+document - BIGINT UNIQUE NOT NULL
+admin_id - BIGINT NOT NULL
+is_active - BOOLEAN DEFAULT TRUE
+created_at - TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+
+🆕 Tabla: employee_events (NUEVA)
+---------------------------------
+employee_id - BIGINT NOT NULL REFERENCES employees(id)
+event_id - BIGINT NOT NULL
+PRIMARY KEY (employee_id, event_id)
 
 ⏳ Tabla: user_addresses (PENDIENTE DE IMPLEMENTACIÓN)
 -------------------------------------------------------
@@ -133,12 +147,12 @@ UNIQUE(user_profile_id, preference_key)
 
 
 ================================================================================
-3. events_db (EVENT-SERVICE) - Puerto 8083
+3. events_db (EVENT-SERVICE) - Puerto 8086
 ================================================================================
 Base de datos: PostgreSQL (Puerto 5435)
 
-🆕 Tabla: event_categories (NUEVA - NO ESTABA DOCUMENTADA)
------------------------------------------------------------
+Tabla: event_categories
+-----------------------
 id - BIGSERIAL PRIMARY KEY
 name - VARCHAR(255) NOT NULL
 active - BOOLEAN DEFAULT TRUE
@@ -146,36 +160,33 @@ active - BOOLEAN DEFAULT TRUE
 Tabla: events
 -------------
 id - BIGSERIAL PRIMARY KEY
-category_id - BIGINT REFERENCES event_categories(id)  [NUEVO]
+category_id - BIGINT REFERENCES event_categories(id)
 name - VARCHAR(255) NOT NULL
 description - TEXT
 event_date - TIMESTAMP NOT NULL
-lat - DOUBLE PRECISION  [NUEVO - Latitud geográfica]
-lng - DOUBLE PRECISION  [NUEVO - Longitud geográfica]
+lat - DOUBLE PRECISION
+lng - DOUBLE PRECISION
 max_capacity - INTEGER
 current_capacity - INTEGER DEFAULT 0
 base_price - DECIMAL(10,2) NOT NULL
 image_url - VARCHAR(500)
+image_data - BYTEA [NUEVO]
+image_content_type - VARCHAR(255) [NUEVO]
 status - VARCHAR(20) DEFAULT 'ACTIVE'
-created_by - BIGINT NOT NULL  [🔒 CRÍTICO: Control multi-tenant]
+created_by - BIGINT NOT NULL
 created_at - TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 updated_at - TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-active - BOOLEAN DEFAULT TRUE  [NUEVO]
-total_passes - INTEGER NOT NULL DEFAULT 0  [NUEVO]
-available_passes - INTEGER NOT NULL DEFAULT 0  [NUEVO]
-sold_passes - INTEGER NOT NULL DEFAULT 0  [NUEVO]
-version - BIGINT DEFAULT 0  [NUEVO - Optimistic locking]
-
-[CAMBIO: Campo 'location VARCHAR' fue eliminado, reemplazado por lat/lng]
+active - BOOLEAN DEFAULT TRUE
+total_passes - INTEGER NOT NULL DEFAULT 0
+available_passes - INTEGER NOT NULL DEFAULT 0
+sold_passes - INTEGER NOT NULL DEFAULT 0
+version - BIGINT DEFAULT 0
 
 Tabla: consumption_categories
 ------------------------------
 id - BIGSERIAL PRIMARY KEY
-name - VARCHAR(255) NOT NULL  [CAMBIO: Era VARCHAR(100)]
-active - BOOLEAN DEFAULT TRUE  [CAMBIO: Era 'is_active']
-
-[CAMBIO: Campo 'description TEXT' fue eliminado]
-[CAMBIO: Campo 'created_at' fue eliminado]
+name - VARCHAR(255) NOT NULL
+active - BOOLEAN DEFAULT TRUE
 
 Tabla: consumptions
 -------------------
@@ -187,10 +198,10 @@ price - DECIMAL(10,2) NOT NULL
 image_url - VARCHAR(500)
 created_at - TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 updated_at - TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-active - BOOLEAN DEFAULT TRUE  [CAMBIO: Era 'is_active']
+active - BOOLEAN DEFAULT TRUE
 
-🆕 Tabla: passes (NUEVA - NO ESTABA DOCUMENTADA)
--------------------------------------------------
+Tabla: passes
+-------------
 id - BIGSERIAL PRIMARY KEY
 code - VARCHAR(50) UNIQUE NOT NULL
 event_id - BIGINT NOT NULL REFERENCES events(id) ON DELETE CASCADE
@@ -200,69 +211,46 @@ sold - BOOLEAN NOT NULL DEFAULT FALSE
 created_at - TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 sold_at - TIMESTAMP
 sold_to_user_id - BIGINT
-version - BIGINT DEFAULT 0  (Optimistic locking)
+version - BIGINT DEFAULT 0
 
-DESCRIPCIÓN: Entradas pre-generadas con código único. Representan el "inventario" 
-de entradas disponibles para un evento.
-
-🆕 Tabla: tickets (NUEVA - NO ESTABA DOCUMENTADA)
---------------------------------------------------
+Tabla: tickets
+--------------
 id - BIGSERIAL PRIMARY KEY
-user_id - BIGINT NOT NULL  (Referencia externa a auth_users)
+user_id - BIGINT NOT NULL
 pass_id - BIGINT NOT NULL UNIQUE REFERENCES passes(id)
 ticket_consumption_id - BIGINT NOT NULL UNIQUE REFERENCES consumption_tickets(id)
 active - BOOLEAN NOT NULL DEFAULT TRUE
-redeemed - BOOLEAN NOT NULL DEFAULT FALSE  (Entrada canjeada al ingresar)
+redeemed - BOOLEAN NOT NULL DEFAULT FALSE
+qr_code - TEXT [NUEVO]
 created_at - TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 purchased_at - TIMESTAMP
 redeemed_at - TIMESTAMP
-version - BIGINT DEFAULT 0  (Optimistic locking)
+version - BIGINT DEFAULT 0
 
-DESCRIPCIÓN: Asocia un Pass comprado con un usuario y su paquete de consumiciones.
-Es el "ticket de compra" completo.
-
-🆕 Tabla: consumption_tickets (NUEVA - NO ESTABA DOCUMENTADA)
---------------------------------------------------------------
+Tabla: consumption_tickets
+--------------------------
 id - BIGSERIAL PRIMARY KEY
 created_at - TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 active - BOOLEAN DEFAULT TRUE
-redeem - BOOLEAN DEFAULT FALSE  (Todas las consumiciones canjeadas)
-version - BIGINT DEFAULT 0  (Optimistic locking)
+redeem - BOOLEAN DEFAULT FALSE
+version - BIGINT DEFAULT 0
 
-DESCRIPCIÓN: Agrupa todas las consumiciones incluidas en un ticket.
-Es el "paquete de consumiciones" del usuario.
-
-🆕 Tabla: ticket_consumption_details (NUEVA - NO ESTABA DOCUMENTADA)
----------------------------------------------------------------------
+Tabla: ticket_consumption_details
+---------------------------------
 id - BIGSERIAL PRIMARY KEY
 consumption_id - BIGINT NOT NULL REFERENCES consumptions(id)
 consumption_ticket_id - BIGINT NOT NULL REFERENCES consumption_tickets(id) ON DELETE CASCADE
 quantity - INTEGER NOT NULL
-price_at_purchase - DECIMAL(10,2) NOT NULL  (Precio histórico)
+price_at_purchase - DECIMAL(10,2) NOT NULL
 active - BOOLEAN DEFAULT TRUE
-redeem - BOOLEAN DEFAULT FALSE  (Esta consumición específica canjeada)
-version - BIGINT DEFAULT 0  (Optimistic locking)
-
-DESCRIPCIÓN: Detalle individual de cada consumición incluida en un paquete.
-Ejemplo: 2 cervezas + 1 hamburguesa = 2 registros en esta tabla.
-
-❌ Tabla: event_consumptions (ELIMINADA)
------------------------------------------
-Esta tabla fue eliminada y reemplazada por el nuevo modelo:
-Event → Pass → Ticket → TicketConsumption → TicketConsumptionDetail
-
-❌ Tabla: stock_movements (ELIMINADA)
---------------------------------------
-El control de stock ahora se maneja directamente en la tabla 'events'
-mediante los campos: total_passes, available_passes, sold_passes
+redeem - BOOLEAN DEFAULT FALSE
+version - BIGINT DEFAULT 0
 
 
 ================================================================================
 4. orders_db (ORDER-SERVICE) - Puerto 8084
 ================================================================================
 Base de datos: PostgreSQL (Puerto 5436)
-
-⏳ PENDIENTE DE IMPLEMENTACIÓN
 
 Tabla: shopping_carts
 ---------------------
@@ -291,218 +279,78 @@ id - BIGSERIAL PRIMARY KEY
 user_id - BIGINT NOT NULL
 event_id - BIGINT NOT NULL
 order_number - VARCHAR(50) UNIQUE NOT NULL
-status - VARCHAR(20) DEFAULT 'PENDING'
+status - VARCHAR(30) DEFAULT 'PENDING_PAYMENT'
 subtotal - DECIMAL(10,2) NOT NULL
 taxes - DECIMAL(10,2) DEFAULT 0
-total - DECIMAL(10,2) NOT NULL
+total_amount - DECIMAL(10,2) NOT NULL
 payment_id - BIGINT
-qr_code_id - BIGINT
+payment_preference_id - VARCHAR(100) [NUEVO]
+checkout_url - VARCHAR(500) [NUEVO]
+session_id - VARCHAR(100) [NUEVO]
+admin_id - BIGINT
 created_at - TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 updated_at - TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-completed_at - TIMESTAMP
+paid_at - TIMESTAMP
+cancelled_at - TIMESTAMP
 
 Tabla: order_items
 ------------------
 id - BIGSERIAL PRIMARY KEY
 order_id - BIGINT REFERENCES orders(id)
-item_type - VARCHAR(20) NOT NULL
-item_id - BIGINT NOT NULL
-item_name - VARCHAR(255) NOT NULL
+event_id - BIGINT NOT NULL
+event_name - VARCHAR(200) NOT NULL
 quantity - INTEGER NOT NULL
 unit_price - DECIMAL(10,2) NOT NULL
-total_price - DECIMAL(10,2) NOT NULL
-
-Tabla: package_configurations
-------------------------------
-id - BIGSERIAL PRIMARY KEY
-order_id - BIGINT REFERENCES orders(id)
-package_name - VARCHAR(255)
-total_entries - INTEGER DEFAULT 1
-total_consumptions - INTEGER DEFAULT 0
-package_discount - DECIMAL(5,2) DEFAULT 0
+subtotal - DECIMAL(10,2) NOT NULL
 created_at - TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 
 
 ================================================================================
 5. payments_db (PAYMENT-SERVICE) - Puerto 8085
 ================================================================================
-Base de datos: PostgreSQL (Puerto 5437)
-
-⏳ PENDIENTE DE IMPLEMENTACIÓN
+Base de datos: PostgreSQL (Puerto 5432)
 
 Tabla: payments
 ---------------
 id - BIGSERIAL PRIMARY KEY
-order_id - BIGINT NOT NULL
-user_id - BIGINT NOT NULL
-payment_method - VARCHAR(50) NOT NULL
+admin_id - BIGINT NOT NULL
+order_id - VARCHAR(255) NOT NULL UNIQUE
 amount - DECIMAL(10,2) NOT NULL
-currency - VARCHAR(5) DEFAULT 'ARS'
-status - VARCHAR(20) DEFAULT 'PENDING'
-mercadopago_payment_id - BIGINT
-mercadopago_preference_id - VARCHAR(255)
-external_reference - VARCHAR(255)
-created_at - TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-updated_at - TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-paid_at - TIMESTAMP
-expires_at - TIMESTAMP
-
-Tabla: payment_transactions
-----------------------------
-id - BIGSERIAL PRIMARY KEY
-payment_id - BIGINT REFERENCES payments(id)
-transaction_type - VARCHAR(20) NOT NULL
-mp_transaction_id - BIGINT
-amount - DECIMAL(10,2) NOT NULL
-status - VARCHAR(20) NOT NULL
+currency - VARCHAR(3) DEFAULT 'ARS'
+status - VARCHAR(50) NOT NULL
+payment_method - VARCHAR(100)
+payer_email - VARCHAR(255)
+payer_name - VARCHAR(255)
+description - VARCHAR(500)
+stripe_session_id - VARCHAR(255) [NUEVO]
+stripe_payment_intent_id - VARCHAR(255) [NUEVO]
+payment_provider - VARCHAR(50) DEFAULT 'STRIPE' [NUEVO]
+transaction_amount - DECIMAL(10,2)
 status_detail - VARCHAR(100)
-payment_method_type - VARCHAR(50)
-installments - INTEGER DEFAULT 1
-transaction_date - TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-raw_response - JSONB
-
-Tabla: mercadopago_webhooks
-----------------------------
-id - BIGSERIAL PRIMARY KEY
-webhook_id - VARCHAR(255)
-topic - VARCHAR(50) NOT NULL
-resource_id - BIGINT
-payment_id - BIGINT REFERENCES payments(id)
-processed - BOOLEAN DEFAULT FALSE
-raw_data - JSONB NOT NULL
-received_at - TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-processed_at - TIMESTAMP
-
-Tabla: payment_methods
-----------------------
-id - BIGSERIAL PRIMARY KEY
-mp_method_id - VARCHAR(50) NOT NULL
-name - VARCHAR(100) NOT NULL
-payment_type - VARCHAR(20) NOT NULL
-status - VARCHAR(20) DEFAULT 'ACTIVE'
-installments_available - JSONB
+payment_type_id - VARCHAR(50)
+installments - INTEGER
 created_at - TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+updated_at - TIMESTAMP
+approved_at - TIMESTAMP
+
+❌ Tabla: payment_transactions (ELIMINADA/NO IMPLEMENTADA)
+❌ Tabla: mercadopago_webhooks (ELIMINADA/NO IMPLEMENTADA)
+❌ Tabla: payment_methods (ELIMINADA/NO IMPLEMENTADA)
 
 
 ================================================================================
-6. qr_validation_db (QR-SERVICE) - Puerto 8086
-================================================================================
-Base de datos: PostgreSQL (Puerto 5438)
-
-⏳ PENDIENTE DE IMPLEMENTACIÓN
-
-Tabla: qr_codes
----------------
-id - BIGSERIAL PRIMARY KEY
-order_id - BIGINT NOT NULL
-user_id - BIGINT NOT NULL
-event_id - BIGINT NOT NULL
-qr_code_data - VARCHAR(500) UNIQUE NOT NULL
-qr_hash - VARCHAR(255) UNIQUE NOT NULL
-status - VARCHAR(20) DEFAULT 'ACTIVE'
-generated_at - TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-expires_at - TIMESTAMP
-first_scan_at - TIMESTAMP
-last_scan_at - TIMESTAMP
-
-Tabla: entry_validations
--------------------------
-id - BIGSERIAL PRIMARY KEY
-qr_code_id - BIGINT REFERENCES qr_codes(id)
-validator_user_id - BIGINT
-validation_type - VARCHAR(20) DEFAULT 'ENTRY'
-validation_result - VARCHAR(20) NOT NULL
-validation_location - VARCHAR(255)
-device_info - VARCHAR(500)
-validated_at - TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-notes - TEXT
-
-Tabla: consumption_redemptions
--------------------------------
-id - BIGSERIAL PRIMARY KEY
-qr_code_id - BIGINT REFERENCES qr_codes(id)
-order_item_id - BIGINT NOT NULL
-consumption_id - BIGINT NOT NULL
-quantity_redeemed - INTEGER NOT NULL
-redeemed_by_user_id - BIGINT
-redemption_location - VARCHAR(255)
-redeemed_at - TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-notes - TEXT
-
-Tabla: validation_logs
-----------------------
-id - BIGSERIAL PRIMARY KEY
-qr_code_id - BIGINT REFERENCES qr_codes(id)
-action_type - VARCHAR(20) NOT NULL
-action_result - VARCHAR(20) NOT NULL
-performed_by - BIGINT
-ip_address - INET
-user_agent - VARCHAR(500)
-location_data - JSONB
-created_at - TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-additional_data - JSONB
-
-
-================================================================================
-7. analytics_db (ANALYTICS-SERVICE) - Puerto 8087
+6. analytics_db (ANALYTICS-SERVICE) - Puerto 8087
 ================================================================================
 Base de datos: PostgreSQL (Puerto 5439)
 
-⏳ PENDIENTE DE IMPLEMENTACIÓN
+⚠️ NOTA: Este servicio actualmente calcula métricas en memoria obteniendo datos
+de otros microservicios (Event, Order, Payment) y no persiste datos propios
+en una base de datos relacional en la implementación actual.
 
-Tabla: event_metrics
---------------------
-id - BIGSERIAL PRIMARY KEY
-event_id - BIGINT NOT NULL
-metric_date - DATE NOT NULL
-total_sales - DECIMAL(12,2) DEFAULT 0
-total_tickets_sold - INTEGER DEFAULT 0
-total_consumptions_sold - INTEGER DEFAULT 0
-unique_buyers - INTEGER DEFAULT 0
-attendance_rate - DECIMAL(5,2) DEFAULT 0
-avg_package_value - DECIMAL(10,2) DEFAULT 0
-most_popular_consumption_id - BIGINT
-created_at - TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-UNIQUE(event_id, metric_date)
-
-Tabla: sales_reports
---------------------
-id - BIGSERIAL PRIMARY KEY
-report_type - VARCHAR(20) NOT NULL
-event_id - BIGINT
-period_start - DATE NOT NULL
-period_end - DATE NOT NULL
-total_revenue - DECIMAL(12,2) NOT NULL
-total_orders - INTEGER NOT NULL
-avg_order_value - DECIMAL(10,2) NOT NULL
-generated_by - BIGINT NOT NULL
-generated_at - TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-report_data - JSONB
-
-Tabla: consumption_analytics
------------------------------
-id - BIGSERIAL PRIMARY KEY
-event_id - BIGINT NOT NULL
-consumption_id - BIGINT NOT NULL
-analysis_date - DATE NOT NULL
-units_sold - INTEGER DEFAULT 0
-revenue_generated - DECIMAL(10,2) DEFAULT 0
-redemption_rate - DECIMAL(5,2) DEFAULT 0
-peak_sale_hour - INTEGER
-customer_rating - DECIMAL(3,2)
-UNIQUE(event_id, consumption_id, analysis_date)
-
-Tabla: user_behavior_tracking
-------------------------------
-id - BIGSERIAL PRIMARY KEY
-user_id - BIGINT NOT NULL
-event_id - BIGINT
-action_type - VARCHAR(50) NOT NULL
-action_details - JSONB
-session_id - VARCHAR(255)
-ip_address - INET
-user_agent - VARCHAR(500)
-created_at - TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+⏳ Tabla: event_metrics (PENDIENTE)
+⏳ Tabla: sales_reports (PENDIENTE)
+⏳ Tabla: consumption_analytics (PENDIENTE)
+⏳ Tabla: user_behavior_tracking (PENDIENTE)
 
 
 ================================================================================
@@ -511,39 +359,25 @@ RESUMEN DE CAMBIOS vs DOCUMENTACIÓN ORIGINAL
 
 ✅ MICROSERVICIOS IMPLEMENTADOS:
 - auth-service (100% funcional)
-- users-service (implementado, tablas adicionales pendientes)
+- users-service (100% funcional, incluye empleados)
 - event-service (100% funcional con nuevo modelo)
+- order-service (100% funcional)
+- payment-service (100% funcional con Stripe)
+- analytics-service (Funcional, cálculo en memoria)
 
-⏳ MICROSERVICIOS PENDIENTES:
-- order-service
-- payment-service
-- qr-service  
-- analytics-service
+🆕 TABLAS NUEVAS:
+1. employees (Users Service)
+2. employee_events (Users Service)
+3. events (campos de imagen agregados)
+4. tickets (campo qr_code agregado)
+5. orders (campos de Stripe agregados)
+6. payments (adaptada para Stripe)
 
-🆕 TABLAS NUEVAS NO DOCUMENTADAS:
-1. event_categories - Categorización de eventos
-2. passes - Sistema de entradas pre-generadas
-3. tickets - Asociación compra-usuario-consumiciones
-4. consumption_tickets - Paquete de consumiciones
-5. ticket_consumption_details - Detalle de consumiciones
-
-❌ TABLAS ELIMINADAS:
-1. event_consumptions → Reemplazada por modelo Pass/Ticket
-2. stock_movements → Simplificada en campos de Event
-
-⏳ TABLAS PENDIENTES (documentadas pero no implementadas):
-1. user_addresses
-2. user_preferences
-
-🔒 CAMPO CRÍTICO PARA MULTI-TENANCY:
-- events.created_by → Permite aislamiento por organizador (SaaS)
-
-🔢 MODELO DE NUMERACIÓN DE CAMPOS VERSION:
-- Implementado en: events, passes, tickets, consumption_tickets, ticket_consumption_details
-- Propósito: Optimistic locking para manejo de concurrencia
+❌ TABLAS ELIMINADAS O REEMPLAZADAS:
+1. Tablas específicas de MercadoPago en Payment Service reemplazadas por campos de Stripe.
 
 ================================================================================
-Documento actualizado: Enero 2025
+Documento actualizado: Noviembre 2025
 Autores: David Elías Delfino, Agustín Luparia Mothe
 Universidad Tecnológica Nacional - Facultad Regional Córdoba
 ================================================================================

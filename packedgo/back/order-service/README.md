@@ -109,6 +109,64 @@ Body: { "quantity": 3 }
 Response: 200 OK
 ```
 
+### Gestión de Órdenes
+
+**POST** `/api/orders/checkout`
+```json
+Headers: Authorization: Bearer {token}
+Body: {
+  "adminId": 1,
+  "successUrl": "...",
+  "failureUrl": "...",
+  "pendingUrl": "..."
+}
+Response: 201 CREATED
+{
+  "paymentUrl": "https://www.mercadopago.com.ar/checkout/v1/redirect?...",
+  "orderNumber": "ORD-202510-123"
+}
+```
+
+**POST** `/api/orders/checkout/single`
+```json
+Headers: Authorization: Bearer {token}
+Body: { "adminId": 123 }
+Response: 201 CREATED
+```
+
+**GET** `/api/orders`
+```json
+Headers: Authorization: Bearer {token}
+Response: 200 OK
+[
+  {
+    "id": 1,
+    "orderNumber": "ORD-202510-123",
+    "status": "PENDING",
+    "totalAmount": 150.00,
+    "createdAt": "2025-10-18T15:30:00",
+    "items": [...]
+  }
+]
+```
+
+**GET** `/api/orders/{orderNumber}`
+```json
+Headers: Authorization: Bearer {token}
+Response: 200 OK
+```
+
+**GET** `/api/orders/organizer/{organizerId}`
+```json
+Response: 200 OK
+```
+
+**POST** `/api/orders/payment-callback`
+```json
+Body: { "orderNumber": "ORD-202510-123", "paymentStatus": "APPROVED" }
+Response: 200 OK
+```
+
 ## 🐳 Docker
 
 ### Construcción Local
