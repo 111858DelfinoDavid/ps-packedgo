@@ -1,10 +1,19 @@
 package com.packed_go.event_service.entities;
 
-import jakarta.persistence.*;
+import java.time.LocalDateTime;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.OneToOne;
+import jakarta.persistence.Table;
+import jakarta.persistence.Version;
 import lombok.Getter;
 import lombok.Setter;
-
-import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "tickets")
@@ -55,5 +64,16 @@ public class Ticket {
         this.redeemed = false;
         this.createdAt = LocalDateTime.now();
         this.purchasedAt = LocalDateTime.now();
+    }
+    
+    // Constructor para crear un ticket con fecha de compra específica
+    public Ticket(Long userId, Pass pass, TicketConsumption ticketConsumption, LocalDateTime purchasedAt) {
+        this.userId = userId;
+        this.pass = pass;
+        this.ticketConsumption = ticketConsumption;
+        this.active = true;
+        this.redeemed = false;
+        this.createdAt = LocalDateTime.now();
+        this.purchasedAt = purchasedAt != null ? purchasedAt : LocalDateTime.now();
     }
 }

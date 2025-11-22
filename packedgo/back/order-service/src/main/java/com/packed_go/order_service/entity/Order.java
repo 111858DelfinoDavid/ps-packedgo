@@ -5,6 +5,9 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonManagedReference;
+import com.packed_go.order_service.util.DateTimeUtils;
+
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -15,10 +18,6 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Index;
-import com.fasterxml.jackson.annotation.JsonManagedReference;
-import jakarta.persistence.JoinColumn;
-import com.fasterxml.jackson.annotation.JsonBackReference;
-import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
@@ -76,6 +75,9 @@ public class Order {
     @Column(name = "admin_id")
     private Long adminId; // Admin del evento (para payment-service)
 
+    @Column(name = "client_timezone", length = 100)
+    private String clientTimezone; // Timezone del cliente (ej: "America/Argentina/Buenos_Aires")
+
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
@@ -112,8 +114,8 @@ public class Order {
 
     @PrePersist
     protected void onCreate() {
-        createdAt = LocalDateTime.now();
-        updatedAt = LocalDateTime.now();
+        createdAt = clientTimezone != null ? DateTimeUtils.now(clientTimezone) : DateTimeUtils.now();
+        updatedAt = clientTimezone != null ? DateTimeUtils.now(clientTimezone) : DateTimeUtils.now();
         
         if (orderNumber == null) {
             orderNumber = generateOrderNumber();
@@ -122,7 +124,7 @@ public class Order {
 
     @PreUpdate
     protected void onUpdate() {
-        updatedAt = LocalDateTime.now();
+        updatedAt = clientTimezone != null ? DateTimeUtils.now(clientTimezone) : DateTimeUtils.now();
     }
 
     // ============================================
@@ -132,9 +134,10 @@ public class Order {
     /**
      * Genera un número de orden único
      */
-    private String generateOrderNumber() {
-        return "ORD-" + LocalDateTime.now().getYear() + 
-               String.format("%02d", LocalDateTime.now().getMonthValue()) + "-" +
+    public static String generateOrderNumber() {
+        LocalDateTime now = DateTimeUtils.now();
+        return "ORD-" + now.getYear() + 
+               String.format("%02d", now.getMonthValue()) + "-" +
                System.currentTimeMillis();
     }
 
@@ -151,7 +154,7 @@ public class Order {
      */
     public void markAsPaid() {
         this.status = OrderStatus.PAID;
-        this.paidAt = LocalDateTime.now();
+        this.paidAt = clientTimezone != null ? DateTimeUtils.now(clientTimezone) : DateTimeUtils.now();
     }
 
     /**
@@ -159,7 +162,7 @@ public class Order {
      */
     public void markAsCancelled() {
         this.status = OrderStatus.CANCELLED;
-        this.cancelledAt = LocalDateTime.now();
+        this.cancelledAt = clientTimezone != null ? DateTimeUtils.now(clientTimezone) : DateTimeUtils.now();
     }
 
     /**

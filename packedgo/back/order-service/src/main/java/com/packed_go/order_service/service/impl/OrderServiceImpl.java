@@ -52,8 +52,8 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     @Transactional
-    public CheckoutResponse checkoutSingleAdmin(Long userId, Long adminId) {
-        log.info("Processing SINGLE ADMIN checkout for user: {} and admin: {}", userId, adminId);
+    public CheckoutResponse checkoutSingleAdmin(Long userId, Long adminId, String timezone) {
+        log.info("Processing SINGLE ADMIN checkout for user: {} and admin: {} with timezone: {}", userId, adminId, timezone);
 
         // 1. Obtener carrito activo
         List<ShoppingCart> activeCarts = cartRepository.findByUserIdAndStatusWithItems(userId, "ACTIVE");
@@ -82,7 +82,7 @@ public class OrderServiceImpl implements OrderService {
         }
 
         // 3. Crear Orden Única
-        Order order = createOrderFromCartItems(cart, adminId, adminItems, null); // sessionId es null ahora
+        Order order = createOrderFromCartItems(cart, adminId, adminItems, null, timezone); // sessionId es null, timezone del cliente
         order = orderRepository.save(order);
         
         log.info("Created Order {} for Admin {}", order.getOrderNumber(), adminId);
@@ -138,11 +138,11 @@ public class OrderServiceImpl implements OrderService {
                 
                 // 🎟️ GENERAR TICKETS cuando el pago es aprobado
                 try {
-                    generateTicketsForOrder(order);
+                    List<TicketWithConsumptionsResponse> generatedTickets = generateTicketsForOrder(order);
                     
-                    // 📧 ENVIAR EMAIL DE CONFIRMACIÓN
+                    // 📧 ENVIAR EMAIL DE CONFIRMACIÓN con los tickets generados
                     if (request.getCustomerEmail() != null && !request.getCustomerEmail().isEmpty()) {
-                        emailService.sendOrderConfirmation(order, request.getCustomerEmail());
+                        emailService.sendOrderConfirmation(order, request.getCustomerEmail(), generatedTickets);
                     } else {
                         log.warn("⚠️ No customer email provided in callback. Skipping email confirmation.");
                     }
@@ -219,7 +219,7 @@ public class OrderServiceImpl implements OrderService {
     // Helper Methods
     // ============================================
     
-    private Order createOrderFromCartItems(ShoppingCart cart, Long adminId, List<CartItem> items, String sessionId) {
+    private Order createOrderFromCartItems(ShoppingCart cart, Long adminId, List<CartItem> items, String sessionId, String timezone) {
         BigDecimal totalAmount = items.stream()
                 .map(CartItem::getSubtotal)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
@@ -230,6 +230,7 @@ public class OrderServiceImpl implements OrderService {
                 .totalAmount(totalAmount)
                 .adminId(adminId)
                 .sessionId(sessionId)
+                .clientTimezone(timezone)
                 .status(Order.OrderStatus.PENDING_PAYMENT)
                 .build();
         
@@ -244,10 +245,12 @@ public class OrderServiceImpl implements OrderService {
     /**
      * Genera tickets en event-service para cada entrada de la orden
      * Se ejecuta automáticamente cuando una orden es marcada como PAID
+     * @return Lista de tickets generados con sus códigos QR
      */
-    private void generateTicketsForOrder(Order order) {
+    private List<TicketWithConsumptionsResponse> generateTicketsForOrder(Order order) {
         log.info("🎟️ Generating tickets for order: {}", order.getOrderNumber());
         
+        List<TicketWithConsumptionsResponse> generatedTickets = new ArrayList<>();
         int ticketsGenerated = 0;
         int ticketsFailed = 0;
         
@@ -279,6 +282,7 @@ public class OrderServiceImpl implements OrderService {
                             .userId(order.getUserId())
                             .eventId(eventId)
                             .consumptions(consumptions)
+                            .purchasedAt(order.getPaidAt()) // Usar fecha de pago de la orden
                             .build();
                     
                     TicketWithConsumptionsResponse response = eventServiceClient.createTicketWithConsumptions(ticketRequest);
@@ -286,6 +290,7 @@ public class OrderServiceImpl implements OrderService {
                     // Check if ticket was created successfully (ticketId present)
                     if (response != null && response.getTicketId() != null) {
                         ticketsGenerated++;
+                        generatedTickets.add(response);
                         log.info("✅ Ticket #{} generated: ID={}, QR={}", 
                                 (i + 1), response.getTicketId(), response.getQrCode());
                     } else {
@@ -307,6 +312,8 @@ public class OrderServiceImpl implements OrderService {
         if (ticketsFailed > 0) {
             log.warn("⚠️ Some tickets failed to generate. Manual intervention may be required.");
         }
+        
+        return generatedTickets;
     }
     
     @Override

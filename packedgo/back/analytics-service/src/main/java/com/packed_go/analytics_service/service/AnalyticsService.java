@@ -164,6 +164,80 @@ public class AnalyticsService {
         }
     }
 
+    /**
+     * Obtiene todas las consumiciones con su estado de redención
+     * desde las órdenes pagadas del organizador (optimizado con batch)
+     */
+    private Map<String, Long> fetchRedemptionStats(List<Map<String, Object>> orders) {
+        Map<String, Long> stats = new HashMap<>();
+        long totalSold = 0;
+        long totalRedeemed = 0;
+
+        try {
+            // Recolectar todos los ticketConsumptionIds
+            List<Long> ticketConsumptionIds = new ArrayList<>();
+            
+            for (Map<String, Object> order : orders) {
+                if (!"PAID".equals(order.get("status"))) continue;
+
+                @SuppressWarnings("unchecked")
+                List<Map<String, Object>> items = (List<Map<String, Object>>) order.get("items");
+                if (items == null) continue;
+
+                for (Map<String, Object> item : items) {
+                    @SuppressWarnings("unchecked")
+                    List<Map<String, Object>> itemConsumptions = (List<Map<String, Object>>) item.get("consumptions");
+                    if (itemConsumptions == null) continue;
+
+                    for (Map<String, Object> consumption : itemConsumptions) {
+                        totalSold++;
+                        
+                        Object ticketConsumptionId = consumption.get("ticketConsumptionId");
+                        if (ticketConsumptionId != null) {
+                            ticketConsumptionIds.add(((Number) ticketConsumptionId).longValue());
+                        }
+                    }
+                }
+            }
+
+            // Si hay ticketConsumptionIds, consultar en batch
+            if (!ticketConsumptionIds.isEmpty()) {
+                try {
+                    String url = eventServiceUrl + "/api/event-service/ticket-consumption/redemption-stats";
+                    log.info("📡 Consultando estado de redención de {} consumiciones", ticketConsumptionIds.size());
+                    
+                    org.springframework.http.HttpHeaders headers = new org.springframework.http.HttpHeaders();
+                    headers.setContentType(org.springframework.http.MediaType.APPLICATION_JSON);
+                    org.springframework.http.HttpEntity<List<Long>> entity = new org.springframework.http.HttpEntity<>(ticketConsumptionIds, headers);
+                    
+                    ResponseEntity<Map<Long, Boolean>> response = restTemplate.exchange(
+                            url,
+                            HttpMethod.POST,
+                            entity,
+                            new ParameterizedTypeReference<Map<Long, Boolean>>() {}
+                    );
+                    
+                    Map<Long, Boolean> redemptionMap = response.getBody();
+                    if (redemptionMap != null) {
+                        totalRedeemed = redemptionMap.values().stream()
+                                .filter(Boolean::booleanValue)
+                                .count();
+                    }
+                } catch (Exception e) {
+                    log.error("❌ Error consultando estadísticas de redención en batch: {}", e.getMessage());
+                }
+            }
+        } catch (Exception e) {
+            log.error("❌ Error calculando estadísticas de redención: {}", e.getMessage());
+        }
+
+        stats.put("totalSold", totalSold);
+        stats.put("totalRedeemed", totalRedeemed);
+        log.info("📊 Estadísticas de redención: {} vendidas, {} canjeadas", totalSold, totalRedeemed);
+        
+        return stats;
+    }
+
     // ==================== CALCULATE METRICS ====================
 
     private SalesMetricsDTO calculateSalesMetrics(List<Map<String, Object>> orders) {
@@ -333,25 +407,12 @@ public class AnalyticsService {
         Long totalConsumptions = (long) consumptions.size();
         Long activeConsumptions = consumptions.stream().filter(c -> Boolean.TRUE.equals(c.get("active"))).count();
 
-        // Consumiciones vendidas (contar en items de órdenes pagadas)
-        Long totalConsumptionsSold = orders.stream()
-                .filter(o -> "PAID".equals(o.get("status")))
-                .flatMap(o -> {
-                    @SuppressWarnings("unchecked")
-                    List<Map<String, Object>> items = (List<Map<String, Object>>) o.get("items");
-                    return items != null ? items.stream() : Stream.empty();
-                })
-                .flatMap(item -> {
-                    @SuppressWarnings("unchecked")
-                    List<Map<String, Object>> itemConsumptions = (List<Map<String, Object>>) item.get("consumptions");
-                    return itemConsumptions != null ? itemConsumptions.stream() : Stream.empty();
-                })
-                .count();
-
-        // Para tasas de canje, necesitaríamos datos del consumption-service (QR canjeados)
-        // Por ahora, simulamos con valores por defecto
-        Long consumptionsRedeemed = totalConsumptionsSold / 2; // Simulación: 50% canjeados
+        // Obtener estadísticas reales de redención
+        Map<String, Long> redemptionStats = fetchRedemptionStats(orders);
+        Long totalConsumptionsSold = redemptionStats.get("totalSold");
+        Long consumptionsRedeemed = redemptionStats.get("totalRedeemed");
         Long consumptionsPending = totalConsumptionsSold - consumptionsRedeemed;
+        
         Double redemptionRate = totalConsumptionsSold > 0 
                 ? (consumptionsRedeemed.doubleValue() / totalConsumptionsSold) * 100 
                 : 0.0;

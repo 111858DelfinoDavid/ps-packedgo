@@ -1,14 +1,14 @@
 package com.packed_go.event_service.dtos.ticket;
 
+import java.time.LocalDateTime;
+import java.util.List;
+
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-
-import java.util.List;
 
 /**
  * Request DTO para crear un ticket completo con sus consumiciones.
@@ -28,4 +28,6 @@ public class CreateTicketWithConsumptionsRequest {
 
     @Valid
     private List<ConsumptionItemDTO> consumptions;
+    
+    private LocalDateTime purchasedAt; // Fecha de compra desde order-service
 }

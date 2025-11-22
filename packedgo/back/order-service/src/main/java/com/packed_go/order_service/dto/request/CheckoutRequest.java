@@ -15,6 +15,8 @@ public class CheckoutRequest {
     @NotNull(message = "Admin ID is required")
     private Long adminId;
     
+    private String timezone; // Timezone del cliente (ej: "America/Argentina/Buenos_Aires")
+    
     private String successUrl;
     private String failureUrl;
     private String pendingUrl;

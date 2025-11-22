@@ -1,5 +1,22 @@
 package com.packed_go.event_service.controllers;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicInteger;
+
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
 import com.packed_go.event_service.dtos.ticketConsumption.CreateTicketConsumptionDTO;
 import com.packed_go.event_service.dtos.ticketConsumption.CreateTicketConsumptionWithDetailsDTO;
 import com.packed_go.event_service.dtos.ticketConsumption.CreateTicketConsumptionWithSimpleDetailsDTO;
@@ -9,17 +26,9 @@ import com.packed_go.event_service.dtos.ticketConsumptionDetail.RedeemTicketDeta
 import com.packed_go.event_service.dtos.ticketConsumptionDetail.TicketConsumptionDetailDTO;
 import com.packed_go.event_service.services.TicketConsumptionDetailService;
 import com.packed_go.event_service.services.TicketConsumptionService;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.atomic.AtomicInteger;
 
 @RestController
 @RequestMapping("/event-service/ticket-consumption")
@@ -155,5 +164,28 @@ public class TicketConsumptionController {
         result.setTestResult("Prueba completada - Solo una petición debería ser exitosa");
         
         return ResponseEntity.ok(result);
+    }
+
+    /**
+     * Endpoint para obtener estadísticas de redención por IDs de ticket consumption.
+     * Retorna un mapa con el ID del ticket consumption y su estado de redención.
+     */
+    @PostMapping("/redemption-stats")
+    public ResponseEntity<java.util.Map<Long, Boolean>> getRedemptionStats(@RequestBody List<Long> ticketConsumptionIds) {
+        log.info("Obteniendo estadísticas de redención para {} ticket consumptions", ticketConsumptionIds.size());
+        
+        java.util.Map<Long, Boolean> stats = new java.util.HashMap<>();
+        
+        for (Long tcId : ticketConsumptionIds) {
+            try {
+                TicketConsumptionDTO ticket = ticketService.findById(tcId);
+                stats.put(tcId, ticket.isRedeem());
+            } catch (Exception e) {
+                log.warn("No se pudo obtener ticket consumption {}: {}", tcId, e.getMessage());
+                stats.put(tcId, false);
+            }
+        }
+        
+        return ResponseEntity.ok(stats);
     }
 }

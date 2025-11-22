@@ -171,10 +171,10 @@ public class OrderController {
             @RequestHeader("Authorization") String authHeader,
             @RequestBody CheckoutRequest request) {
         
-        log.info("POST /api/orders/checkout/single - Processing checkout for adminId: {}", request.getAdminId());
+        log.info("POST /api/orders/checkout/single - Processing checkout for adminId: {} with timezone: {}", request.getAdminId(), request.getTimezone());
         
         Long userId = extractUserId(authHeader);
-        CheckoutResponse response = orderService.checkoutSingleAdmin(userId, request.getAdminId());
+        CheckoutResponse response = orderService.checkoutSingleAdmin(userId, request.getAdminId(), request.getTimezone());
         
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }

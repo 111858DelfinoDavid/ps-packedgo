@@ -286,8 +286,8 @@ public class TicketServiceImpl implements TicketService {
         ticketConsumption.setRedeem(false);
         ticketConsumption = ticketConsumptionRepository.save(ticketConsumption);
 
-        // 4. Crear Ticket
-        Ticket ticket = new Ticket(request.getUserId(), pass, ticketConsumption);
+        // 4. Crear Ticket (usar purchasedAt del request si está disponible)
+        Ticket ticket = new Ticket(request.getUserId(), pass, ticketConsumption, request.getPurchasedAt());
         ticket = ticketRepository.save(ticket);
 
         // 5. Generar QR Code

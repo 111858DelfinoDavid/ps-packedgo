@@ -36,8 +36,9 @@ public interface OrderService {
 
     /**
      * Procesa el checkout para un admin específico (Single Admin Checkout)
+     * @param timezone Zona horaria del cliente (opcional)
      */
-    CheckoutResponse checkoutSingleAdmin(Long userId, Long adminId);
+    CheckoutResponse checkoutSingleAdmin(Long userId, Long adminId, String timezone);
     
     /**
      * Obtiene todas las órdenes de un organizador (adminId)
