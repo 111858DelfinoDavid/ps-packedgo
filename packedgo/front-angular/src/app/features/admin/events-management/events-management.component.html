@@ -134,9 +134,9 @@
             <td>
               <div class="event-name-info">
                 <strong>{{ event.name }}</strong>
-                <button class="btn-view-description" (click)="viewDescription(event)" title="Ver descripción completa">
-                  <i class="bi bi-file-text"></i>
-                  Ver Descripción
+                <button class="btn-view-description" (click)="viewDetails(event)" title="Ver detalles del evento">
+                  <i class="bi bi-info-circle"></i>
+                  Ver Detalles
                 </button>
               </div>
             </td>
@@ -161,7 +161,7 @@
             <td>
               <div class="location-info" (click)="openMapModal(event)" title="Click para ver en el mapa">
                 <i class="bi bi-geo-alt-fill text-primary"></i>
-                <small>{{ getEventAddress(event.id, event.lat, event.lng) }}</small>
+                <small>{{ getEventAddress(event) }}</small>
               </div>
             </td>
             <td>
@@ -289,8 +289,8 @@
 </div>
 
 <!-- Modal para Crear/Editar Evento -->
-<div *ngIf="showModal" class="modal-overlay" (click)="closeModal()">
-  <div class="modal-content" (click)="$event.stopPropagation()">
+<div *ngIf="showModal" class="modal-overlay">
+  <div class="modal-content">
     <div class="modal-header">
       <h2>
         <i [class]="isEditMode ? 'bi bi-pencil-square' : 'bi bi-plus-circle'"></i>
@@ -413,6 +413,25 @@
           <i class="bi bi-exclamation-circle"></i>
           Debes seleccionar una ubicación válida en el mapa
         </div>
+      </div>
+
+      <!-- Location Name -->
+      <div class="form-group full-width">
+        <label for="locationName">
+          <i class="bi bi-building"></i>
+          Nombre del Lugar
+        </label>
+        <input 
+          type="text" 
+          id="locationName"
+          formControlName="locationName"
+          class="form-control"
+          placeholder="Ej: Espacio Quality, La Estación, etc."
+          [class.is-valid]="locationName?.valid && locationName?.touched"
+        />
+        <small class="form-text text-muted">
+          El nombre específico del lugar donde se realizará el evento (opcional)
+        </small>
       </div>
 
       <!-- Capacity and Price -->
@@ -649,8 +668,8 @@
 </div>
 
 <!-- Map Modal -->
-<div class="map-modal-overlay" *ngIf="showMapModal" (click)="closeMapModal()">
-  <div class="map-modal-content" (click)="$event.stopPropagation()">
+<div class="map-modal-overlay" *ngIf="showMapModal">
+  <div class="map-modal-content">
     <div class="map-modal-header">
       <div>
         <h3><i class="bi bi-geo-alt-fill"></i> {{ mapEventLocation?.name }}</h3>
@@ -693,8 +712,8 @@
 </div>
 
 <!-- Modal para Crear/Editar Categoría -->
-<div *ngIf="showCategoryModal" class="modal-overlay" (click)="closeCategoryModal()">
-  <div class="modal-content modal-sm" (click)="$event.stopPropagation()">
+<div *ngIf="showCategoryModal" class="modal-overlay">
+  <div class="modal-content modal-sm">
     <div class="modal-header">
       <h2>
         <i [class]="isCategoryEditMode ? 'bi bi-pencil' : 'bi bi-plus-circle'"></i>

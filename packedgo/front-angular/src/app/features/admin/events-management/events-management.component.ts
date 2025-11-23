@@ -1,8 +1,12 @@
-import { Component, inject, OnInit, HostListener } from '@angular/core';
+import { Component, inject, OnInit, HostListener, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
+import { HttpClient } from '@angular/common/http';
+import { from } from 'rxjs';
+import { concatMap, delay, timeout, catchError } from 'rxjs/operators';
+import { of } from 'rxjs';
 import Swal from 'sweetalert2';
 import { EventService } from '../../../core/services/event.service';
 import { AuthService } from '../../../core/services/auth.service';
@@ -21,6 +25,8 @@ export class EventsManagementComponent implements OnInit {
   private eventService = inject(EventService);
   private authService = inject(AuthService);
   private router = inject(Router);
+  private http = inject(HttpClient);
+  private cdr = inject(ChangeDetectorRef);
 
   // Tab Management
   activeTab: 'events' | 'categories' = 'events';
@@ -28,12 +34,14 @@ export class EventsManagementComponent implements OnInit {
   // Events Tab
   events: Event[] = [];
   filteredEvents: Event[] = [];
+  consumptionCategories: any[] = [];
   selectedConsumptions: number[] = [];
   eventForm: FormGroup;
   searchTerm = '';
   showModal = false;
   isEditMode = false;
   currentEventId?: number;
+  currentEvent?: Event;
   
   // Image Upload
   imageUploadOption: 'url' | 'upload' = 'url';
@@ -77,6 +85,7 @@ export class EventsManagementComponent implements OnInit {
       endTime: ['', [Validators.required]],   // Ahora es datetime-local (fecha y hora de finalización)
       lat: ['', [Validators.required, Validators.pattern(/^-?\d+\.?\d*$/)]],
       lng: ['', [Validators.required, Validators.pattern(/^-?\d+\.?\d*$/)]],
+      locationName: [''], // Nombre del lugar (opcional)
       maxCapacity: ['', [Validators.required, Validators.min(1)]],
       basePrice: ['', [Validators.required, Validators.min(0)]],
       imageUrl: [''],
@@ -107,6 +116,14 @@ export class EventsManagementComponent implements OnInit {
       error: (error: any) => console.error('Error al cargar categorías:', error)
     });
 
+    // Cargar categorías de consumición
+    this.eventService.getConsumptionCategories().subscribe({
+      next: (categories: any) => {
+        this.consumptionCategories = categories;
+      },
+      error: (error: any) => console.error('Error al cargar categorías de consumición:', error)
+    });
+
     // Cargar consumptions
     this.eventService.getConsumptions().subscribe({
       next: (consumptions: any) => {
@@ -118,16 +135,73 @@ export class EventsManagementComponent implements OnInit {
     // Cargar eventos
     this.eventService.getEvents().subscribe({
       next: (events: any) => {
+        console.log('📦 Eventos recibidos del backend:', events);
+        events.forEach((e: Event) => {
+          console.log(`  - ${e.name}: locationName="${e.locationName}"`);
+        });
+        
         // Filtrar solo eventos activos
         const activeEvents = events.filter((event: Event) => event.active !== false);
-        this.events = activeEvents;
-        this.filteredEvents = activeEvents;
-        this.isLoading = false;
         
-        // Cargar direcciones para todos los eventos activos
-        activeEvents.forEach((event: Event) => {
-          if (event.id && event.lat && event.lng) {
-            this.loadEventAddress(event.id, event.lat, event.lng);
+        // Filtrar eventos que necesitan geocoding (sin locationName)
+        const eventsNeedingGeocode = activeEvents.filter(
+          (event: Event) => !event.locationName && event.id && event.lat && event.lng
+        );
+        
+        if (eventsNeedingGeocode.length === 0) {
+          // No hay eventos que necesiten geocoding, mostrar inmediatamente
+          this.events = activeEvents;
+          this.filteredEvents = activeEvents;
+          this.isLoading = false;
+          this.cdr.detectChanges();
+          return;
+        }
+        
+        // Hacer geocoding secuencial con delay antes de mostrar
+        from(eventsNeedingGeocode).pipe(
+          concatMap((event: Event, index: number) => {
+            const url = `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${event.lat}&longitude=${event.lng}&localityLanguage=es`;
+            
+            // Para el primer elemento, no hay delay; para los siguientes, delay de 300ms
+            const request$ = index === 0 
+              ? this.http.get<any>(url)
+              : of(null).pipe(
+                  delay(300),
+                  concatMap(() => this.http.get<any>(url))
+                );
+            
+            return request$.pipe(
+              timeout(5000),
+              catchError((err) => {
+                console.error('Error geocoding:', err);
+                if (event.id) {
+                  this.eventAddresses.set(event.id, 'Ubicación no disponible');
+                }
+                return of(null);
+              })
+            );
+          })
+        ).subscribe({
+          next: (data) => {
+            // Procesar cada respuesta de geocoding
+            const event = eventsNeedingGeocode.find(e => 
+              data && e.lat === data.latitude && e.lng === data.longitude
+            );
+            if (data && event && event.id) {
+              const placeName = data.locality || 
+                               data.city || 
+                               data.principalSubdivision || 
+                               data.countryName || 
+                               'Ubicación';
+              this.eventAddresses.set(event.id, placeName);
+            }
+          },
+          complete: () => {
+            // Una vez completado el geocoding, mostrar los eventos
+            this.events = activeEvents;
+            this.filteredEvents = activeEvents;
+            this.isLoading = false;
+            this.cdr.detectChanges();
           }
         });
       },
@@ -155,6 +229,7 @@ export class EventsManagementComponent implements OnInit {
   openCreateModal(): void {
     this.isEditMode = false;
     this.currentEventId = undefined;
+    this.currentEvent = undefined;
     this.selectedConsumptions = [];
     this.eventForm.reset();
     this.showModal = true;
@@ -165,6 +240,8 @@ export class EventsManagementComponent implements OnInit {
   openEditModal(event: Event): void {
     this.isEditMode = true;
     this.currentEventId = event.id;
+    this.currentEvent = event;
+    this.currentEvent = event;
     
     // Cargar consumiciones existentes del evento
     this.selectedConsumptions = event.availableConsumptions 
@@ -192,6 +269,7 @@ export class EventsManagementComponent implements OnInit {
       endTime: endTimeFormatted,
       lat: event.lat,
       lng: event.lng,
+      locationName: event.locationName || '',
       maxCapacity: event.maxCapacity,
       basePrice: event.basePrice,
       imageUrl: event.imageUrl || '',
@@ -214,6 +292,9 @@ export class EventsManagementComponent implements OnInit {
     this.errorMessage = '';
     this.successMessage = '';
     this.isSubmitting = false;
+    this.isEditMode = false;
+    this.currentEventId = undefined;
+    this.currentEvent = undefined;
     
     // Limpiar imagen
     this.clearImageFile();
@@ -264,10 +345,12 @@ export class EventsManagementComponent implements OnInit {
       endTime: endTimeDateTime,     // 🕐 Fecha y hora de finalización en formato LocalDateTime
       lat: Number(this.eventForm.value.lat),
       lng: Number(this.eventForm.value.lng),
+      locationName: this.eventForm.value.locationName || null,
       maxCapacity: Number(this.eventForm.value.maxCapacity),
       basePrice: Number(this.eventForm.value.basePrice),
       categoryId: Number(this.eventForm.value.categoryId),
-      consumptionIds: this.selectedConsumptions
+      consumptionIds: this.selectedConsumptions,
+      active: this.isEditMode && this.currentEvent ? this.currentEvent.active : true
     };
 
     if (this.isEditMode && this.currentEventId) {
@@ -681,6 +764,7 @@ export class EventsManagementComponent implements OnInit {
   get endTime() { return this.eventForm.get('endTime'); }
   get lat() { return this.eventForm.get('lat'); }
   get lng() { return this.eventForm.get('lng'); }
+  get locationName() { return this.eventForm.get('locationName'); }
   get maxCapacity() { return this.eventForm.get('maxCapacity'); }
   get basePrice() { return this.eventForm.get('basePrice'); }
   get categoryId() { return this.eventForm.get('categoryId'); }
@@ -695,48 +779,45 @@ export class EventsManagementComponent implements OnInit {
     return `${year}-${month}-${day}T${hours}:${minutes}`;
   }
 
-  // Geocodificación inversa - Convertir coordenadas a dirección
+  // Geocodificación inversa - Convertir coordenadas a dirección (ya no se usa, se hace en loadData)
   loadEventAddress(eventId: number, lat: number, lng: number): void {
-    // Usar Nominatim (OpenStreetMap) para geocodificación inversa
-    const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`;
+    // BigDataCloud API - gratuita, sin API key, más confiable
+    const url = `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lng}&localityLanguage=es`;
     
-    fetch(url, {
-      headers: {
-        'User-Agent': 'PackedGo-Events-App'
-      }
-    })
-      .then(response => response.json())
-      .then(data => {
-        if (data && data.address) {
-          // Extraer solo las partes más relevantes de la dirección
-          const address = data.address;
-          const parts: string[] = [];
-          
-          // Formato compacto: nombre, calle, localidad
-          if (address.amenity) parts.push(address.amenity);
-          if (address.road) parts.push(address.road);
-          if (address.village || address.town || address.city) {
-            parts.push(address.village || address.town || address.city);
-          }
-          
-          // Limitar a máximo 3 partes para mantenerlo corto
-          const shortAddress = parts.slice(0, 3).join(', ');
-          this.eventAddresses.set(eventId, shortAddress || `${lat}, ${lng}`);
-        } else {
-          this.eventAddresses.set(eventId, `${lat}, ${lng}`);
-        }
+    this.http.get<any>(url).pipe(
+      timeout(5000),
+      catchError((err) => {
+        console.error('Error geocoding:', err);
+        this.eventAddresses.set(eventId, 'Ubicación no disponible');
+        return of(null);
       })
-      .catch(error => {
-        console.error('Error al obtener dirección:', error);
-        this.eventAddresses.set(eventId, `${lat}, ${lng}`);
-      });
+    ).subscribe({
+      next: (data) => {
+        if (data) {
+          const placeName = data.locality || 
+                           data.city || 
+                           data.principalSubdivision || 
+                           data.countryName || 
+                           'Ubicación';
+          this.eventAddresses.set(eventId, placeName);
+        }
+      }
+    });
   }
 
-  getEventAddress(eventId: number | undefined, lat: number, lng: number): string {
-    if (!eventId) {
-      return `${lat}, ${lng}`;
+  getEventAddress(event: Event): string {
+    // Priorizar locationName si existe
+    if (event.locationName) {
+      return event.locationName;
     }
-    return this.eventAddresses.get(eventId) || `${lat}, ${lng}`;
+    
+    // Luego intentar con el caché de geocoding
+    if (event.id && this.eventAddresses.has(event.id)) {
+      return this.eventAddresses.get(event.id)!;
+    }
+    
+    // Fallback a coordenadas
+    return `${event.lat}, ${event.lng}`;
   }
 
   // Abrir mapa flotante con la ubicación del evento
@@ -745,7 +826,7 @@ export class EventsManagementComponent implements OnInit {
       lat: event.lat,
       lng: event.lng,
       name: event.name,
-      address: this.getEventAddress(event.id, event.lat, event.lng)
+      address: this.getEventAddress(event)
     };
     this.showMapModal = true;
   }
@@ -757,16 +838,77 @@ export class EventsManagementComponent implements OnInit {
   }
 
   // Ver descripción del evento
-  viewDescription(event: Event): void {
+  viewDetails(event: Event): void {
+    console.log('🔍 Ver detalles del evento:', event.name);
+    console.log('📋 Consumiciones disponibles:', event.availableConsumptions);
+    
+    // Construir HTML con descripción
+    let htmlContent = `
+      <div style="text-align: left; max-height: 500px; overflow-y: auto; padding: 10px;">
+        <div style="margin-bottom: 20px;">
+          <h4 style="color: #667eea; margin-bottom: 10px; border-bottom: 2px solid #667eea; padding-bottom: 5px;">
+            <i class="bi bi-file-text"></i> Descripción
+          </h4>
+          <p style="line-height: 1.8; color: #555; white-space: pre-wrap;">${event.description || 'Sin descripción'}</p>
+        </div>
+    `;
+
+    // Agregar consumiciones si están disponibles
+    if (event.availableConsumptions && event.availableConsumptions.length > 0) {
+      htmlContent += `
+        <div style="margin-top: 20px;">
+          <h4 style="color: #667eea; margin-bottom: 10px; border-bottom: 2px solid #667eea; padding-bottom: 5px;">
+            <i class="bi bi-cup-straw"></i> Consumiciones Disponibles
+          </h4>
+          <div style="display: grid; gap: 10px;">
+      `;
+      
+      event.availableConsumptions.forEach(consumption => {
+        const categoryName = this.consumptionCategories.find(c => c.id === consumption.categoryId)?.name || 'Sin categoría';
+        htmlContent += `
+          <div style="border: 1px solid #e0e0e0; border-radius: 8px; padding: 12px; background: #f9f9f9;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <div>
+                <strong style="color: #333; font-size: 16px;">${consumption.name}</strong>
+                <div style="margin-top: 4px;">
+                  <span style="background: #667eea; color: white; padding: 2px 8px; border-radius: 12px; font-size: 12px;">
+                    ${categoryName}
+                  </span>
+                </div>
+              </div>
+              <div style="text-align: right;">
+                <strong style="color: #667eea; font-size: 18px;">$${consumption.price.toFixed(2)}</strong>
+                <div style="color: #999; font-size: 12px; margin-top: 2px;">Precio</div>
+              </div>
+            </div>
+          </div>
+        `;
+      });
+      
+      htmlContent += `
+          </div>
+        </div>
+      `;
+    } else {
+      htmlContent += `
+        <div style="margin-top: 20px;">
+          <h4 style="color: #667eea; margin-bottom: 10px; border-bottom: 2px solid #667eea; padding-bottom: 5px;">
+            <i class="bi bi-cup-straw"></i> Consumiciones Disponibles
+          </h4>
+          <p style="color: #999; font-style: italic;">No hay consumiciones disponibles para este evento</p>
+        </div>
+      `;
+    }
+
+    htmlContent += `</div>`;
+
     Swal.fire({
       title: event.name,
-      html: `<div style="text-align: left; max-height: 400px; overflow-y: auto; padding: 10px;">
-               <p style="line-height: 1.8; color: #555;">${event.description}</p>
-             </div>`,
+      html: htmlContent,
       icon: 'info',
       confirmButtonText: 'Cerrar',
       confirmButtonColor: '#667eea',
-      width: '600px'
+      width: '700px'
     });
   }
 }

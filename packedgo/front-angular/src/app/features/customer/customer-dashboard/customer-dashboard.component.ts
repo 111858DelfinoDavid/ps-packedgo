@@ -170,14 +170,25 @@ export class CustomerDashboardComponent implements OnInit, OnDestroy {
           };
         });
         
-        // Geocodificar primero, luego mostrar eventos
-        console.log('🗺️ Iniciando geocodificación para', this.allEvents.length, 'eventos');
+        // Filtrar eventos que necesitan geocoding (sin locationName)
+        const eventsNeedingGeocode = this.allEvents.filter(event => !event.locationName);
+        
+        console.log('🗺️ Eventos totales:', this.allEvents.length, '| Necesitan geocoding:', eventsNeedingGeocode.length);
+        
+        // Si no hay eventos que necesiten geocoding, mostrar inmediatamente
+        if (eventsNeedingGeocode.length === 0) {
+          console.log('✅ Todos los eventos tienen locationName, mostrando inmediatamente');
+          this.events = [...this.allEvents];
+          this.isLoadingEvents = false;
+          this.cdr.detectChanges();
+          return;
+        }
         
         // Hacer peticiones secuenciales con delay mínimo
-        from(this.allEvents).pipe(
+        from(eventsNeedingGeocode).pipe(
           concatMap((event, index) => {
             const key = `${event.lat},${event.lng}`;
-            console.log(`📍 [${index + 1}/${this.allEvents.length}] Procesando evento:`, event.name, 'coords:', key);
+            console.log(`📍 [${index + 1}/${eventsNeedingGeocode.length}] Procesando evento:`, event.name, 'coords:', key);
             
             if (this.addressCache.has(key)) {
               console.log('✅ Ubicación en caché:', this.addressCache.get(key));
@@ -759,6 +770,11 @@ export class CustomerDashboardComponent implements OnInit, OnDestroy {
 
   // ==================== GEOCODING ====================
   getEventAddress(event: Event): string {
+    // Priorizar locationName si existe, sino usar geocoding
+    if (event.locationName) {
+      return event.locationName;
+    }
+    
     const key = `${event.lat},${event.lng}`;
     
     // Si ya tenemos la dirección en caché, devolverla
@@ -767,7 +783,7 @@ export class CustomerDashboardComponent implements OnInit, OnDestroy {
     }
     
     // Mientras se geocodifica, mostrar mensaje de carga
-    return 'Cargando ubicación...';
+    return 'Ubicación no disponible';
   }
 
   private geocodeLocation(lat: number, lng: number, key: string): void {

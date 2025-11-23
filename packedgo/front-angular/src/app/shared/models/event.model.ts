@@ -7,6 +7,7 @@ export interface Event {
   endTime?: string;   // 🕐 Hora de finalización
   lat: number;
   lng: number;
+  locationName?: string;
   maxCapacity: number;
   currentCapacity?: number;
   basePrice: number;

@@ -284,6 +284,11 @@ export class EventDetailComponent implements OnInit {
   getEventAddress(): string {
     if (!this.event) return 'Ubicación no disponible';
     
+    // Priorizar locationName si existe
+    if (this.event.locationName) {
+      return this.event.locationName;
+    }
+    
     const key = `${this.event.lat},${this.event.lng}`;
     
     if (this.addressCache.has(key)) {
