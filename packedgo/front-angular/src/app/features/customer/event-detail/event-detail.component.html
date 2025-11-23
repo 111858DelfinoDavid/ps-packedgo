@@ -43,7 +43,9 @@
           </div>
           <div class="meta-item">
             <i class="bi bi-geo-alt-fill"></i>
-            <span>Ubicación: {{ event.lat }}, {{ event.lng }}</span>
+            <span class="location-link" (click)="openMapModal()">
+              {{ getEventAddress() }}
+            </span>
           </div>
           <div class="meta-item">
             <i class="bi bi-tag-fill"></i>
@@ -155,6 +157,34 @@
             {{ isAddingToCart ? 'Agregando...' : 'Agregar al Carrito' }}
           </button>
         </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Map Modal -->
+<div *ngIf="showMapModal && event" class="map-modal-overlay" (click)="closeMapModal()" (keydown)="onMapModalKeydown($event)" tabindex="0">
+  <div class="map-modal-content" (click)="$event.stopPropagation()">
+    <div class="map-modal-header">
+      <h3><i class="bi bi-geo-alt-fill"></i> Ubicación del Evento</h3>
+      <button class="close-modal-btn" (click)="closeMapModal()">
+        <i class="bi bi-x-lg"></i>
+      </button>
+    </div>
+    <div class="map-modal-body">
+      <iframe
+        [src]="'https://www.openstreetmap.org/export/embed.html?bbox=' + (event.lng - 0.01) + ',' + (event.lat - 0.01) + ',' + (event.lng + 0.01) + ',' + (event.lat + 0.01) + '&layer=mapnik&marker=' + event.lat + ',' + event.lng | safe: 'resourceUrl'"
+        style="border: none; width: 100%; height: 450px; border-radius: 8px;"
+      ></iframe>
+      <div class="map-modal-footer">
+        <a 
+          [href]="'https://www.google.com/maps?q=' + event.lat + ',' + event.lng" 
+          target="_blank" 
+          class="btn-open-google-maps"
+        >
+          <i class="bi bi-map"></i>
+          Abrir en Google Maps
+        </a>
       </div>
     </div>
   </div>

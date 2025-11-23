@@ -1,5 +1,6 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, inject, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { HttpClient } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import Swal from 'sweetalert2';
@@ -7,11 +8,12 @@ import { EventService } from '../../../core/services/event.service';
 import { CartService } from '../../../core/services/cart.service';
 import { Event, Consumption } from '../../../shared/models/event.model';
 import { AddToCartRequest, ConsumptionRequest } from '../../../shared/models/cart.model';
+import { SafePipe } from '../../../shared/pipes/safe.pipe';
 
 @Component({
   selector: 'app-event-detail',
   standalone: true,
-  imports: [CommonModule, RouterModule, FormsModule],
+  imports: [CommonModule, RouterModule, FormsModule, SafePipe],
   templateUrl: './event-detail.component.html',
   styleUrls: ['./event-detail.component.css']
 })
@@ -20,6 +22,8 @@ export class EventDetailComponent implements OnInit {
   private router = inject(Router);
   private eventService = inject(EventService);
   private cartService = inject(CartService);
+  private http = inject(HttpClient);
+  private cdr = inject(ChangeDetectorRef);
 
   event: Event | null = null;
   isLoading = true;
@@ -29,6 +33,10 @@ export class EventDetailComponent implements OnInit {
   
   // Selected consumptions with quantities
   selectedConsumptions: Map<number, number> = new Map();
+  
+  // Geocoding & Map modal
+  private addressCache = new Map<string, string>();
+  showMapModal = false;
 
   ngOnInit(): void {
     // Cargar el carrito primero para tener el estado actual
@@ -54,6 +62,13 @@ export class EventDetailComponent implements OnInit {
         }
         
         this.event = event;
+        
+        // Pre-geocodificar la ubicación
+        const key = `${event.lat},${event.lng}`;
+        if (!this.addressCache.has(key)) {
+          this.geocodeLocation(event.lat, event.lng, key);
+        }
+        
         this.isLoading = false;
       },
       error: (error) => {
@@ -259,5 +274,91 @@ export class EventDetailComponent implements OnInit {
 
   goBack(): void {
     this.router.navigate(['/customer/dashboard']);
+  }
+
+  // ==================== GEOCODING & MAP ====================
+  getEventAddress(): string {
+    if (!this.event) return 'Cargando ubicación...';
+    
+    const key = `${this.event.lat},${this.event.lng}`;
+    
+    if (this.addressCache.has(key)) {
+      return this.addressCache.get(key)!;
+    }
+    
+    this.geocodeLocation(this.event.lat, this.event.lng, key);
+    return 'Cargando ubicación...';
+  }
+
+  private geocodeLocation(lat: number, lng: number, key: string): void {
+    const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&addressdetails=1&zoom=18`;
+    
+    this.http.get<any>(url).subscribe({
+      next: (data) => {
+        if (data) {
+          const addr = data.address || {};
+          let placeName: string | undefined;
+          
+          if (data.name) {
+            const roadTypes = ['Avenida', 'Calle', 'Ruta', 'Autovía', 'Boulevard', 'Paseo', 'Camino'];
+            const isRoadName = roadTypes.some(type => data.name.startsWith(type));
+            
+            if (!isRoadName && data.name !== addr.road && data.name !== addr.highway) {
+              placeName = data.name;
+            }
+          }
+          
+          if (!placeName) {
+            placeName = addr.amenity || addr.shop || addr.leisure || 
+                       addr.tourism || addr.office || addr.club_venue;
+          }
+          
+          if (!placeName && addr.building && typeof addr.building === 'string' && 
+              addr.building !== 'yes' && addr.building !== 'house') {
+            placeName = addr.building;
+          }
+          
+          if (!placeName && data.display_name) {
+            const firstPart = data.display_name.split(',')[0].trim();
+            const roadTypes = ['Avenida', 'Calle', 'Ruta', 'Autovía', 'Boulevard', 'Paseo', 'Camino'];
+            const isRoadName = roadTypes.some(type => firstPart.startsWith(type));
+            
+            if (!isRoadName && firstPart !== addr.road) {
+              placeName = firstPart;
+            }
+          }
+          
+          if (!placeName) {
+            const parts = [
+              addr.neighbourhood || addr.suburb || addr.quarter,
+              addr.city || addr.town || addr.village
+            ].filter(p => p);
+            placeName = parts.join(', ') || 'Ubicación desconocida';
+          }
+          
+          this.addressCache.set(key, placeName);
+          this.cdr.detectChanges();
+        }
+      },
+      error: (err) => {
+        console.error('Error geocoding:', err);
+        this.addressCache.set(key, 'Ubicación no disponible');
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  openMapModal(): void {
+    this.showMapModal = true;
+  }
+
+  closeMapModal(): void {
+    this.showMapModal = false;
+  }
+
+  onMapModalKeydown(event: KeyboardEvent): void {
+    if (event.key === 'Escape') {
+      this.closeMapModal();
+    }
   }
 }

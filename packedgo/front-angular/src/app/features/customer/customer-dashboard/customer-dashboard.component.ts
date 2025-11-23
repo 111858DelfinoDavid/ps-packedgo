@@ -1,8 +1,10 @@
-import { Component, inject, OnInit, OnDestroy } from '@angular/core';
+import { Component, inject, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { HttpClient } from '@angular/common/http';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { Router, RouterModule } from '@angular/router';
-import { Subscription } from 'rxjs';
+import { Router, RouterModule, ActivatedRoute } from '@angular/router';
+import { Subscription, forkJoin, of } from 'rxjs';
+import { catchError } from 'rxjs/operators';
 import Swal from 'sweetalert2';
 import { AuthService } from '../../../core/services/auth.service';
 import { EventService } from '../../../core/services/event.service';
@@ -29,7 +31,10 @@ export class CustomerDashboardComponent implements OnInit, OnDestroy {
   private ticketService = inject(TicketService);
   private orderService = inject(OrderService);
   private router = inject(Router);
+  private route = inject(ActivatedRoute);
   private fb = inject(FormBuilder);
+  private http = inject(HttpClient);
+  private cdr = inject(ChangeDetectorRef);
 
   // User & Navigation
   currentUser = this.authService.getCurrentUser();
@@ -40,6 +45,7 @@ export class CustomerDashboardComponent implements OnInit, OnDestroy {
   events: Event[] = [];
   allEvents: Event[] = [];
   searchTerm = '';
+  private addressCache = new Map<string, string>();
 
   // Cart Section
   cart: Cart | null = null;
@@ -92,6 +98,24 @@ export class CustomerDashboardComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
+    // Verificar si hay un queryParam 'tab' y cambiar a esa pestaña
+    this.route.queryParams.subscribe(params => {
+      const tabParam = params['tab'];
+      if (tabParam && ['events', 'cart', 'tickets', 'profile'].includes(tabParam)) {
+        this.activeTab = tabParam as TabType;
+        
+        // Si el tab es 'tickets', cargar los tickets automáticamente
+        if (tabParam === 'tickets') {
+          this.loadMyTickets();
+        }
+        
+        // Si el tab es 'profile', cargar el perfil automáticamente
+        if (tabParam === 'profile' && !this.originalProfileData) {
+          this.loadProfile();
+        }
+      }
+    });
+    
     this.loadEvents();
     
     // Suscribirse a cambios del carrito
@@ -145,8 +169,60 @@ export class CustomerDashboardComponent implements OnInit, OnDestroy {
             imageUrl: 'https://via.placeholder.com/400x250?text=Sin+Imagen'
           };
         });
-        this.events = [...this.allEvents];
-        this.isLoadingEvents = false;
+        
+        // Pre-geocodificar todas las ubicaciones antes de mostrar
+        const geocodingTasks = this.allEvents.map(event => {
+          const key = `${event.lat},${event.lng}`;
+          if (this.addressCache.has(key)) {
+            return of(null); // Ya está en caché
+          }
+          
+          const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${event.lat}&lon=${event.lng}&zoom=18&addressdetails=1`;
+          return this.http.get<any>(url).pipe(
+            catchError(() => {
+              this.addressCache.set(key, 'Ubicación no disponible');
+              return of(null);
+            })
+          );
+        });
+        
+        // Esperar a que todas las geocodificaciones se completen
+        forkJoin(geocodingTasks).subscribe({
+          next: (results) => {
+            results.forEach((data, index) => {
+              if (data) {
+                const event = this.allEvents[index];
+                const key = `${event.lat},${event.lng}`;
+                
+                // Lógica de priorización de nombres
+                const roadTypes = ['Autovía', 'Ruta', 'Avenida', 'Calle', 'Camino', 'Boulevard'];
+                const isRoad = roadTypes.some(type => data.display_name?.startsWith(type));
+                
+                let placeName = '';
+                if (data.name && !isRoad) {
+                  placeName = data.name;
+                } else if (data.address) {
+                  placeName = data.address.tourism || data.address.amenity || 
+                             data.address.shop || data.address.building || 
+                             data.address.suburb || data.address.neighbourhood || 
+                             data.address.city || data.address.town || 
+                             data.address.village || 'Ubicación';
+                }
+                
+                this.addressCache.set(key, placeName || 'Ubicación no disponible');
+              }
+            });
+            
+            this.events = [...this.allEvents];
+            this.isLoadingEvents = false;
+            this.cdr.detectChanges();
+          },
+          error: () => {
+            this.events = [...this.allEvents];
+            this.isLoadingEvents = false;
+            this.cdr.detectChanges();
+          }
+        });
       },
       error: (error: any) => {
         console.error('Error al cargar eventos:', error);
@@ -660,6 +736,86 @@ export class CustomerDashboardComponent implements OnInit, OnDestroy {
         const errorMessage = error.error?.message || 'Error al cambiar la contraseña. Verifica que la contraseña actual sea correcta.';
         Swal.fire('Error', errorMessage, 'error');
         console.error('Error al cambiar contraseña:', error);
+      }
+    });
+  }
+
+  // ==================== GEOCODING ====================
+  getEventAddress(event: Event): string {
+    const key = `${event.lat},${event.lng}`;
+    
+    // Si ya tenemos la dirección en caché, devolverla
+    if (this.addressCache.has(key)) {
+      return this.addressCache.get(key)!;
+    }
+    
+    // Si no, geocodificar en background
+    this.geocodeLocation(event.lat, event.lng, key);
+    
+    // Mientras tanto, mostrar mensaje de carga
+    return 'Cargando ubicación...';
+  }
+
+  private geocodeLocation(lat: number, lng: number, key: string): void {
+    const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&addressdetails=1&zoom=18`;
+    
+    this.http.get<any>(url).subscribe({
+      next: (data) => {
+        if (data) {
+          const addr = data.address || {};
+          let placeName: string | undefined;
+          
+          // Prioridad 1: Nombre directo del POI/establecimiento
+          if (data.name) {
+            const roadTypes = ['Avenida', 'Calle', 'Ruta', 'Autovía', 'Boulevard', 'Paseo', 'Camino'];
+            const isRoadName = roadTypes.some(type => data.name.startsWith(type));
+            
+            // Solo usar data.name si NO es una calle
+            if (!isRoadName && data.name !== addr.road && data.name !== addr.highway) {
+              placeName = data.name;
+            }
+          }
+          
+          // Prioridad 2: Tipos de establecimientos desde address
+          if (!placeName) {
+            placeName = addr.amenity || addr.shop || addr.leisure || 
+                       addr.tourism || addr.office || addr.club_venue;
+          }
+          
+          // Prioridad 3: Nombre de edificio (si no es genérico)
+          if (!placeName && addr.building && typeof addr.building === 'string' && 
+              addr.building !== 'yes' && addr.building !== 'house') {
+            placeName = addr.building;
+          }
+          
+          // Prioridad 4: Primera parte del display_name (filtrado)
+          if (!placeName && data.display_name) {
+            const firstPart = data.display_name.split(',')[0].trim();
+            const roadTypes = ['Avenida', 'Calle', 'Ruta', 'Autovía', 'Boulevard', 'Paseo', 'Camino'];
+            const isRoadName = roadTypes.some(type => firstPart.startsWith(type));
+            
+            if (!isRoadName && firstPart !== addr.road) {
+              placeName = firstPart;
+            }
+          }
+          
+          // Fallback: barrio + ciudad
+          if (!placeName) {
+            const parts = [
+              addr.neighbourhood || addr.suburb || addr.quarter,
+              addr.city || addr.town || addr.village
+            ].filter(p => p);
+            placeName = parts.join(', ') || 'Ubicación desconocida';
+          }
+          
+          this.addressCache.set(key, placeName);
+          this.cdr.detectChanges();
+        }
+      },
+      error: (err) => {
+        console.error('Error geocoding:', err);
+        this.addressCache.set(key, 'Ubicación no disponible');
+        this.cdr.detectChanges();
       }
     });
   }
