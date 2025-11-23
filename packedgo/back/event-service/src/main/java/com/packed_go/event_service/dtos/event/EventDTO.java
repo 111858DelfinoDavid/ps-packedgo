@@ -25,6 +25,7 @@ public class EventDTO {
     //    private Point location;
     private double lat;
     private double lng;
+    private String locationName;
     private Integer maxCapacity;
     private Integer currentCapacity;
     private BigDecimal basePrice;

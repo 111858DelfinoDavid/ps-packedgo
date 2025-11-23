@@ -59,6 +59,9 @@ public class EventServiceImpl implements EventService {
         // Indicar si tiene imagen almacenada
         eventDTO.setHasImageData(event.getImageData() != null && event.getImageData().length > 0);
         
+        // Mapear explícitamente locationName
+        eventDTO.setLocationName(event.getLocationName());
+        
         // Mapear la categoría completa
         if (event.getCategory() != null) {
             EventCategoryDTO categoryDTO = modelMapper.map(event.getCategory(), EventCategoryDTO.class);
@@ -163,6 +166,7 @@ public class EventServiceImpl implements EventService {
         event.setEndTime(createEventDto.getEndTime());
         event.setLat(createEventDto.getLat());
         event.setLng(createEventDto.getLng());
+        event.setLocationName(createEventDto.getLocationName());
         event.setMaxCapacity(createEventDto.getMaxCapacity());
         event.setCurrentCapacity(createEventDto.getCurrentCapacity() != null ? createEventDto.getCurrentCapacity() : 0);
         event.setBasePrice(createEventDto.getBasePrice());
@@ -215,6 +219,7 @@ public class EventServiceImpl implements EventService {
             entity.setEndTime(eventDto.getEndTime());
             entity.setLat(eventDto.getLat());
             entity.setLng(eventDto.getLng());
+            entity.setLocationName(eventDto.getLocationName());
             entity.setMaxCapacity(eventDto.getMaxCapacity());
             entity.setCurrentCapacity(eventDto.getCurrentCapacity());
             entity.setBasePrice(eventDto.getBasePrice());

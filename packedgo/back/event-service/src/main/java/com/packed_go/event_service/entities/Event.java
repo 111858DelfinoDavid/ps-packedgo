@@ -45,6 +45,10 @@ public class Event {
     
     private Double lat;
     private Double lng;
+    
+    @Column(name = "location_name")
+    private String locationName;
+    
     private Integer maxCapacity;
     private Integer currentCapacity;
     private BigDecimal basePrice;

@@ -19,6 +19,7 @@ public class CreateEventDTO {
     private LocalDateTime endTime;
     private double lat;
     private double lng;
+    private String locationName;
     private Integer maxCapacity;
     private Integer currentCapacity;
     private BigDecimal basePrice;
