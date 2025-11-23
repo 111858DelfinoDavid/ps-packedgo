@@ -63,13 +63,17 @@ export class EventDetailComponent implements OnInit {
         
         this.event = event;
         
-        // Pre-geocodificar la ubicación
+        // Geocodificar antes de mostrar el evento
         const key = `${event.lat},${event.lng}`;
         if (!this.addressCache.has(key)) {
-          this.geocodeLocation(event.lat, event.lng, key);
+          this.geocodeLocationSync(event.lat, event.lng, key).then(() => {
+            this.isLoading = false;
+            this.cdr.detectChanges();
+          });
+        } else {
+          this.isLoading = false;
+          this.cdr.detectChanges();
         }
-        
-        this.isLoading = false;
       },
       error: (error) => {
         console.error('Error al cargar evento:', error);
@@ -278,7 +282,7 @@ export class EventDetailComponent implements OnInit {
 
   // ==================== GEOCODING & MAP ====================
   getEventAddress(): string {
-    if (!this.event) return 'Cargando ubicación...';
+    if (!this.event) return 'Ubicación no disponible';
     
     const key = `${this.event.lat},${this.event.lng}`;
     
@@ -286,65 +290,38 @@ export class EventDetailComponent implements OnInit {
       return this.addressCache.get(key)!;
     }
     
-    this.geocodeLocation(this.event.lat, this.event.lng, key);
-    return 'Cargando ubicación...';
+    // Si llegamos aquí, el geocoding aún no completó (no debería suceder)
+    return 'Ubicación no disponible';
   }
 
-  private geocodeLocation(lat: number, lng: number, key: string): void {
-    const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&addressdetails=1&zoom=18`;
-    
-    this.http.get<any>(url).subscribe({
-      next: (data) => {
-        if (data) {
-          const addr = data.address || {};
-          let placeName: string | undefined;
-          
-          if (data.name) {
-            const roadTypes = ['Avenida', 'Calle', 'Ruta', 'Autovía', 'Boulevard', 'Paseo', 'Camino'];
-            const isRoadName = roadTypes.some(type => data.name.startsWith(type));
+  private geocodeLocationSync(lat: number, lng: number, key: string): Promise<void> {
+    return new Promise((resolve) => {
+      // BigDataCloud API - gratuita, sin API key, más confiable
+      const url = `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lng}&localityLanguage=es`;
+      
+      this.http.get<any>(url).subscribe({
+        next: (data) => {
+          if (data) {
+            // BigDataCloud devuelve: locality, city, principalSubdivision, countryName
+            let placeName = data.locality || 
+                           data.city || 
+                           data.principalSubdivision || 
+                           data.countryName || 
+                           'Ubicación';
             
-            if (!isRoadName && data.name !== addr.road && data.name !== addr.highway) {
-              placeName = data.name;
-            }
+            this.addressCache.set(key, placeName);
+            resolve();
+          } else {
+            this.addressCache.set(key, 'Ubicación no disponible');
+            resolve();
           }
-          
-          if (!placeName) {
-            placeName = addr.amenity || addr.shop || addr.leisure || 
-                       addr.tourism || addr.office || addr.club_venue;
-          }
-          
-          if (!placeName && addr.building && typeof addr.building === 'string' && 
-              addr.building !== 'yes' && addr.building !== 'house') {
-            placeName = addr.building;
-          }
-          
-          if (!placeName && data.display_name) {
-            const firstPart = data.display_name.split(',')[0].trim();
-            const roadTypes = ['Avenida', 'Calle', 'Ruta', 'Autovía', 'Boulevard', 'Paseo', 'Camino'];
-            const isRoadName = roadTypes.some(type => firstPart.startsWith(type));
-            
-            if (!isRoadName && firstPart !== addr.road) {
-              placeName = firstPart;
-            }
-          }
-          
-          if (!placeName) {
-            const parts = [
-              addr.neighbourhood || addr.suburb || addr.quarter,
-              addr.city || addr.town || addr.village
-            ].filter(p => p);
-            placeName = parts.join(', ') || 'Ubicación desconocida';
-          }
-          
-          this.addressCache.set(key, placeName);
-          this.cdr.detectChanges();
+        },
+        error: (err) => {
+          console.error('Error geocoding:', err);
+          this.addressCache.set(key, 'Ubicación no disponible');
+          resolve();
         }
-      },
-      error: (err) => {
-        console.error('Error geocoding:', err);
-        this.addressCache.set(key, 'Ubicación no disponible');
-        this.cdr.detectChanges();
-      }
+      });
     });
   }
 

@@ -3,8 +3,8 @@ import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Router, RouterModule, ActivatedRoute } from '@angular/router';
-import { Subscription, forkJoin, of } from 'rxjs';
-import { catchError } from 'rxjs/operators';
+import { Subscription, forkJoin, of, from } from 'rxjs';
+import { catchError, concatMap, delay, timeout } from 'rxjs/operators';
 import Swal from 'sweetalert2';
 import { AuthService } from '../../../core/services/auth.service';
 import { EventService } from '../../../core/services/event.service';
@@ -170,54 +170,71 @@ export class CustomerDashboardComponent implements OnInit, OnDestroy {
           };
         });
         
-        // Pre-geocodificar todas las ubicaciones antes de mostrar
-        const geocodingTasks = this.allEvents.map(event => {
-          const key = `${event.lat},${event.lng}`;
-          if (this.addressCache.has(key)) {
-            return of(null); // Ya está en caché
-          }
-          
-          const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${event.lat}&lon=${event.lng}&zoom=18&addressdetails=1`;
-          return this.http.get<any>(url).pipe(
-            catchError(() => {
-              this.addressCache.set(key, 'Ubicación no disponible');
-              return of(null);
-            })
-          );
-        });
+        // Geocodificar primero, luego mostrar eventos
+        console.log('🗺️ Iniciando geocodificación para', this.allEvents.length, 'eventos');
         
-        // Esperar a que todas las geocodificaciones se completen
-        forkJoin(geocodingTasks).subscribe({
-          next: (results) => {
-            results.forEach((data, index) => {
-              if (data) {
-                const event = this.allEvents[index];
-                const key = `${event.lat},${event.lng}`;
-                
-                // Lógica de priorización de nombres
-                const roadTypes = ['Autovía', 'Ruta', 'Avenida', 'Calle', 'Camino', 'Boulevard'];
-                const isRoad = roadTypes.some(type => data.display_name?.startsWith(type));
-                
-                let placeName = '';
-                if (data.name && !isRoad) {
-                  placeName = data.name;
-                } else if (data.address) {
-                  placeName = data.address.tourism || data.address.amenity || 
-                             data.address.shop || data.address.building || 
-                             data.address.suburb || data.address.neighbourhood || 
-                             data.address.city || data.address.town || 
-                             data.address.village || 'Ubicación';
-                }
-                
-                this.addressCache.set(key, placeName || 'Ubicación no disponible');
-              }
-            });
+        // Hacer peticiones secuenciales con delay mínimo
+        from(this.allEvents).pipe(
+          concatMap((event, index) => {
+            const key = `${event.lat},${event.lng}`;
+            console.log(`📍 [${index + 1}/${this.allEvents.length}] Procesando evento:`, event.name, 'coords:', key);
             
+            if (this.addressCache.has(key)) {
+              console.log('✅ Ubicación en caché:', this.addressCache.get(key));
+              return of({ event, data: null });
+            }
+            
+            // BigDataCloud API - gratuita, sin API key, más confiable
+            const url = `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${event.lat}&longitude=${event.lng}&localityLanguage=es`;
+            console.log('🌐 Llamando a BigDataCloud:', url);
+            
+            // Delay mínimo entre peticiones
+            const request$ = index === 0 
+              ? this.http.get<any>(url) 
+              : of(null).pipe(delay(300), concatMap(() => this.http.get<any>(url)));
+            
+            return request$.pipe(
+              timeout(5000), // Timeout de 5 segundos
+              catchError((error) => {
+                console.error('❌ Error en geocodificación:', error.name || error.message);
+                this.addressCache.set(key, 'Ubicación no disponible');
+                return of(null);
+              })
+            ).pipe(
+              catchError(() => of(null)),
+              concatMap(data => of({ event, data }))
+            );
+          })
+        ).subscribe({
+          next: (result: any) => {
+            const { event, data } = result;
+            
+            if (data) {
+              const key = `${event.lat},${event.lng}`;
+              console.log('🔍 Procesando resultado para:', event.name, 'data:', data);
+              
+              // BigDataCloud devuelve: locality, city, principalSubdivision, countryName
+              let placeName = data.locality || 
+                             data.city || 
+                             data.principalSubdivision || 
+                             data.countryName || 
+                             'Ubicación';
+              
+              console.log('✅ Ubicación guardada:', placeName);
+              this.addressCache.set(key, placeName);
+              this.cdr.detectChanges();
+            }
+          },
+          complete: () => {
+            console.log('✅ Geocodificación completada. Caché final:', this.addressCache);
+            // Ahora sí mostrar los eventos con las ubicaciones ya resueltas
             this.events = [...this.allEvents];
             this.isLoadingEvents = false;
             this.cdr.detectChanges();
           },
-          error: () => {
+          error: (err) => {
+            console.error('❌ Error en proceso de geocodificación:', err);
+            // Mostrar eventos aunque haya error
             this.events = [...this.allEvents];
             this.isLoadingEvents = false;
             this.cdr.detectChanges();
@@ -749,10 +766,7 @@ export class CustomerDashboardComponent implements OnInit, OnDestroy {
       return this.addressCache.get(key)!;
     }
     
-    // Si no, geocodificar en background
-    this.geocodeLocation(event.lat, event.lng, key);
-    
-    // Mientras tanto, mostrar mensaje de carga
+    // Mientras se geocodifica, mostrar mensaje de carga
     return 'Cargando ubicación...';
   }
 
