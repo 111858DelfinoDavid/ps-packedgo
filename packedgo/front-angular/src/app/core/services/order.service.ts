@@ -34,13 +34,17 @@ export class OrderService {
    * @returns Observable con la URL de pago
    */
   checkoutSingleAdmin(adminId: number): Observable<{ paymentUrl: string, preferenceId: string }> {
+    // Detectar timezone del navegador del usuario
+    const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    
     return this.http.post<{ paymentUrl: string, preferenceId: string }>(
       `${this.apiUrl}/orders/checkout/single`,
-      { adminId },
+      { adminId, timezone },
       { headers: this.getHeaders() }
     ).pipe(
       tap(response => {
         console.log('Checkout single iniciado:', response);
+        console.log('Timezone detectado:', timezone);
       }),
       catchError(this.handleError)
     );
@@ -67,6 +71,20 @@ export class OrderService {
   getOrderById(orderId: number): Observable<Order> {
     return this.http.get<Order>(
       `${this.apiUrl}/orders/${orderId}`,
+      { headers: this.getHeaders() }
+    ).pipe(
+      catchError(this.handleError)
+    );
+  }
+
+  /**
+   * Obtiene una orden específica por número de orden
+   * @param orderNumber Número de orden (ej: ORD-202511-1763834635718)
+   * @returns Observable con los detalles de la orden
+   */
+  getOrderByNumber(orderNumber: string): Observable<Order> {
+    return this.http.get<Order>(
+      `${this.apiUrl}/orders/${orderNumber}`,
       { headers: this.getHeaders() }
     ).pipe(
       catchError(this.handleError)

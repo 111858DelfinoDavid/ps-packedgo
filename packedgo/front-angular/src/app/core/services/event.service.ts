@@ -42,6 +42,10 @@ export class EventService {
     return this.http.delete<void>(`${this.apiUrl}/event-service/event/${id}`);
   }
 
+  deleteEventLogical(id: number): Observable<Event> {
+    return this.http.delete<Event>(`${this.apiUrl}/event-service/event/logical/${id}`);
+  }
+
   // Event Categories
   getEventCategories(): Observable<EventCategory[]> {
     return this.http.get<EventCategory[]>(`${this.apiUrl}/event-service/category`);

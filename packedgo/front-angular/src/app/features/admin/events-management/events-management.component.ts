@@ -1,4 +1,4 @@
-import { Component, inject, OnInit } from '@angular/core';
+import { Component, inject, OnInit, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { FormsModule } from '@angular/forms';
@@ -7,10 +7,12 @@ import Swal from 'sweetalert2';
 import { EventService } from '../../../core/services/event.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { Event, EventCategory, Consumption } from '../../../shared/models/event.model';
+import { LocationPickerComponent, Location } from '../../../shared/components/location-picker/location-picker.component';
+import { SafePipe } from '../../../shared/pipes/safe.pipe';
 
 @Component({
   selector: 'app-events-management',
-  imports: [CommonModule, ReactiveFormsModule, FormsModule, RouterModule],
+  imports: [CommonModule, ReactiveFormsModule, FormsModule, RouterModule, LocationPickerComponent, SafePipe],
   templateUrl: './events-management.component.html',
   styleUrl: './events-management.component.css'
 })
@@ -54,6 +56,13 @@ export class EventsManagementComponent implements OnInit {
   // Shared Data
   consumptions: Consumption[] = [];
   
+  // Geocoding - Direcciones de eventos
+  eventAddresses: Map<number, string> = new Map();
+  
+  // Mapa flotante
+  showMapModal = false;
+  mapEventLocation: { lat: number; lng: number; name: string; address: string } | null = null;
+  
   // Loading & Messages
   isLoading = true;
   isSubmitting = false;
@@ -64,7 +73,8 @@ export class EventsManagementComponent implements OnInit {
     this.eventForm = this.fb.group({
       name: ['', [Validators.required, Validators.minLength(3), Validators.maxLength(200)]],
       description: ['', [Validators.required, Validators.minLength(10)]],
-      eventDate: ['', [Validators.required]],
+      startTime: ['', [Validators.required]], // Ahora es datetime-local (fecha y hora de inicio)
+      endTime: ['', [Validators.required]],   // Ahora es datetime-local (fecha y hora de finalización)
       lat: ['', [Validators.required, Validators.pattern(/^-?\d+\.?\d*$/)]],
       lng: ['', [Validators.required, Validators.pattern(/^-?\d+\.?\d*$/)]],
       maxCapacity: ['', [Validators.required, Validators.min(1)]],
@@ -76,6 +86,14 @@ export class EventsManagementComponent implements OnInit {
 
   ngOnInit(): void {
     this.loadData();
+  }
+
+  // Cerrar modal del mapa con tecla Escape
+  @HostListener('document:keydown.escape', ['$event'])
+  handleEscapeKey(event: KeyboardEvent): void {
+    if (this.showMapModal) {
+      this.closeMapModal();
+    }
   }
 
   loadData(): void {
@@ -100,9 +118,18 @@ export class EventsManagementComponent implements OnInit {
     // Cargar eventos
     this.eventService.getEvents().subscribe({
       next: (events: any) => {
-        this.events = events;
-        this.filteredEvents = events;
+        // Filtrar solo eventos activos
+        const activeEvents = events.filter((event: Event) => event.active !== false);
+        this.events = activeEvents;
+        this.filteredEvents = activeEvents;
         this.isLoading = false;
+        
+        // Cargar direcciones para todos los eventos activos
+        activeEvents.forEach((event: Event) => {
+          if (event.id && event.lat && event.lng) {
+            this.loadEventAddress(event.id, event.lat, event.lng);
+          }
+        });
       },
       error: (error: any) => {
         console.error('Error al cargar eventos:', error);
@@ -144,15 +171,25 @@ export class EventsManagementComponent implements OnInit {
       ? event.availableConsumptions.map(c => c.id).filter((id): id is number => id !== undefined) 
       : [];
     
-    // Convertir fecha al formato YYYY-MM-DD para el input date
-    // El servidor envía la fecha en UTC sin 'Z', así que la agregamos para parsear correctamente
-    const eventDate = new Date(event.eventDate.endsWith('Z') ? event.eventDate : event.eventDate + 'Z');
-    const formattedDate = eventDate.toISOString().split('T')[0];
+    // Convertir startTime y endTime a formato datetime-local (YYYY-MM-DDTHH:mm)
+    let startTimeFormatted = '';
+    let endTimeFormatted = '';
+    
+    if (event.startTime) {
+      const startDate = new Date(event.startTime.endsWith('Z') ? event.startTime : event.startTime + 'Z');
+      startTimeFormatted = this.toDatetimeLocal(startDate);
+    }
+    
+    if (event.endTime) {
+      const endDate = new Date(event.endTime.endsWith('Z') ? event.endTime : event.endTime + 'Z');
+      endTimeFormatted = this.toDatetimeLocal(endDate);
+    }
     
     this.eventForm.patchValue({
       name: event.name,
       description: event.description,
-      eventDate: formattedDate,
+      startTime: startTimeFormatted,
+      endTime: endTimeFormatted,
       lat: event.lat,
       lng: event.lng,
       maxCapacity: event.maxCapacity,
@@ -183,22 +220,48 @@ export class EventsManagementComponent implements OnInit {
     this.imageUploadOption = 'url';
   }
 
+  onLocationChange(location: Location): void {
+    // Actualizar los valores del formulario cuando cambia la ubicación
+    this.eventForm.patchValue({
+      lat: location.lat.toString(),
+      lng: location.lng.toString()
+    });
+    
+    // Marcar los campos como tocados para mostrar validación
+    this.eventForm.get('lat')?.markAsTouched();
+    this.eventForm.get('lng')?.markAsTouched();
+  }
+
   onSubmit(): void {
     if (this.eventForm.invalid) {
       this.eventForm.markAllAsTouched();
       return;
     }
 
+    // Validar que la fecha/hora de finalización sea mayor que la de inicio
+    const startTime = this.eventForm.value.startTime; // datetime-local (YYYY-MM-DDTHH:mm)
+    const endTime = this.eventForm.value.endTime;     // datetime-local (YYYY-MM-DDTHH:mm)
+    
+    if (startTime && endTime && endTime <= startTime) {
+      this.errorMessage = 'La fecha y hora de finalización debe ser mayor que la de inicio';
+      // Marcar los campos como tocados para mostrar el error visual
+      this.eventForm.get('startTime')?.markAsTouched();
+      this.eventForm.get('endTime')?.markAsTouched();
+      return;
+    }
+
     this.isSubmitting = true;
     this.errorMessage = '';
 
-    // Convertir la fecha (YYYY-MM-DD) a LocalDateTime (YYYY-MM-DDTHH:mm:ss)
-    const eventDateString = this.eventForm.value.eventDate;
-    const eventDateTime = `${eventDateString}T20:00:00`; // Agregar hora por defecto (8 PM)
+    // Convertir datetime-local (YYYY-MM-DDTHH:mm) a LocalDateTime (YYYY-MM-DDTHH:mm:ss)
+    const startTimeDateTime = `${startTime}:00`;
+    const endTimeDateTime = `${endTime}:00`;
 
     const eventData: Event & { consumptionIds?: number[] } = {
       ...this.eventForm.value,
-      eventDate: eventDateTime, // Usar la fecha con hora
+      eventDate: startTimeDateTime, // Usar startTime como eventDate por compatibilidad
+      startTime: startTimeDateTime, // 🕐 Fecha y hora de inicio en formato LocalDateTime
+      endTime: endTimeDateTime,     // 🕐 Fecha y hora de finalización en formato LocalDateTime
       lat: Number(this.eventForm.value.lat),
       lng: Number(this.eventForm.value.lng),
       maxCapacity: Number(this.eventForm.value.maxCapacity),
@@ -285,23 +348,41 @@ export class EventsManagementComponent implements OnInit {
 
   deleteEvent(eventId: number, eventName: string): void {
     Swal.fire({
-      title: '¿Eliminar evento?',
-      text: `¿Estás seguro de que deseas eliminar el evento "${eventName}"?`,
+      title: '¿Desactivar evento?',
+      text: `¿Estás seguro de que deseas desactivar el evento "${eventName}"? El evento se ocultará pero no se eliminará permanentemente.`,
       icon: 'warning',
       showCancelButton: true,
-      confirmButtonText: 'Sí, eliminar',
+      confirmButtonText: 'Sí, desactivar',
       cancelButtonText: 'Cancelar',
       confirmButtonColor: '#d33'
     }).then((result) => {
       if (result.isConfirmed) {
-        this.eventService.deleteEvent(eventId).subscribe({
+        this.eventService.deleteEventLogical(eventId).subscribe({
           next: () => {
-            Swal.fire('Eliminado', 'Evento eliminado exitosamente', 'success');
-            this.loadData();
+            // Eliminar el evento de la lista local sin recargar
+            this.events = this.events.filter(e => e.id !== eventId);
+            this.filteredEvents = this.filteredEvents.filter(e => e.id !== eventId);
+            
+            // Eliminar la dirección del mapa si existe
+            this.eventAddresses.delete(eventId);
+            
+            Swal.fire('Desactivado', 'Evento desactivado exitosamente', 'success');
           },
           error: (error: any) => {
-            console.error('Error al eliminar evento:', error);
-            Swal.fire('Error', error.error?.message || 'Error al eliminar el evento. Por favor, intenta nuevamente.', 'error');
+            console.error('Error al desactivar evento:', error);
+            
+            // Mostrar mensaje específico según el error
+            let errorMessage = 'Error al desactivar el evento. Por favor, intenta nuevamente.';
+            
+            if (error.status === 403) {
+              errorMessage = 'No tienes permisos para desactivar este evento. Solo el creador puede desactivarlo.';
+            } else if (error.status === 404) {
+              errorMessage = 'El evento no fue encontrado.';
+            } else if (error.error?.message) {
+              errorMessage = error.error.message;
+            }
+            
+            Swal.fire('Error', errorMessage, 'error');
           }
         });
       }
@@ -596,11 +677,96 @@ export class EventsManagementComponent implements OnInit {
   // Getters para validación en template
   get name() { return this.eventForm.get('name'); }
   get description() { return this.eventForm.get('description'); }
-  get eventDate() { return this.eventForm.get('eventDate'); }
+  get startTime() { return this.eventForm.get('startTime'); }
+  get endTime() { return this.eventForm.get('endTime'); }
   get lat() { return this.eventForm.get('lat'); }
   get lng() { return this.eventForm.get('lng'); }
   get maxCapacity() { return this.eventForm.get('maxCapacity'); }
   get basePrice() { return this.eventForm.get('basePrice'); }
-  get imageUrl() { return this.eventForm.get('imageUrl'); }
   get categoryId() { return this.eventForm.get('categoryId'); }
+
+  // Helper para convertir Date a formato datetime-local (YYYY-MM-DDTHH:mm)
+  private toDatetimeLocal(date: Date): string {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    return `${year}-${month}-${day}T${hours}:${minutes}`;
+  }
+
+  // Geocodificación inversa - Convertir coordenadas a dirección
+  loadEventAddress(eventId: number, lat: number, lng: number): void {
+    // Usar Nominatim (OpenStreetMap) para geocodificación inversa
+    const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`;
+    
+    fetch(url, {
+      headers: {
+        'User-Agent': 'PackedGo-Events-App'
+      }
+    })
+      .then(response => response.json())
+      .then(data => {
+        if (data && data.address) {
+          // Extraer solo las partes más relevantes de la dirección
+          const address = data.address;
+          const parts: string[] = [];
+          
+          // Formato compacto: nombre, calle, localidad
+          if (address.amenity) parts.push(address.amenity);
+          if (address.road) parts.push(address.road);
+          if (address.village || address.town || address.city) {
+            parts.push(address.village || address.town || address.city);
+          }
+          
+          // Limitar a máximo 3 partes para mantenerlo corto
+          const shortAddress = parts.slice(0, 3).join(', ');
+          this.eventAddresses.set(eventId, shortAddress || `${lat}, ${lng}`);
+        } else {
+          this.eventAddresses.set(eventId, `${lat}, ${lng}`);
+        }
+      })
+      .catch(error => {
+        console.error('Error al obtener dirección:', error);
+        this.eventAddresses.set(eventId, `${lat}, ${lng}`);
+      });
+  }
+
+  getEventAddress(eventId: number | undefined, lat: number, lng: number): string {
+    if (!eventId) {
+      return `${lat}, ${lng}`;
+    }
+    return this.eventAddresses.get(eventId) || `${lat}, ${lng}`;
+  }
+
+  // Abrir mapa flotante con la ubicación del evento
+  openMapModal(event: Event): void {
+    this.mapEventLocation = {
+      lat: event.lat,
+      lng: event.lng,
+      name: event.name,
+      address: this.getEventAddress(event.id, event.lat, event.lng)
+    };
+    this.showMapModal = true;
+  }
+
+  // Cerrar mapa flotante
+  closeMapModal(): void {
+    this.showMapModal = false;
+    this.mapEventLocation = null;
+  }
+
+  // Ver descripción del evento
+  viewDescription(event: Event): void {
+    Swal.fire({
+      title: event.name,
+      html: `<div style="text-align: left; max-height: 400px; overflow-y: auto; padding: 10px;">
+               <p style="line-height: 1.8; color: #555;">${event.description}</p>
+             </div>`,
+      icon: 'info',
+      confirmButtonText: 'Cerrar',
+      confirmButtonColor: '#667eea',
+      width: '600px'
+    });
+  }
 }

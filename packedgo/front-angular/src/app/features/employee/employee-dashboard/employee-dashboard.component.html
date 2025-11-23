@@ -10,10 +10,6 @@
         </div>
       </div>
       <div class="header-right">
-        <div class="time-display">
-          <i class="bi bi-clock-fill"></i>
-          <span>{{ currentTime | date:'HH:mm:ss' }}</span>
-        </div>
         <button class="btn-logout" (click)="logout()">
           <i class="bi bi-box-arrow-right"></i>
           Cerrar Sesión
@@ -42,31 +38,6 @@
           </div>
           <i class="bi bi-check-circle-fill check-icon" *ngIf="selectedEventId === event.id"></i>
         </button>
-      </div>
-    </div>
-
-    <!-- Stats Cards -->
-    <div class="stats-row">
-      <div class="stat-card stat-tickets">
-        <i class="bi bi-ticket-perforated-fill"></i>
-        <div class="stat-info">
-          <h3>{{ stats.ticketsScannedToday }}</h3>
-          <p>Tickets Escaneados</p>
-        </div>
-      </div>
-      <div class="stat-card stat-consumptions">
-        <i class="bi bi-cup-hot-fill"></i>
-        <div class="stat-info">
-          <h3>{{ stats.consumptionsToday }}</h3>
-          <p>Consumos Registrados</p>
-        </div>
-      </div>
-      <div class="stat-card stat-total">
-        <i class="bi bi-graph-up-arrow"></i>
-        <div class="stat-info">
-          <h3>{{ stats.totalScannedToday }}</h3>
-          <p>Total Hoy</p>
-        </div>
       </div>
     </div>
 

@@ -24,23 +24,25 @@ export class OrderSuccessComponent implements OnInit {
   private paymentService = inject(PaymentService);
 
   sessionId: string = '';
+  orderId: string = '';
   sessionData: SessionStateResponse | null = null;
   tickets: Ticket[] = [];
+  expectedTicketCount: number = 0; // Cantidad esperada de tickets de la orden actual
   isLoading = true;
   isLoadingTickets = false;
   isVerifyingPayments = false;
   verificationMessage = '';
 
   ngOnInit(): void {
-    // Obtener el sessionId de los query params
+    // Obtener el sessionId y orderId de los query params
     this.route.queryParams.subscribe(params => {
       this.sessionId = params['sessionId'];
-      const orderId = params['orderId'];
+      this.orderId = params['orderId'];
       
       // Priorizar orderId si está disponible, ya que el sessionId de Stripe 
       // no es compatible con el endpoint de sesión de órdenes actual
-      if (orderId) {
-        this.loadSingleOrderData(orderId);
+      if (this.orderId) {
+        this.loadSingleOrderData(this.orderId);
       } else if (this.sessionId) {
         this.loadSessionData();
       } else {
@@ -53,17 +55,31 @@ export class OrderSuccessComponent implements OnInit {
     this.isLoading = true;
     console.log('🔄 Verificando estado del pago para orden:', orderId);
     
-    // Verificar estado del pago antes de cargar tickets
-    this.paymentService.verifyPaymentStatus(orderId).subscribe({
-      next: (status) => {
-        console.log('✅ Estado de pago verificado:', status);
-        // Esperar un momento para asegurar que el backend procesó todo (generación de tickets)
-        setTimeout(() => {
-          this.loadTickets();
-        }, 1500);
+    // Primero obtener los detalles de la orden para saber cuántos tickets esperar
+    this.orderService.getOrderByNumber(orderId).subscribe({
+      next: (order) => {
+        // Calcular el total de tickets esperados (suma de cantidades de todos los items)
+        this.expectedTicketCount = order.items?.reduce((sum, item) => sum + item.quantity, 0) || 0;
+        console.log(`📊 Orden ${orderId} tiene ${this.expectedTicketCount} tickets esperados`);
+        
+        // Ahora verificar el estado del pago antes de cargar tickets
+        this.paymentService.verifyPaymentStatus(orderId).subscribe({
+          next: (status) => {
+            console.log('✅ Estado de pago verificado:', status);
+            // Esperar un momento para asegurar que el backend procesó todo (generación de tickets)
+            setTimeout(() => {
+              this.loadTickets();
+            }, 1500);
+          },
+          error: (error) => {
+            console.warn('⚠️ No se pudo verificar el pago, intentando cargar tickets de todos modos:', error);
+            this.loadTickets();
+          }
+        });
       },
       error: (error) => {
-        console.warn('⚠️ No se pudo verificar el pago, intentando cargar tickets de todos modos:', error);
+        console.error('❌ Error obteniendo detalles de la orden:', error);
+        // Si no se puede obtener la orden, intentar cargar tickets de todos modos
         this.loadTickets();
       }
     });
@@ -154,15 +170,42 @@ export class OrderSuccessComponent implements OnInit {
     this.isLoadingTickets = true;
     this.ticketService.getActiveTickets(userId).subscribe({
       next: (tickets) => {
-        this.tickets = tickets;
+        // Si hay orderId y sabemos cuántos tickets esperar, tomar solo los N más recientes
+        if (this.orderId && this.expectedTicketCount > 0) {
+          // Ordenar por fecha de creación descendente
+          const sortedTickets = [...tickets].sort((a, b) => 
+            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+          );
+          
+          // Tomar solo la cantidad esperada de tickets más recientes
+          this.tickets = sortedTickets.slice(0, this.expectedTicketCount);
+          
+          console.log(`✅ Showing ${this.tickets.length} most recent tickets (expected ${this.expectedTicketCount}) from ${tickets.length} total for order ${this.orderId}`);
+        } else if (this.orderId) {
+          // Fallback: si no sabemos cuántos esperar, usar filtro de tiempo
+          const sortedTickets = [...tickets].sort((a, b) => 
+            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+          );
+          
+          const oneMinuteAgo = Date.now() - (60 * 1000);
+          this.tickets = sortedTickets.filter(ticket => 
+            new Date(ticket.createdAt).getTime() > oneMinuteAgo
+          );
+          
+          console.log(`✅ Filtered ${this.tickets.length} recent tickets (last minute) from ${tickets.length} total for order ${this.orderId}`);
+        } else {
+          // Si no hay orderId, mostrar todos los tickets (caso de sesión múltiple)
+          this.tickets = tickets;
+          console.log('✅ All tickets loaded:', tickets.length);
+        }
+        
         this.isLoadingTickets = false;
-        this.isLoading = false; // Desactivar loading principal
-        console.log('✅ Tickets loaded:', tickets);
+        this.isLoading = false;
       },
       error: (error) => {
         console.error('❌ Error loading tickets:', error);
         this.isLoadingTickets = false;
-        this.isLoading = false; // Desactivar loading principal incluso en error
+        this.isLoading = false;
       }
     });
   }

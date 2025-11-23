@@ -3,6 +3,8 @@ export interface Event {
   name: string;
   description: string;
   eventDate: string;
+  startTime?: string; // 🕐 Hora de inicio
+  endTime?: string;   // 🕐 Hora de finalización
   lat: number;
   lng: number;
   maxCapacity: number;

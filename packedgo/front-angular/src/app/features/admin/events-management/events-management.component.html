@@ -102,10 +102,11 @@
       <table *ngIf="filteredEvents.length > 0" class="table">
         <thead>
           <tr>
-            <th>ID</th>
             <th>Imagen</th>
             <th>Nombre</th>
-            <th>Fecha</th>
+            <th>Fecha de Inicio</th>
+            <th>Fecha de Finalización</th>
+            <th>Lugar</th>
             <th>Categoría</th>
             <th>Capacidad</th>
             <th>Precio</th>
@@ -115,7 +116,6 @@
         </thead>
         <tbody>
           <tr *ngFor="let event of filteredEvents">
-            <td>{{ event.id }}</td>
             <td>
               <img 
                 *ngIf="event.hasImageData || event.imageUrl"
@@ -132,11 +132,38 @@
               ></i>
             </td>
             <td>
-              <strong>{{ event.name }}</strong>
-              <br>
-              <small class="text-muted">{{ event.description | slice:0:50 }}{{ event.description.length > 50 ? '...' : '' }}</small>
+              <div class="event-name-info">
+                <strong>{{ event.name }}</strong>
+                <button class="btn-view-description" (click)="viewDescription(event)" title="Ver descripción completa">
+                  <i class="bi bi-file-text"></i>
+                  Ver Descripción
+                </button>
+              </div>
             </td>
-            <td>{{ event.eventDate | date: 'dd/MM/yyyy' }}</td>
+            <td>
+              <div class="datetime-info">
+                <i class="bi bi-calendar-check text-success"></i>
+                <div>
+                  <div>{{ event.startTime | date: 'dd/MM/yyyy' }}</div>
+                  <small class="text-muted">{{ event.startTime | date: 'HH:mm' }} hs</small>
+                </div>
+              </div>
+            </td>
+            <td>
+              <div class="datetime-info">
+                <i class="bi bi-calendar-x text-danger"></i>
+                <div>
+                  <div>{{ event.endTime | date: 'dd/MM/yyyy' }}</div>
+                  <small class="text-muted">{{ event.endTime | date: 'HH:mm' }} hs</small>
+                </div>
+              </div>
+            </td>
+            <td>
+              <div class="location-info" (click)="openMapModal(event)" title="Click para ver en el mapa">
+                <i class="bi bi-geo-alt-fill text-primary"></i>
+                <small>{{ getEventAddress(event.id, event.lat, event.lng) }}</small>
+              </div>
+            </td>
             <td>
               <span class="badge badge-category">{{ getCategoryName(event.categoryId) }}</span>
             </td>
@@ -331,65 +358,60 @@
         </div>
       </div>
 
-      <!-- Event Date -->
-      <div class="form-group">
-        <label for="eventDate">
-          <i class="bi bi-calendar-event"></i>
-          Fecha del Evento *
-        </label>
-        <input 
-          type="date" 
-          id="eventDate"
-          formControlName="eventDate"
-          class="form-control"
-          [class.is-invalid]="eventDate?.invalid && eventDate?.touched"
-          [class.is-valid]="eventDate?.valid && eventDate?.touched"
-        />
-        <div class="invalid-feedback" *ngIf="eventDate?.touched && eventDate?.invalid">
-          <span *ngIf="eventDate?.errors?.['required']">La fecha es requerida</span>
+      <!-- Start and End DateTime -->
+      <div class="form-row">
+        <div class="form-group">
+          <label for="startTime">
+            <i class="bi bi-calendar-check"></i>
+            Fecha y Hora de Inicio *
+          </label>
+          <input 
+            type="datetime-local" 
+            id="startTime"
+            formControlName="startTime"
+            class="form-control"
+            [class.is-invalid]="startTime?.invalid && startTime?.touched"
+            [class.is-valid]="startTime?.valid && startTime?.touched"
+          />
+          <div class="invalid-feedback" *ngIf="startTime?.touched && startTime?.invalid">
+            <span *ngIf="startTime?.errors?.['required']">La fecha y hora de inicio es requerida</span>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="endTime">
+            <i class="bi bi-calendar-x"></i>
+            Fecha y Hora de Finalización *
+          </label>
+          <input 
+            type="datetime-local" 
+            id="endTime"
+            formControlName="endTime"
+            class="form-control"
+            [class.is-invalid]="(endTime?.invalid && endTime?.touched) || (startTime?.value && endTime?.value && endTime?.value <= startTime?.value)"
+            [class.is-valid]="endTime?.valid && endTime?.touched && !(startTime?.value && endTime?.value && endTime?.value <= startTime?.value)"
+          />
+          <div class="invalid-feedback" *ngIf="(endTime?.touched && endTime?.invalid) || (startTime?.value && endTime?.value && endTime?.value <= startTime?.value)">
+            <span *ngIf="endTime?.errors?.['required']">La fecha y hora de finalización es requerida</span>
+            <span *ngIf="startTime?.value && endTime?.value && endTime?.value <= startTime?.value">La fecha y hora de finalización debe ser mayor que la de inicio</span>
+          </div>
         </div>
       </div>
 
-      <!-- Location (Lat/Lng) -->
-      <div class="form-row">
-        <div class="form-group">
-          <label for="lat">
-            <i class="bi bi-geo-alt"></i>
-            Latitud *
-          </label>
-          <input 
-            type="text" 
-            id="lat"
-            formControlName="lat"
-            class="form-control"
-            [class.is-invalid]="lat?.invalid && lat?.touched"
-            [class.is-valid]="lat?.valid && lat?.touched"
-            placeholder="-34.603722"
-          />
-          <div class="invalid-feedback" *ngIf="lat?.touched && lat?.invalid">
-            <span *ngIf="lat?.errors?.['required']">La latitud es requerida</span>
-            <span *ngIf="lat?.errors?.['pattern']">Formato inválido</span>
-          </div>
-        </div>
-
-        <div class="form-group">
-          <label for="lng">
-            <i class="bi bi-geo-alt-fill"></i>
-            Longitud *
-          </label>
-          <input 
-            type="text" 
-            id="lng"
-            formControlName="lng"
-            class="form-control"
-            [class.is-invalid]="lng?.invalid && lng?.touched"
-            [class.is-valid]="lng?.valid && lng?.touched"
-            placeholder="-58.381592"
-          />
-          <div class="invalid-feedback" *ngIf="lng?.touched && lng?.invalid">
-            <span *ngIf="lng?.errors?.['required']">La longitud es requerida</span>
-            <span *ngIf="lng?.errors?.['pattern']">Formato inválido</span>
-          </div>
+      <!-- Location Picker with Google Maps -->
+      <div class="form-group full-width">
+        <label>
+          <i class="bi bi-geo-alt"></i>
+          Ubicación del Evento *
+        </label>
+        <app-location-picker
+          [lat]="eventForm.get('lat')?.value || -34.603722"
+          [lng]="eventForm.get('lng')?.value || -58.381592"
+          (locationChange)="onLocationChange($event)"
+        ></app-location-picker>
+        <div class="form-validation-error" *ngIf="(lat?.touched || lng?.touched) && (lat?.invalid || lng?.invalid)">
+          <i class="bi bi-exclamation-circle"></i>
+          Debes seleccionar una ubicación válida en el mapa
         </div>
       </div>
 
@@ -626,6 +648,50 @@
   </div>
 </div>
 
+<!-- Map Modal -->
+<div class="map-modal-overlay" *ngIf="showMapModal" (click)="closeMapModal()">
+  <div class="map-modal-content" (click)="$event.stopPropagation()">
+    <div class="map-modal-header">
+      <div>
+        <h3><i class="bi bi-geo-alt-fill"></i> {{ mapEventLocation?.name }}</h3>
+        <p class="text-muted">{{ mapEventLocation?.address }}</p>
+      </div>
+      <button class="btn-close-map" (click)="closeMapModal()">
+        <i class="bi bi-x-lg"></i>
+      </button>
+    </div>
+    <div class="map-modal-body">
+      <iframe
+        *ngIf="mapEventLocation"
+        [src]="'https://www.openstreetmap.org/export/embed.html?bbox=' + 
+               (mapEventLocation.lng - 0.01) + ',' + 
+               (mapEventLocation.lat - 0.01) + ',' + 
+               (mapEventLocation.lng + 0.01) + ',' + 
+               (mapEventLocation.lat + 0.01) + 
+               '&layer=mapnik&marker=' + 
+               mapEventLocation.lat + ',' + mapEventLocation.lng | safe: 'resourceUrl'"
+        width="100%"
+        height="100%"
+        frameborder="0"
+        style="border: 0"
+      ></iframe>
+    </div>
+    <div class="map-modal-footer">
+      <a 
+        [href]="'https://www.google.com/maps/search/?api=1&query=' + mapEventLocation?.lat + ',' + mapEventLocation?.lng"
+        target="_blank"
+        class="btn btn-primary"
+      >
+        <i class="bi bi-box-arrow-up-right"></i>
+        Abrir en Google Maps
+      </a>
+      <button class="btn btn-secondary" (click)="closeMapModal()">
+        Cerrar
+      </button>
+    </div>
+  </div>
+</div>
+
 <!-- Modal para Crear/Editar Categoría -->
 <div *ngIf="showCategoryModal" class="modal-overlay" (click)="closeCategoryModal()">
   <div class="modal-content modal-sm" (click)="$event.stopPropagation()">
@@ -685,20 +751,6 @@
           placeholder="Descripción de la categoría (opcional)"
           maxlength="500"
         ></textarea>
-      </div>
-
-      <!-- Estado Activo -->
-      <div class="form-group form-check">
-        <input 
-          type="checkbox" 
-          id="categoryActive"
-          [(ngModel)]="categoryForm.active"
-          name="categoryActive"
-          class="form-check-input"
-        />
-        <label class="form-check-label" for="categoryActive">
-          Categoría activa
-        </label>
       </div>
 
       <!-- Modal Actions -->

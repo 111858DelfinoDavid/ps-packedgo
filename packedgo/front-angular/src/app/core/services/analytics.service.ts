@@ -40,11 +40,13 @@ export interface ConsumptionMetricsDTO {
 
 export interface RevenueMetricsDTO {
   totalRevenue: number;
-  ticketsRevenue: number;
-  consumptionsRevenue: number;
-  thisMonthRevenue: number;
-  lastMonthRevenue: number;
-  growthRate: number;
+  revenueToday: number;
+  revenueThisWeek: number;
+  revenueThisMonth: number;
+  revenueFromTickets: number;
+  revenueFromConsumptions: number;
+  averageRevenuePerEvent: number;
+  averageRevenuePerCustomer: number;
 }
 
 export interface TopPerformersDTO {
