@@ -94,6 +94,7 @@ public class EventController {
         
         List<EventDTO> myEvents = service.findAll().stream()
                 .filter(event -> event.getCreatedBy().equals(userId))
+                .filter(event -> event.isActive()) // Solo eventos activos
                 .toList();
         
         return ResponseEntity.ok(myEvents);
