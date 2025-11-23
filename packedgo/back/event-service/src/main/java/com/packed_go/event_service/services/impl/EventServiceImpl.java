@@ -15,10 +15,14 @@ import com.packed_go.event_service.dtos.eventCategory.EventCategoryDTO;
 import com.packed_go.event_service.entities.Consumption;
 import com.packed_go.event_service.entities.Event;
 import com.packed_go.event_service.entities.EventCategory;
+import com.packed_go.event_service.entities.Pass;
+import com.packed_go.event_service.entities.Ticket;
 import com.packed_go.event_service.exceptions.ResourceNotFoundException;
 import com.packed_go.event_service.repositories.ConsumptionRepository;
 import com.packed_go.event_service.repositories.EventCategoryRepository;
 import com.packed_go.event_service.repositories.EventRepository;
+import com.packed_go.event_service.repositories.PassRepository;
+import com.packed_go.event_service.repositories.TicketRepository;
 import com.packed_go.event_service.services.EventService;
 import com.packed_go.event_service.services.PassGenerationService;
 
@@ -40,6 +44,13 @@ public class EventServiceImpl implements EventService {
     
     @Autowired
     private final ConsumptionRepository consumptionRepository;
+    
+    @Autowired
+    private final PassRepository passRepository;
+    
+    @Autowired
+    private final TicketRepository ticketRepository;
+    
     private final PassGenerationService passGenerationService;
 
     private EventDTO mapEventToDTO(Event event) {
@@ -133,6 +144,13 @@ public class EventServiceImpl implements EventService {
         EventCategory category = eventCategoryRepository.findById(createEventDto.getCategoryId())
                 .orElseThrow(() -> new ResourceNotFoundException("Category with id " + createEventDto.getCategoryId() + " not found"));
 
+        // Validar que endTime > startTime
+        if (createEventDto.getStartTime() != null && createEventDto.getEndTime() != null) {
+            if (!createEventDto.getEndTime().isAfter(createEventDto.getStartTime())) {
+                throw new IllegalArgumentException("La fecha y hora de finalización debe ser mayor que la de inicio");
+            }
+        }
+
         Event event = new Event(); // Constructor inicializa status="ACTIVE", active=true, timestamps
         
         System.out.println("AFTER Constructor - Event status: " + event.getStatus());
@@ -141,6 +159,8 @@ public class EventServiceImpl implements EventService {
         event.setName(createEventDto.getName());
         event.setDescription(createEventDto.getDescription());
         event.setEventDate(createEventDto.getEventDate());
+        event.setStartTime(createEventDto.getStartTime());
+        event.setEndTime(createEventDto.getEndTime());
         event.setLat(createEventDto.getLat());
         event.setLng(createEventDto.getLng());
         event.setMaxCapacity(createEventDto.getMaxCapacity());
@@ -173,6 +193,13 @@ public class EventServiceImpl implements EventService {
         if (eventExist.isPresent()) {
             Event entity = eventExist.get();
 
+            // Validar que endTime > startTime
+            if (eventDto.getStartTime() != null && eventDto.getEndTime() != null) {
+                if (!eventDto.getEndTime().isAfter(eventDto.getStartTime())) {
+                    throw new IllegalArgumentException("La fecha y hora de finalización debe ser mayor que la de inicio");
+                }
+            }
+
             // Si viene una categoryId en el DTO, la buscamos y la asignamos
             if (eventDto.getCategoryId() != null) {
                 EventCategory category = eventCategoryRepository.findById(eventDto.getCategoryId())
@@ -184,6 +211,8 @@ public class EventServiceImpl implements EventService {
             entity.setName(eventDto.getName());
             entity.setDescription(eventDto.getDescription());
             entity.setEventDate(eventDto.getEventDate());
+            entity.setStartTime(eventDto.getStartTime());
+            entity.setEndTime(eventDto.getEndTime());
             entity.setLat(eventDto.getLat());
             entity.setLng(eventDto.getLng());
             entity.setMaxCapacity(eventDto.getMaxCapacity());
@@ -228,6 +257,22 @@ public class EventServiceImpl implements EventService {
         if (eventExist.isPresent()) {
             Event entity = eventExist.get();
             entity.setActive(false);
+            
+            // Desactivar todos los pases asociados al evento
+            List<Pass> passes = passRepository.findByEvent_Id(id);
+            for (Pass pass : passes) {
+                pass.setActive(false);
+                pass.setAvailable(false);
+            }
+            passRepository.saveAll(passes);
+            
+            // Desactivar todos los tickets asociados al evento
+            List<Ticket> tickets = ticketRepository.findByEventId(id);
+            for (Ticket ticket : tickets) {
+                ticket.setActive(false);
+            }
+            ticketRepository.saveAll(tickets);
+            
             Event updatedentity = eventRepository.save(entity);
             return modelMapper.map(updatedentity, EventDTO.class);
         } else {

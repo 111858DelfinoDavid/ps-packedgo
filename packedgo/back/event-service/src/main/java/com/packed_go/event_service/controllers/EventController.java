@@ -1,23 +1,33 @@
 package com.packed_go.event_service.controllers;
 
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Map;
+
+import org.modelmapper.ModelMapper;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
 import com.packed_go.event_service.dtos.consumption.ConsumptionDTO;
 import com.packed_go.event_service.dtos.event.CreateEventDTO;
 import com.packed_go.event_service.dtos.event.EventDTO;
-import com.packed_go.event_service.dtos.eventCategory.EventCategoryDTO;
 import com.packed_go.event_service.dtos.stats.EventStatsDTO;
 import com.packed_go.event_service.repositories.EventRepository;
 import com.packed_go.event_service.security.JwtTokenValidator;
 import com.packed_go.event_service.services.EventService;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.modelmapper.ModelMapper;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-
-import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Map;
 
 @RestController
 @RequestMapping("/event-service/event")
@@ -136,7 +146,7 @@ public class EventController {
     }
 
     /**
-     * 🔒 DELETE /event/{id} - Eliminar evento físicamente (valida ownership)
+     * 🔒 DELETE /event/{id} - Eliminar evento físicamente (solo el creador)
      */
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(
@@ -146,7 +156,7 @@ public class EventController {
         Long userId = extractUserIdFromToken(authHeader);
         log.info("🔒 User {} deleting event {}", userId, id);
         
-        // Validar ownership
+        // Validar que solo el creador pueda eliminar
         EventDTO existingEvent = service.findById(id);
         if (!existingEvent.getCreatedBy().equals(userId)) {
             log.warn("⚠️ User {} tried to delete event {} owned by {}", userId, id, existingEvent.getCreatedBy());
@@ -158,24 +168,24 @@ public class EventController {
     }
 
     /**
-     * 🔒 DELETE /event/logical/{id} - Desactivar evento (valida ownership)
+     * 🔒 DELETE /event/logical/{id} - Desactivar evento (solo el creador)
      */
     @DeleteMapping("/logical/{id}")
-    public ResponseEntity<EventCategoryDTO> deleteLogical(
+    public ResponseEntity<EventDTO> deleteLogical(
             @PathVariable Long id,
             @RequestHeader("Authorization") String authHeader) {
         
         Long userId = extractUserIdFromToken(authHeader);
         log.info("🔒 User {} deactivating event {}", userId, id);
         
-        // Validar ownership
+        // Validar que solo el creador pueda desactivar
         EventDTO existingEvent = service.findById(id);
         if (!existingEvent.getCreatedBy().equals(userId)) {
             log.warn("⚠️ User {} tried to deactivate event {} owned by {}", userId, id, existingEvent.getCreatedBy());
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
         
-        return ResponseEntity.ok(modelMapper.map(service.deleteLogical(id), EventCategoryDTO.class));
+        return ResponseEntity.ok(service.deleteLogical(id));
     }
 
     /**

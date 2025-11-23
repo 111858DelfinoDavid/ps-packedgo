@@ -20,6 +20,8 @@ public class EventDTO {
     private String name;
     private String description;
     private LocalDateTime eventDate;
+    private LocalDateTime startTime;
+    private LocalDateTime endTime;
     //    private Point location;
     private double lat;
     private double lng;

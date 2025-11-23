@@ -15,6 +15,8 @@ public class CreateEventDTO {
     private String name;
     private String description;
     private LocalDateTime eventDate;
+    private LocalDateTime startTime;
+    private LocalDateTime endTime;
     private double lat;
     private double lng;
     private Integer maxCapacity;

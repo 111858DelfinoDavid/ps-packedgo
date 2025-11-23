@@ -1,20 +1,29 @@
 package com.packed_go.event_service.services.impl;
 
-import com.packed_go.event_service.dtos.qr.*;
-import com.packed_go.event_service.entities.*;
-import com.packed_go.event_service.repositories.*;
-import com.packed_go.event_service.services.QRValidationService;
-import com.packed_go.event_service.services.TicketConsumptionDetailService;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Optional;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-import java.util.Map;
-import java.util.HashMap;
+import com.packed_go.event_service.dtos.qr.ValidateConsumptionQRRequest;
+import com.packed_go.event_service.dtos.qr.ValidateConsumptionQRResponse;
+import com.packed_go.event_service.dtos.qr.ValidateEntryQRRequest;
+import com.packed_go.event_service.dtos.qr.ValidateEntryQRResponse;
+import com.packed_go.event_service.entities.Event;
+import com.packed_go.event_service.entities.Ticket;
+import com.packed_go.event_service.entities.TicketConsumption;
+import com.packed_go.event_service.entities.TicketConsumptionDetail;
+import com.packed_go.event_service.repositories.EventRepository;
+import com.packed_go.event_service.repositories.TicketConsumptionDetailRepository;
+import com.packed_go.event_service.repositories.TicketConsumptionRepository;
+import com.packed_go.event_service.repositories.TicketRepository;
+import com.packed_go.event_service.services.QRValidationService;
+import com.packed_go.event_service.services.TicketConsumptionDetailService;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 @Service
 @RequiredArgsConstructor
@@ -109,7 +118,16 @@ public class QRValidationServiceImpl implements QRValidationService {
 
             Event event = ticket.getPass().getEvent();
 
-            // 6. Verificar si ya fue usado (Single Entry)
+            // 6. Verificar que el evento esté activo (no desactivado)
+            if (!event.isActive()) {
+                log.warn("❌ Event is inactive (deactivated): {}", event.getId());
+                return ValidateEntryQRResponse.builder()
+                        .valid(false)
+                        .message("❌ Este evento ha sido desactivado. Las entradas ya no son válidas.")
+                        .build();
+            }
+
+            // 7. Verificar si ya fue usado (Single Entry)
             if (ticket.isRedeemed()) {
                 log.warn("❌ Ticket already redeemed: {}", ticketId);
                 return ValidateEntryQRResponse.builder()
@@ -126,12 +144,12 @@ public class QRValidationServiceImpl implements QRValidationService {
                         .build();
             }
 
-            // 7. Marcar como usado
+            // 8. Marcar como usado
             ticket.setRedeemed(true);
             ticket.setRedeemedAt(java.time.LocalDateTime.now());
             ticketRepository.save(ticket);
 
-            // 8. Construir respuesta exitosa
+            // 9. Construir respuesta exitosa
             log.info("✅ Ticket valid and redeemed: {}", ticketId);
 
             return ValidateEntryQRResponse.builder()
@@ -205,7 +223,17 @@ public class QRValidationServiceImpl implements QRValidationService {
 
             TicketConsumptionDetail detail = detailOpt.get();
 
-            // 4. Verificar que esté activo
+            // 4. Verificar que el evento esté activo (no desactivado)
+            Event event = getEventFromDetail(detail);
+            if (event != null && !event.isActive()) {
+                log.warn("❌ Event is inactive (deactivated): {}", event.getId());
+                return ValidateConsumptionQRResponse.builder()
+                        .success(false)
+                        .message("❌ Este evento ha sido desactivado. Las consumiciones ya no son válidas.")
+                        .build();
+            }
+
+            // 5. Verificar que el detalle esté activo
             if (!detail.isActive()) {
                 return ValidateConsumptionQRResponse.builder()
                         .success(false)
@@ -213,7 +241,7 @@ public class QRValidationServiceImpl implements QRValidationService {
                         .build();
             }
 
-            // 5. Verificar que no esté completamente canjeado
+            // 6. Verificar que no esté completamente canjeado
             if (detail.isRedeem()) {
                 return ValidateConsumptionQRResponse.builder()
                         .success(false)
@@ -221,7 +249,7 @@ public class QRValidationServiceImpl implements QRValidationService {
                         .build();
             }
 
-            // 6. Determinar cantidad a canjear
+            // 7. Determinar cantidad a canjear
             Integer quantityToRedeem = request.getQuantity() != null ? request.getQuantity() : 1;
 
             if (quantityToRedeem > detail.getQuantity()) {
@@ -231,7 +259,7 @@ public class QRValidationServiceImpl implements QRValidationService {
                         .build();
             }
 
-            // 7. Canjear la consumición (parcial o total)
+            // 8. Canjear la consumición (parcial o total)
             if (quantityToRedeem.equals(detail.getQuantity())) {
                 // Canje total
                 detailService.redeemDetail(detailId);
@@ -295,6 +323,22 @@ public class QRValidationServiceImpl implements QRValidationService {
         } catch (Exception e) {
             log.warn("Could not retrieve event name for detail {}", detail.getId());
             return "Evento desconocido";
+        }
+    }
+
+    private Event getEventFromDetail(TicketConsumptionDetail detail) {
+        try {
+            // Obtener el ticket padre para llegar al evento
+            TicketConsumption ticketConsumption = detail.getTicketConsumption();
+            Optional<Ticket> ticketOpt = ticketRepository.findByTicketConsumption(ticketConsumption);
+
+            if (ticketOpt.isPresent()) {
+                return ticketOpt.get().getPass().getEvent();
+            }
+            return null;
+        } catch (Exception e) {
+            log.warn("Could not retrieve event for detail {}", detail.getId());
+            return null;
         }
     }
 }

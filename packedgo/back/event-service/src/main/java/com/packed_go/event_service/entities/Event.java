@@ -36,6 +36,13 @@ public class Event {
     private String name;
     private String description;
     private LocalDateTime eventDate;
+    
+    @Column(name = "start_time")
+    private LocalDateTime startTime;
+    
+    @Column(name = "end_time")
+    private LocalDateTime endTime;
+    
     private Double lat;
     private Double lng;
     private Integer maxCapacity;
