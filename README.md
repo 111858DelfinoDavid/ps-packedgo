@@ -6,6 +6,36 @@ PackedGo es una plataforma web integral desarrollada bajo una arquitectura de mi
 
 ---
 
+## 🚀 Inicio Rápido
+
+### Requisitos
+- Docker Desktop
+- Node.js 18+ y npm
+- Angular CLI 19+
+
+### Instalación en 3 pasos
+
+```bash
+# 1. Clonar el repositorio
+git clone <URL_DEL_REPOSITORIO>
+cd ps-packedgo
+
+# 2. Levantar backend con Docker
+cd packedgo/back
+docker-compose up -d --build
+
+# 3. Ejecutar frontend
+cd ../front-angular
+npm install
+npm start
+```
+
+**¡Listo!** Abre http://localhost:3000 en tu navegador.
+
+📖 **Documentación completa**: Ver [INSTALACION.md](./INSTALACION.md)
+
+---
+
 ## 🏗️ Arquitectura del Sistema
 
 ### Stack Tecnológico

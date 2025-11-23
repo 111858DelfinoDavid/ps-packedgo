@@ -1,0 +1,32 @@
+# Environment Variables (mantener .env en el repo)
+# .env
+.env.local
+.env.*.local
+
+# IDE
+.idea/
+.vscode/
+.claude/
+*.iml
+*.iws
+*.ipr
+
+# OS
+.DS_Store
+Thumbs.db
+*.log
+
+# Build artifacts
+**/target/
+**/node_modules/
+**/dist/
+**/.angular/
+
+# Temporary files
+*.tmp
+*.bak
+*.swp
+*~
+
+# Docker
+volumes/
