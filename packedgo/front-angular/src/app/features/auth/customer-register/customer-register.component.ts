@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, ViewChild, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
@@ -15,11 +15,15 @@ export class CustomerRegisterComponent {
   private authService = inject(AuthService);
   private router = inject(Router);
 
+  @ViewChild('termsContent') termsContent?: ElementRef;
+
   registerForm: FormGroup;
   isLoading = false;
   errorMessage = '';
   successMessage = '';
   showPassword = false;
+  showTermsModal = false;
+  hasScrolledToBottom = false;
 
   constructor() {
     this.registerForm = this.fb.group({
@@ -74,6 +78,28 @@ export class CustomerRegisterComponent {
         this.isLoading = false;
       }
     });
+  }
+
+  openTermsModal(): void {
+    this.showTermsModal = true;
+    this.hasScrolledToBottom = false;
+  }
+
+  closeTermsModal(): void {
+    this.showTermsModal = false;
+  }
+
+  onTermsScroll(event: any): void {
+    const element = event.target;
+    const atBottom = element.scrollHeight - element.scrollTop <= element.clientHeight + 50;
+    if (atBottom && !this.hasScrolledToBottom) {
+      this.hasScrolledToBottom = true;
+    }
+  }
+
+  acceptTermsAndClose(): void {
+    this.registerForm.patchValue({ acceptTerms: true });
+    this.closeTermsModal();
   }
 
   goToTerms(): void {
