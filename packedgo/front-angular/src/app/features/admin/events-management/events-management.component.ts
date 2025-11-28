@@ -38,10 +38,17 @@ export class EventsManagementComponent implements OnInit {
   selectedConsumptions: number[] = [];
   eventForm: FormGroup;
   searchTerm = '';
+  selectedCategoryFilter: number | null = null;
   showModal = false;
   isEditMode = false;
   currentEventId?: number;
   currentEvent?: Event;
+  
+  // Pagination
+  currentPage = 1;
+  itemsPerPage = 12; // 4 columnas x 3 filas
+  totalPages = 1;
+  paginatedEvents: Event[] = [];
   
   // Image Upload
   imageUploadOption: 'url' | 'upload' = 'url';
@@ -200,6 +207,7 @@ export class EventsManagementComponent implements OnInit {
             // Una vez completado el geocoding, mostrar los eventos
             this.events = activeEvents;
             this.filteredEvents = activeEvents;
+            this.updatePagination();
             this.isLoading = false;
             this.cdr.detectChanges();
           }
@@ -214,16 +222,81 @@ export class EventsManagementComponent implements OnInit {
   }
 
   searchEvents(): void {
-    if (!this.searchTerm.trim()) {
-      this.filteredEvents = this.events;
-      return;
+    let filtered = this.events;
+
+    // Filtrar por categoría
+    if (this.selectedCategoryFilter !== null) {
+      filtered = filtered.filter(e => e.categoryId === this.selectedCategoryFilter);
     }
 
-    const term = this.searchTerm.toLowerCase();
-    this.filteredEvents = this.events.filter(event => 
-      event.name.toLowerCase().includes(term) ||
-      event.description.toLowerCase().includes(term)
-    );
+    // Filtrar por término de búsqueda
+    if (this.searchTerm.trim()) {
+      const term = this.searchTerm.toLowerCase();
+      filtered = filtered.filter(event => 
+        event.name.toLowerCase().includes(term) ||
+        event.description.toLowerCase().includes(term)
+      );
+    }
+
+    this.filteredEvents = filtered;
+    this.currentPage = 1; // Reset a la primera página
+    this.updatePagination();
+  }
+
+  filterByCategory(categoryId: number | null): void {
+    this.selectedCategoryFilter = categoryId;
+    this.searchEvents();
+  }
+
+  // Paginación
+  updatePagination(): void {
+    this.totalPages = Math.ceil(this.filteredEvents.length / this.itemsPerPage);
+    this.updatePaginatedItems();
+  }
+
+  updatePaginatedItems(): void {
+    const startIndex = (this.currentPage - 1) * this.itemsPerPage;
+    const endIndex = startIndex + this.itemsPerPage;
+    this.paginatedEvents = this.filteredEvents.slice(startIndex, endIndex);
+  }
+
+  goToPage(page: number): void {
+    if (page >= 1 && page <= this.totalPages) {
+      this.currentPage = page;
+      this.updatePaginatedItems();
+      // Scroll suave hacia arriba
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }
+
+  get pageNumbers(): number[] {
+    const pages: number[] = [];
+    const maxVisible = 5;
+    
+    if (this.totalPages <= maxVisible) {
+      for (let i = 1; i <= this.totalPages; i++) {
+        pages.push(i);
+      }
+    } else {
+      if (this.currentPage <= 3) {
+        for (let i = 1; i <= 4; i++) pages.push(i);
+        pages.push(-1); // Ellipsis
+        pages.push(this.totalPages);
+      } else if (this.currentPage >= this.totalPages - 2) {
+        pages.push(1);
+        pages.push(-1);
+        for (let i = this.totalPages - 3; i <= this.totalPages; i++) pages.push(i);
+      } else {
+        pages.push(1);
+        pages.push(-1);
+        pages.push(this.currentPage - 1);
+        pages.push(this.currentPage);
+        pages.push(this.currentPage + 1);
+        pages.push(-1);
+        pages.push(this.totalPages);
+      }
+    }
+    return pages;
   }
 
   openCreateModal(): void {

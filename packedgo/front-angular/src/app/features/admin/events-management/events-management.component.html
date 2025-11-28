@@ -68,17 +68,31 @@
         </button>
       </div>
 
-      <!-- Search Bar -->
+      <!-- Search Bar & Category Filter -->
       <div class="search-section">
-        <div class="search-wrapper">
-          <i class="bi bi-search"></i>
-          <input 
-            type="text" 
-            class="form-control search-input" 
-            placeholder="Buscar eventos por nombre o descripción..."
-            [(ngModel)]="searchTerm"
-            (input)="searchEvents()"
-          />
+        <div class="filters-container">
+          <div class="search-wrapper">
+            <i class="bi bi-search"></i>
+            <input 
+              type="text" 
+              class="form-control search-input" 
+              placeholder="Buscar eventos por nombre o descripción..."
+              [(ngModel)]="searchTerm"
+              (input)="searchEvents()"
+            />
+          </div>
+          <div class="category-filter">
+            <select 
+              class="form-control filter-select"
+              [(ngModel)]="selectedCategoryFilter"
+              (change)="filterByCategory(selectedCategoryFilter)"
+            >
+              <option [ngValue]="null">🏷️ Todas las categorías</option>
+              <option *ngFor="let category of categories" [ngValue]="category.id">
+                {{ category.name }}
+              </option>
+            </select>
+          </div>
         </div>
       </div>
 
@@ -95,9 +109,14 @@
         <div *ngIf="filteredEvents.length === 0" class="no-results">
           <i class="bi bi-calendar-x"></i>
           <h3>No se encontraron eventos</h3>
-          <p *ngIf="searchTerm">Intenta con otros términos de búsqueda</p>
-          <p *ngIf="!searchTerm">Aún no hay eventos creados. ¡Crea el primero!</p>
+          <p *ngIf="searchTerm || selectedCategoryFilter">Intenta con otros términos de búsqueda o filtros</p>
+          <p *ngIf="!searchTerm && !selectedCategoryFilter">Aún no hay eventos creados. ¡Crea el primero!</p>
         </div>
+
+      <!-- Info de resultados -->
+      <div class="results-info" *ngIf="filteredEvents.length > 0">
+        <span>Mostrando {{ paginatedEvents.length }} de {{ filteredEvents.length }} eventos</span>
+      </div>
 
       <table *ngIf="filteredEvents.length > 0" class="table">
         <thead>
@@ -115,7 +134,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let event of filteredEvents">
+          <tr *ngFor="let event of paginatedEvents">
             <td>
               <img 
                 *ngIf="event.hasImageData || event.imageUrl"
@@ -202,6 +221,35 @@
           </tr>
         </tbody>
       </table>
+
+      <!-- Paginación -->
+      <div class="pagination" *ngIf="totalPages > 1 && filteredEvents.length > 0">
+        <button 
+          class="page-btn"
+          [disabled]="currentPage === 1"
+          (click)="goToPage(currentPage - 1)"
+        >
+          <i class="bi bi-chevron-left"></i>
+        </button>
+
+        <button 
+          *ngFor="let page of pageNumbers"
+          class="page-btn"
+          [class.active]="page === currentPage"
+          [disabled]="page === -1"
+          (click)="page !== -1 && goToPage(page)"
+        >
+          {{ page === -1 ? '...' : page }}
+        </button>
+
+        <button 
+          class="page-btn"
+          [disabled]="currentPage === totalPages"
+          (click)="goToPage(currentPage + 1)"
+        >
+          <i class="bi bi-chevron-right"></i>
+        </button>
+      </div>
     </div>
     </div>
     <!-- END: EVENTS TAB -->
