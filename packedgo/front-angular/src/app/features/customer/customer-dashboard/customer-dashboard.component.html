@@ -95,13 +95,6 @@
       </div>
 
       <div *ngIf="!isLoadingEvents" class="events-section">
-        <div class="section-header">
-          <h2>Eventos Disponibles</h2>
-          <div class="results-info" *ngIf="filteredEvents.length > 0">
-            Mostrando {{ paginatedEvents.length }} de {{ filteredEvents.length }} eventos
-          </div>
-        </div>
-        
         <div *ngIf="filteredEvents.length === 0" class="no-results">
           <i class="bi bi-calendar-x"></i>
           <h3>No se encontraron eventos</h3>
