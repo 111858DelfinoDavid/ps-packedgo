@@ -63,15 +63,29 @@
     <!-- CONSUMPTIONS TAB -->
     <div *ngIf="activeTab === 'consumptions'" class="tab-content">
       <div class="content-header">
-        <div class="search-wrapper">
-          <i class="bi bi-search"></i>
-          <input 
-            type="text" 
-            class="form-control search-input"
-            [(ngModel)]="searchTerm" 
-            (input)="filterConsumptions()"
-            placeholder="Buscar consumos..."
-          />
+        <div class="filters-container">
+          <div class="search-wrapper">
+            <i class="bi bi-search"></i>
+            <input 
+              type="text" 
+              class="form-control search-input"
+              [(ngModel)]="searchTerm" 
+              (input)="filterConsumptions()"
+              placeholder="Buscar consumos..."
+            />
+          </div>
+          <div class="category-filter">
+            <select 
+              class="form-control filter-select"
+              [(ngModel)]="selectedCategoryFilter"
+              (change)="filterByCategory(selectedCategoryFilter)"
+            >
+              <option [ngValue]="null">📂 Todas las categorías</option>
+              <option *ngFor="let category of consumptionCategories" [ngValue]="category.id">
+                {{ category.name }}
+              </option>
+            </select>
+          </div>
         </div>
         <button class="btn btn-create" (click)="openConsumptionModal()">
           <i class="bi bi-plus-circle"></i>
@@ -86,35 +100,72 @@
         <button class="btn btn-primary" (click)="openConsumptionModal()">Crear primer consumo</button>
       </div>
 
-      <div *ngIf="!isLoading && filteredConsumptions.length > 0" class="consumptions-grid">
-        <div *ngFor="let consumption of filteredConsumptions" class="consumption-card">
-          <div class="card-image">
-            <img 
-              *ngIf="consumption.imageUrl"
-              [src]="consumption.imageUrl" 
-              [alt]="consumption.name"
-              (error)="handleImageError($event)">
-            <div *ngIf="!consumption.imageUrl" class="placeholder-icon">
-              🍔
+      <div *ngIf="!isLoading && filteredConsumptions.length > 0">
+        <!-- Info de resultados -->
+        <div class="results-info">
+          <span>Mostrando {{ paginatedConsumptions.length }} de {{ filteredConsumptions.length }} consumos</span>
+        </div>
+
+        <!-- Grid de consumos paginados -->
+        <div class="consumptions-grid">
+          <div *ngFor="let consumption of paginatedConsumptions" class="consumption-card">
+            <div class="card-image">
+              <img 
+                *ngIf="consumption.imageUrl"
+                [src]="consumption.imageUrl" 
+                [alt]="consumption.name"
+                (error)="handleImageError($event)">
+              <div *ngIf="!consumption.imageUrl" class="placeholder-icon">
+                🍔
+              </div>
+              <span class="status-badge" [class.inactive]="!consumption.active">
+                {{ consumption.active ? 'Activo' : 'Inactivo' }}
+              </span>
             </div>
-            <span class="status-badge" [class.inactive]="!consumption.active">
-              {{ consumption.active ? 'Activo' : 'Inactivo' }}
-            </span>
+            <div class="card-body">
+              <h3 class="consumption-name">{{ consumption.name }}</h3>
+              <p class="consumption-category">{{ getCategoryName(consumption.categoryId) }}</p>
+              <p class="consumption-description">{{ consumption.description || 'Sin descripción' }}</p>
+              <div class="consumption-price">${{ consumption.price }}</div>
+            </div>
+            <div class="card-actions">
+              <button class="btn-icon btn-edit" (click)="openConsumptionModal(consumption)" title="Editar">
+                ✏️
+              </button>
+              <button class="btn-icon btn-delete" (click)="deleteConsumption(consumption.id!)" title="Eliminar">
+                🗑️
+              </button>
+            </div>
           </div>
-          <div class="card-body">
-            <h3 class="consumption-name">{{ consumption.name }}</h3>
-            <p class="consumption-category">{{ getCategoryName(consumption.categoryId) }}</p>
-            <p class="consumption-description">{{ consumption.description || 'Sin descripción' }}</p>
-            <div class="consumption-price">${{ consumption.price }}</div>
-          </div>
-          <div class="card-actions">
-            <button class="btn-icon btn-edit" (click)="openConsumptionModal(consumption)" title="Editar">
-              ✏️
-            </button>
-            <button class="btn-icon btn-delete" (click)="deleteConsumption(consumption.id!)" title="Eliminar">
-              🗑️
-            </button>
-          </div>
+        </div>
+
+        <!-- Paginación -->
+        <div class="pagination" *ngIf="totalPages > 1">
+          <button 
+            class="page-btn"
+            [disabled]="currentPage === 1"
+            (click)="goToPage(currentPage - 1)"
+          >
+            <i class="bi bi-chevron-left"></i>
+          </button>
+
+          <button 
+            *ngFor="let page of pageNumbers"
+            class="page-btn"
+            [class.active]="page === currentPage"
+            [disabled]="page === -1"
+            (click)="page !== -1 && goToPage(page)"
+          >
+            {{ page === -1 ? '...' : page }}
+          </button>
+
+          <button 
+            class="page-btn"
+            [disabled]="currentPage === totalPages"
+            (click)="goToPage(currentPage + 1)"
+          >
+            <i class="bi bi-chevron-right"></i>
+          </button>
         </div>
       </div>
     </div>

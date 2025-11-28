@@ -41,8 +41,15 @@ export class ConsumptionsManagementComponent implements OnInit {
   categoryForm: ConsumptionCategory = this.getEmptyCategory();
   isEditMode = false;
   
-  // Search
+  // Search & Filter
   searchTerm = '';
+  selectedCategoryFilter: number | null = null;
+  
+  // Pagination
+  currentPage = 1;
+  itemsPerPage = 12; // 4 columnas x 3 filas
+  totalPages = 1;
+  paginatedConsumptions: Consumption[] = [];
 
   constructor(private eventService: EventService) {}
 
@@ -61,6 +68,7 @@ export class ConsumptionsManagementComponent implements OnInit {
       next: (data) => {
         this.consumptions = data;
         this.filteredConsumptions = data;
+        this.updatePagination();
         this.isLoading = false;
       },
       error: (error) => {
@@ -267,16 +275,81 @@ export class ConsumptionsManagementComponent implements OnInit {
   }
 
   filterConsumptions(): void {
-    if (!this.searchTerm.trim()) {
-      this.filteredConsumptions = this.consumptions;
-      return;
+    let filtered = this.consumptions;
+
+    // Filtrar por categoría
+    if (this.selectedCategoryFilter !== null) {
+      filtered = filtered.filter(c => c.categoryId === this.selectedCategoryFilter);
     }
 
-    const term = this.searchTerm.toLowerCase();
-    this.filteredConsumptions = this.consumptions.filter(c =>
-      c.name.toLowerCase().includes(term) ||
-      c.description?.toLowerCase().includes(term)
-    );
+    // Filtrar por término de búsqueda
+    if (this.searchTerm.trim()) {
+      const term = this.searchTerm.toLowerCase();
+      filtered = filtered.filter(c =>
+        c.name.toLowerCase().includes(term) ||
+        c.description?.toLowerCase().includes(term)
+      );
+    }
+
+    this.filteredConsumptions = filtered;
+    this.currentPage = 1; // Reset a la primera página
+    this.updatePagination();
+  }
+
+  filterByCategory(categoryId: number | null): void {
+    this.selectedCategoryFilter = categoryId;
+    this.filterConsumptions();
+  }
+
+  // Paginación
+  updatePagination(): void {
+    this.totalPages = Math.ceil(this.filteredConsumptions.length / this.itemsPerPage);
+    this.updatePaginatedItems();
+  }
+
+  updatePaginatedItems(): void {
+    const startIndex = (this.currentPage - 1) * this.itemsPerPage;
+    const endIndex = startIndex + this.itemsPerPage;
+    this.paginatedConsumptions = this.filteredConsumptions.slice(startIndex, endIndex);
+  }
+
+  goToPage(page: number): void {
+    if (page >= 1 && page <= this.totalPages) {
+      this.currentPage = page;
+      this.updatePaginatedItems();
+      // Scroll suave hacia arriba
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }
+
+  get pageNumbers(): number[] {
+    const pages: number[] = [];
+    const maxVisible = 5;
+    
+    if (this.totalPages <= maxVisible) {
+      for (let i = 1; i <= this.totalPages; i++) {
+        pages.push(i);
+      }
+    } else {
+      if (this.currentPage <= 3) {
+        for (let i = 1; i <= 4; i++) pages.push(i);
+        pages.push(-1); // Ellipsis
+        pages.push(this.totalPages);
+      } else if (this.currentPage >= this.totalPages - 2) {
+        pages.push(1);
+        pages.push(-1);
+        for (let i = this.totalPages - 3; i <= this.totalPages; i++) pages.push(i);
+      } else {
+        pages.push(1);
+        pages.push(-1);
+        pages.push(this.currentPage - 1);
+        pages.push(this.currentPage);
+        pages.push(this.currentPage + 1);
+        pages.push(-1);
+        pages.push(this.totalPages);
+      }
+    }
+    return pages;
   }
 
   getCategoryName(categoryId: number): string {
