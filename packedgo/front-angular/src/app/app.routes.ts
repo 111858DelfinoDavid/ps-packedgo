@@ -19,6 +19,12 @@ export const routes: Routes = [
     pathMatch: 'full'
   },
   
+  // Public event exploration (no auth required)
+  {
+    path: 'events',
+    loadComponent: () => import('./features/events-explore/events-explore.component').then(m => m.EventsExploreComponent)
+  },
+  
   // Terms and Privacy
   {
     path: 'terms',

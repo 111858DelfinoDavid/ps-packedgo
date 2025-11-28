@@ -24,6 +24,10 @@ export class LandingComponent {
     this.router.navigate(['/customer/register']);
   }
 
+  goToExploreEvents(): void {
+    this.router.navigate(['/events']);
+  }
+
   goToEvents(): void {
     this.router.navigate(['/customer/dashboard']);
   }
