@@ -34,6 +34,11 @@ export class EventDetailComponent implements OnInit {
   // Selected consumptions with quantities
   selectedConsumptions: Map<number, number> = new Map();
   
+  // Consumptions carousel pagination
+  currentConsumptionIndex = 0;
+  itemsPerPage = 3;
+  consumptionSearchTerm = '';
+  
   // Geocoding & Map modal
   private addressCache = new Map<string, string>();
   showMapModal = false;
@@ -342,5 +347,63 @@ export class EventDetailComponent implements OnInit {
     if (event.key === 'Escape') {
       this.closeMapModal();
     }
+  }
+
+  // Consumptions carousel methods
+  getVisibleConsumptions(): Consumption[] {
+    const filtered = this.getFilteredConsumptions();
+    const start = this.currentConsumptionIndex;
+    const end = start + this.itemsPerPage;
+    return filtered.slice(start, end);
+  }
+
+  getFilteredConsumptions(): Consumption[] {
+    if (!this.event?.availableConsumptions) return [];
+    
+    if (!this.consumptionSearchTerm.trim()) {
+      return this.event.availableConsumptions;
+    }
+    
+    const searchLower = this.consumptionSearchTerm.toLowerCase();
+    return this.event.availableConsumptions.filter(c => 
+      c.name.toLowerCase().includes(searchLower) ||
+      (c.description && c.description.toLowerCase().includes(searchLower))
+    );
+  }
+
+  onConsumptionSearch(): void {
+    this.currentConsumptionIndex = 0;
+  }
+
+  prevConsumption(): void {
+    if (this.currentConsumptionIndex > 0) {
+      this.currentConsumptionIndex = Math.max(0, this.currentConsumptionIndex - this.itemsPerPage);
+    }
+  }
+
+  nextConsumption(): void {
+    const filtered = this.getFilteredConsumptions();
+    const maxIndex = filtered.length - this.itemsPerPage;
+    if (this.currentConsumptionIndex < maxIndex) {
+      this.currentConsumptionIndex = Math.min(maxIndex, this.currentConsumptionIndex + this.itemsPerPage);
+    }
+  }
+
+  getTotalPages(): number {
+    if (!this.event?.availableConsumptions) return 0;
+    return Math.ceil(this.event.availableConsumptions.length / this.itemsPerPage);
+  }
+
+  getCurrentPage(): number {
+    return Math.floor(this.currentConsumptionIndex / this.itemsPerPage);
+  }
+
+  getPageIndicators(): number[] {
+    const totalPages = this.getTotalPages();
+    return Array.from({ length: totalPages }, (_, i) => i);
+  }
+
+  goToPage(page: number): void {
+    this.currentConsumptionIndex = page * this.itemsPerPage;
   }
 }

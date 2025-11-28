@@ -22,24 +22,22 @@
       <i class="bi bi-arrow-left"></i> Volver
     </button>
 
-    <!-- Event Header -->
-    <div class="event-header">
-      <div class="event-image-large">
+    <!-- Event Info Section -->
+    <div class="event-info-section">
+      <!-- Image Column -->
+      <div class="event-image-column">
         <img [src]="getEventImageSrc()" [alt]="event.name" />
-        <div class="event-date-badge">
-          <i class="bi bi-calendar-event"></i>
-          {{ event.eventDate | date: 'dd/MM/yyyy HH:mm' }}
-        </div>
       </div>
 
-      <div class="event-info">
+      <!-- Event Details Column -->
+      <div class="event-details-column">
         <h1>{{ event.name }}</h1>
         <p class="event-description">{{ event.description }}</p>
 
         <div class="event-meta">
           <div class="meta-item">
-            <i class="bi bi-people-fill"></i>
-            <span>{{ event.availablePasses || event.maxCapacity }} pases disponibles</span>
+            <i class="bi bi-calendar-event"></i>
+            <span>{{ event.eventDate | date: 'dd/MM/yyyy HH:mm' }}</span>
           </div>
           <div class="meta-item">
             <i class="bi bi-geo-alt-fill"></i>
@@ -53,8 +51,7 @@
           </div>
         </div>
 
-        <!-- Price & Add to Cart Section -->
-        <div class="purchase-section">
+        <div class="price-quantity-section">
           <div class="price-tag">
             <span class="price-label">Precio:</span>
             <span class="price-amount">{{ event.basePrice | currency: 'USD':'symbol':'1.2-2' }}</span>
@@ -83,21 +80,44 @@
               Máximo: {{ getMaxQuantity() }} entrada(s)
             </small>
           </div>
+        </div>
+      </div>
+    </div>
 
-          <!-- Available Consumptions Section -->
-          <div class="consumptions-section" *ngIf="event.availableConsumptions && event.availableConsumptions.length > 0">
-            <h3 class="consumptions-title">
-              <i class="bi bi-cup-straw"></i>
-              Consumos Disponibles
-            </h3>
-            <p class="consumptions-subtitle">Agrega consumos opcionales a tu compra</p>
-            
-            <div class="consumptions-grid">
-              <div 
-                *ngFor="let consumption of event.availableConsumptions"
-                class="consumption-card"
-                [class.selected]="isConsumptionSelected(consumption.id!)"
+    <!-- Consumptions Section -->
+    <div class="consumptions-wrapper" *ngIf="event.availableConsumptions && event.availableConsumptions.length > 0">
+      <h3 class="consumptions-title">
+        <i class="bi bi-cup-straw"></i>
+        Consumos Disponibles
+      </h3>
+      <p class="consumptions-subtitle">Agrega consumos opcionales a tu compra</p>
+      
+      <div class="consumption-search-wrapper">
+        <i class="bi bi-search search-icon"></i>
+        <input 
+          type="text" 
+          class="consumption-search-input"
+          placeholder="Buscar consumo..."
+          [(ngModel)]="consumptionSearchTerm"
+          (input)="onConsumptionSearch()"
+        />
+      </div>
+      
+      <div class="consumptions-carousel">
+              <button 
+                class="carousel-btn prev"
+                (click)="prevConsumption()"
+                [disabled]="currentConsumptionIndex === 0"
               >
+                <i class="bi bi-chevron-left"></i>
+              </button>
+
+              <div class="consumptions-display">
+                <div 
+                  *ngFor="let consumption of getVisibleConsumptions()"
+                  class="consumption-card"
+                  [class.selected]="isConsumptionSelected(consumption.id!)"
+                >
                 <div class="consumption-image" *ngIf="consumption.imageUrl">
                   <img [src]="consumption.imageUrl" [alt]="consumption.name">
                 </div>
@@ -141,23 +161,32 @@
                 </div>
               </div>
             </div>
-          </div>
 
-          <div class="total-price">
-            <span class="total-label">Total:</span>
-            <span class="total-amount">{{ getTotalPrice() | currency: 'USD':'symbol':'1.2-2' }}</span>
-          </div>
-
-          <button 
-            class="btn-add-to-cart" 
-            (click)="addToCart()"
-            [disabled]="isAddingToCart"
-          >
-            <i class="bi bi-cart-plus"></i>
-            {{ isAddingToCart ? 'Agregando...' : 'Agregar al Carrito' }}
-          </button>
-        </div>
+        <button 
+          class="carousel-btn next"
+          (click)="nextConsumption()"
+          [disabled]="currentConsumptionIndex >= getFilteredConsumptions().length - itemsPerPage"
+        >
+          <i class="bi bi-chevron-right"></i>
+        </button>
       </div>
+    </div>
+
+    <!-- Cart Actions Section -->
+    <div class="cart-actions-section">
+      <div class="total-price">
+        <span class="total-label">Total:</span>
+        <span class="total-amount">{{ getTotalPrice() | currency: 'USD':'symbol':'1.2-2' }}</span>
+      </div>
+
+      <button 
+        class="btn-add-to-cart" 
+        (click)="addToCart()"
+        [disabled]="isAddingToCart"
+      >
+        <i class="bi bi-cart-plus"></i>
+        {{ isAddingToCart ? 'Agregando...' : 'Agregar al Carrito' }}
+      </button>
     </div>
   </div>
 </div>

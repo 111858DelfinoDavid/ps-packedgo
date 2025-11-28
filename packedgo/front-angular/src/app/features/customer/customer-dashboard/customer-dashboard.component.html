@@ -109,10 +109,6 @@
           >
             <div class="event-image">
               <img [src]="event.imageUrl || 'https://via.placeholder.com/400x250?text=Evento'" [alt]="event.name" />
-              <div class="event-badge">
-                <i class="bi bi-calendar-event"></i>
-                {{ event.eventDate | date: 'dd/MM/yyyy' }}
-              </div>
             </div>
 
             <div class="event-content">
