@@ -44,7 +44,14 @@ export class CustomerDashboardComponent implements OnInit, OnDestroy {
   isLoadingEvents = true;
   events: Event[] = [];
   allEvents: Event[] = [];
+  filteredEvents: Event[] = [];
+  paginatedEvents: Event[] = [];
   searchTerm = '';
+  selectedCategoryFilter: number | null = null;
+  currentPage = 1;
+  itemsPerPage = 12;
+  totalPages = 1;
+  categories: any[] = [];
   private addressCache = new Map<string, string>();
 
   // Cart Section
@@ -116,6 +123,7 @@ export class CustomerDashboardComponent implements OnInit, OnDestroy {
       }
     });
     
+    this.loadEventCategories();
     this.loadEvents();
     
     // Suscribirse a cambios del carrito
@@ -147,6 +155,17 @@ export class CustomerDashboardComponent implements OnInit, OnDestroy {
   }
 
   // ==================== EVENTS SECTION ====================
+  loadEventCategories(): void {
+    this.eventService.getActiveEventCategories().subscribe({
+      next: (categories) => {
+        this.categories = categories;
+      },
+      error: (error) => {
+        console.error('Error cargando categorías:', error);
+      }
+    });
+  }
+
   loadEvents(): void {
     this.isLoadingEvents = true;
     this.eventService.getEvents().subscribe({
@@ -240,6 +259,7 @@ export class CustomerDashboardComponent implements OnInit, OnDestroy {
             console.log('✅ Geocodificación completada. Caché final:', this.addressCache);
             // Ahora sí mostrar los eventos con las ubicaciones ya resueltas
             this.events = [...this.allEvents];
+            this.filterEvents();
             this.isLoadingEvents = false;
             this.cdr.detectChanges();
           },
@@ -247,6 +267,7 @@ export class CustomerDashboardComponent implements OnInit, OnDestroy {
             console.error('❌ Error en proceso de geocodificación:', err);
             // Mostrar eventos aunque haya error
             this.events = [...this.allEvents];
+            this.filterEvents();
             this.isLoadingEvents = false;
             this.cdr.detectChanges();
           }
@@ -259,17 +280,85 @@ export class CustomerDashboardComponent implements OnInit, OnDestroy {
     });
   }
 
-  searchEvents(): void {
-    if (!this.searchTerm.trim()) {
-      this.events = [...this.allEvents];
-      return;
+  filterEvents(): void {
+    let filtered = [...this.allEvents];
+
+    // Aplicar filtro de búsqueda
+    if (this.searchTerm.trim()) {
+      const term = this.searchTerm.toLowerCase();
+      filtered = filtered.filter(event => 
+        event.name.toLowerCase().includes(term) ||
+        event.description.toLowerCase().includes(term)
+      );
     }
-    
-    const term = this.searchTerm.toLowerCase();
-    this.events = this.allEvents.filter(event => 
-      event.name.toLowerCase().includes(term) ||
-      event.description.toLowerCase().includes(term)
-    );
+
+    // Aplicar filtro de categoría
+    if (this.selectedCategoryFilter !== null) {
+      filtered = filtered.filter(event => event.category?.id === this.selectedCategoryFilter);
+    }
+
+    this.filteredEvents = filtered;
+    this.currentPage = 1;
+    this.updatePagination();
+  }
+
+  filterByCategory(): void {
+    this.filterEvents();
+  }
+
+  updatePagination(): void {
+    this.totalPages = Math.ceil(this.filteredEvents.length / this.itemsPerPage);
+    this.updatePaginatedItems();
+  }
+
+  updatePaginatedItems(): void {
+    const startIndex = (this.currentPage - 1) * this.itemsPerPage;
+    const endIndex = startIndex + this.itemsPerPage;
+    this.paginatedEvents = this.filteredEvents.slice(startIndex, endIndex);
+  }
+
+  goToPage(page: number): void {
+    if (page >= 1 && page <= this.totalPages) {
+      this.currentPage = page;
+      this.updatePaginatedItems();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }
+
+  get pageNumbers(): (number | string)[] {
+    const pages: (number | string)[] = [];
+    const maxVisible = 5;
+
+    if (this.totalPages <= maxVisible + 2) {
+      for (let i = 1; i <= this.totalPages; i++) {
+        pages.push(i);
+      }
+    } else {
+      pages.push(1);
+
+      if (this.currentPage > 3) {
+        pages.push('...');
+      }
+
+      const start = Math.max(2, this.currentPage - 1);
+      const end = Math.min(this.totalPages - 1, this.currentPage + 1);
+
+      for (let i = start; i <= end; i++) {
+        pages.push(i);
+      }
+
+      if (this.currentPage < this.totalPages - 2) {
+        pages.push('...');
+      }
+
+      pages.push(this.totalPages);
+    }
+
+    return pages;
+  }
+
+  searchEvents(): void {
+    this.filterEvents();
   }
 
   viewEventDetails(eventId: number): void {
