@@ -1,5 +1,10 @@
 package com.packed_go.event_service.services.impl;
 
+import java.util.List;
+
+import org.modelmapper.ModelMapper;
+import org.springframework.stereotype.Service;
+
 import com.packed_go.event_service.dtos.consumption.ConsumptionDTO;
 import com.packed_go.event_service.dtos.consumption.CreateConsumptionDTO;
 import com.packed_go.event_service.entities.Consumption;
@@ -7,12 +12,9 @@ import com.packed_go.event_service.entities.ConsumptionCategory;
 import com.packed_go.event_service.repositories.ConsumptionCategoryRepository;
 import com.packed_go.event_service.repositories.ConsumptionRepository;
 import com.packed_go.event_service.services.ConsumptionService;
+
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
-import org.modelmapper.ModelMapper;
-import org.springframework.stereotype.Service;
-
-import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -26,7 +28,7 @@ public class ConsumptionServiceImpl implements ConsumptionService {
     public ConsumptionDTO findById(Long id) {
         Consumption consumption = consumptionRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Consumption with id " + id + " not found"));
-        return modelMapper.map(consumption, ConsumptionDTO.class);
+        return mapToDTO(consumption);
     }
     
     /**
@@ -35,7 +37,7 @@ public class ConsumptionServiceImpl implements ConsumptionService {
     public ConsumptionDTO findByIdAndCreatedBy(Long id, Long createdBy) {
         Consumption consumption = consumptionRepository.findByIdAndCreatedBy(id, createdBy)
                 .orElseThrow(() -> new RuntimeException("Consumption not found or unauthorized"));
-        return modelMapper.map(consumption, ConsumptionDTO.class);
+        return mapToDTO(consumption);
     }
 
     @Override
@@ -43,7 +45,7 @@ public class ConsumptionServiceImpl implements ConsumptionService {
         // ⚠️ NOTA: Este método retorna TODAS las consumiciones sin filtrar
         // Se mantiene para compatibilidad pero debería usarse findByCreatedBy() en su lugar
         return consumptionRepository.findAll().stream()
-                .map(entity -> modelMapper.map(entity, ConsumptionDTO.class))
+                .map(this::mapToDTO)
                 .toList();
     }
     
@@ -52,7 +54,7 @@ public class ConsumptionServiceImpl implements ConsumptionService {
      */
     public List<ConsumptionDTO> findByCreatedBy(Long createdBy) {
         return consumptionRepository.findByCreatedBy(createdBy).stream()
-                .map(entity -> modelMapper.map(entity, ConsumptionDTO.class))
+                .map(this::mapToDTO)
                 .toList();
     }
 
@@ -61,7 +63,7 @@ public class ConsumptionServiceImpl implements ConsumptionService {
         // ⚠️ NOTA: Este método retorna TODAS las consumiciones activas sin filtrar
         // Se mantiene para compatibilidad pero debería usarse findByCreatedByAndActive() en su lugar
         return consumptionRepository.findByActiveIsTrue().stream()
-                .map(entity -> modelMapper.map(entity, ConsumptionDTO.class))
+                .map(this::mapToDTO)
                 .toList();
     }
     
@@ -70,8 +72,19 @@ public class ConsumptionServiceImpl implements ConsumptionService {
      */
     public List<ConsumptionDTO> findByCreatedByAndActive(Long createdBy) {
         return consumptionRepository.findByCreatedByAndActiveIsTrue(createdBy).stream()
-                .map(entity -> modelMapper.map(entity, ConsumptionDTO.class))
+                .map(this::mapToDTO)
                 .toList();
+    }
+    
+    /**
+     * Helper method para mapear Consumption entity a DTO con categoryId correcto
+     */
+    private ConsumptionDTO mapToDTO(Consumption consumption) {
+        ConsumptionDTO dto = modelMapper.map(consumption, ConsumptionDTO.class);
+        if (consumption.getCategory() != null) {
+            dto.setCategoryId(consumption.getCategory().getId());
+        }
+        return dto;
     }
 
     @Override
@@ -88,9 +101,7 @@ public class ConsumptionServiceImpl implements ConsumptionService {
         consumption.setCategory(category);
         consumption.setActive(true); // siempre activo al crear
         Consumption savedConsumption = consumptionRepository.save(consumption);
-        ConsumptionDTO consumptionDTO=modelMapper.map(savedConsumption,ConsumptionDTO.class);
-        consumptionDTO.setCategoryId(savedConsumption.getCategory().getId());
-        return consumptionDTO;
+        return mapToDTO(savedConsumption);
     }
     
     /**
@@ -108,9 +119,7 @@ public class ConsumptionServiceImpl implements ConsumptionService {
         consumption.setActive(true);
         
         Consumption savedConsumption = consumptionRepository.save(consumption);
-        ConsumptionDTO consumptionDTO = modelMapper.map(savedConsumption, ConsumptionDTO.class);
-        consumptionDTO.setCategoryId(savedConsumption.getCategory().getId());
-        return consumptionDTO;
+        return mapToDTO(savedConsumption);
     }
 
     @Override
@@ -132,7 +141,7 @@ public class ConsumptionServiceImpl implements ConsumptionService {
         modelMapper.map(dto, existingConsumption);
 
         Consumption updatedConsumption = consumptionRepository.save(existingConsumption);
-        return modelMapper.map(updatedConsumption, ConsumptionDTO.class);
+        return mapToDTO(updatedConsumption);
     }
     
     /**
@@ -158,7 +167,7 @@ public class ConsumptionServiceImpl implements ConsumptionService {
         existingConsumption.setActive(dto.isActive());
 
         Consumption updatedConsumption = consumptionRepository.save(existingConsumption);
-        return modelMapper.map(updatedConsumption, ConsumptionDTO.class);
+        return mapToDTO(updatedConsumption);
     }
 
     @Override
@@ -195,7 +204,7 @@ public class ConsumptionServiceImpl implements ConsumptionService {
         existingConsumption.setActive(false);
         Consumption updatedConsumption = consumptionRepository.save(existingConsumption);
 
-        return modelMapper.map(updatedConsumption, ConsumptionDTO.class);
+        return mapToDTO(updatedConsumption);
     }
     
     /**
@@ -210,6 +219,6 @@ public class ConsumptionServiceImpl implements ConsumptionService {
         existingConsumption.setActive(false);
         Consumption updatedConsumption = consumptionRepository.save(existingConsumption);
 
-        return modelMapper.map(updatedConsumption, ConsumptionDTO.class);
+        return mapToDTO(updatedConsumption);
     }
 }
