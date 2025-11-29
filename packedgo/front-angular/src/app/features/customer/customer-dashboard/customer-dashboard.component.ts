@@ -198,6 +198,7 @@ export class CustomerDashboardComponent implements OnInit, OnDestroy {
         if (eventsNeedingGeocode.length === 0) {
           console.log('✅ Todos los eventos tienen locationName, mostrando inmediatamente');
           this.events = [...this.allEvents];
+          this.filterEvents(); // IMPORTANTE: llamar a filterEvents para poblar filteredEvents y paginatedEvents
           this.isLoadingEvents = false;
           this.cdr.detectChanges();
           return;
@@ -694,18 +695,34 @@ export class CustomerDashboardComponent implements OnInit, OnDestroy {
     }
     
     console.log('🎟️ Cargando tickets para usuario:', userId);
+    console.log('🔑 Usuario actual:', this.currentUser);
+    console.log('🔑 Token disponible:', !!this.authService.getToken());
     
     this.ticketService.getUserTickets(userId).subscribe({
       next: (tickets) => {
         console.log('✅ Tickets cargados:', tickets);
+        console.log('✅ Cantidad de tickets:', tickets.length);
         this.myTickets = tickets;
         this.isLoadingTickets = false;
       },
       error: (error) => {
         console.error('❌ Error cargando tickets:', error);
+        console.error('❌ Status:', error.status);
+        console.error('❌ Mensaje:', error.error);
         this.myTickets = [];
         this.isLoadingTickets = false;
-        Swal.fire('Error', 'Error al cargar tus entradas: ' + (error.error?.message || error.message), 'error');
+        
+        // Mensaje más específico según el error
+        let errorMsg = 'Error al cargar tus entradas';
+        if (error.status === 401 || error.status === 403) {
+          errorMsg = 'Tu sesión ha expirado. Por favor, inicia sesión nuevamente.';
+        } else if (error.status === 400) {
+          errorMsg = 'Error de autenticación. Por favor, cierra sesión e inicia sesión nuevamente.';
+        } else if (error.error?.message) {
+          errorMsg += ': ' + error.error.message;
+        }
+        
+        Swal.fire('Error', errorMsg, 'error');
       }
     });
   }
