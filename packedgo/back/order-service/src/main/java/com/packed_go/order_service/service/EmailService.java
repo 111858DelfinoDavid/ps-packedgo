@@ -122,6 +122,7 @@ public class EmailService {
                     info.setQrCode(qrCode);
                     info.setEventName(eventName);
                     info.setTicketNumber(ticketCounter++);
+                    info.setPassCode(ticket.getPassCode());
                     ticketsInfo.add(info);
                     log.debug("✅ Converted ticket #{} - QR: {}... for event: {}", 
                               ticketCounter - 1, 
@@ -140,7 +141,7 @@ public class EmailService {
     private void attachQRCodes(MimeMessageHelper helper, List<TicketInfo> tickets) throws MessagingException {
         for (TicketInfo ticket : tickets) {
             try {
-                byte[] qrImage = generateQRCodeImage(ticket.getQrCode());
+                byte[] qrImage = generateQRCodeImageWithCode(ticket.getQrCode(), ticket.getPassCode());
                 String cid = "qr" + ticket.getTicketNumber();
                 helper.addInline(cid, new ByteArrayResource(qrImage), "image/png");
             } catch (Exception e) {
@@ -171,6 +172,65 @@ public class EmailService {
 
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         ImageIO.write(qrImage, "PNG", baos);
+        return baos.toByteArray();
+    }
+
+    /**
+     * Genera una imagen QR con el código de pase (últimos 8 dígitos) debajo
+     */
+    private byte[] generateQRCodeImageWithCode(String qrText, String passCode) throws Exception {
+        // Primero generar el QR base
+        byte[] baseQRImage = generateQRCodeImage(qrText);
+        
+        // Cargar la imagen QR base
+        BufferedImage qrImage = ImageIO.read(new java.io.ByteArrayInputStream(baseQRImage));
+        
+        // Obtener los últimos 8 caracteres del código
+        String last8Digits = passCode != null && passCode.length() >= 8 
+            ? passCode.substring(passCode.length() - 8) 
+            : passCode;
+        
+        // Crear una nueva imagen más grande para incluir el texto
+        int margin = 40;
+        int textHeight = 50;
+        int newWidth = qrImage.getWidth() + (margin * 2);
+        int newHeight = qrImage.getHeight() + (margin * 2) + textHeight;
+        
+        BufferedImage finalImage = new BufferedImage(newWidth, newHeight, BufferedImage.TYPE_INT_RGB);
+        java.awt.Graphics2D g2d = finalImage.createGraphics();
+        
+        // Configurar renderizado de alta calidad
+        g2d.setRenderingHint(java.awt.RenderingHints.KEY_ANTIALIASING, java.awt.RenderingHints.VALUE_ANTIALIAS_ON);
+        g2d.setRenderingHint(java.awt.RenderingHints.KEY_TEXT_ANTIALIASING, java.awt.RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+        
+        // Fondo blanco
+        g2d.setColor(java.awt.Color.WHITE);
+        g2d.fillRect(0, 0, newWidth, newHeight);
+        
+        // Dibujar el QR centrado
+        int qrX = margin;
+        int qrY = margin;
+        g2d.drawImage(qrImage, qrX, qrY, null);
+        
+        // Dibujar el texto del código
+        g2d.setColor(java.awt.Color.BLACK);
+        g2d.setFont(new java.awt.Font("Arial", java.awt.Font.BOLD, 20));
+        
+        String codeText = "Código: " + last8Digits;
+        java.awt.FontMetrics fm = g2d.getFontMetrics();
+        int textWidth = fm.stringWidth(codeText);
+        int textX = (newWidth - textWidth) / 2;
+        int textY = qrImage.getHeight() + margin + 35;
+        
+        g2d.drawString(codeText, textX, textY);
+        
+        g2d.dispose();
+        
+        // Convertir a bytes
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        ImageIO.write(finalImage, "PNG", baos);
+        
+        log.debug("✅ Generated QR image with code: {}", last8Digits);
         return baos.toByteArray();
     }
 
@@ -306,6 +366,7 @@ public class EmailService {
         private String qrCode;
         private String eventName;
         private int ticketNumber;
+        private String passCode;
 
         public String getQrCode() { return qrCode; }
         public void setQrCode(String qrCode) { this.qrCode = qrCode; }
@@ -313,5 +374,7 @@ public class EmailService {
         public void setEventName(String eventName) { this.eventName = eventName; }
         public int getTicketNumber() { return ticketNumber; }
         public void setTicketNumber(int ticketNumber) { this.ticketNumber = ticketNumber; }
+        public String getPassCode() { return passCode; }
+        public void setPassCode(String passCode) { this.passCode = passCode; }
     }
 }
