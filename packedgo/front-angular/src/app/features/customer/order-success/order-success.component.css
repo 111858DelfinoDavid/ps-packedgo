@@ -654,3 +654,20 @@
   animation: spin 1s linear infinite;
 }
 
+/* ==================== LOCATION LINK STYLING ==================== */
+.location-link {
+  color: #1e40af !important;
+  text-decoration: underline !important;
+  cursor: pointer !important;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.location-link:hover {
+  color: #1e3a8a !important;
+  text-decoration: none !important;
+  background: rgba(30, 64, 175, 0.1);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+

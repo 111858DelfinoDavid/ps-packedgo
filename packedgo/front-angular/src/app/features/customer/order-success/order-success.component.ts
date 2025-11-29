@@ -237,4 +237,14 @@ export class OrderSuccessComponent implements OnInit {
   goToTickets(): void {
     this.router.navigate(['/customer/dashboard'], { queryParams: { tab: 'tickets' } });
   }
+
+  openTicketLocation(ticket: Ticket): void {
+    if (ticket.eventLat && ticket.eventLng) {
+      const url = `https://www.google.com/maps/search/?api=1&query=${ticket.eventLat},${ticket.eventLng}`;
+      window.open(url, '_blank');
+    } else if (ticket.eventLocationName) {
+      const url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(ticket.eventLocationName)}`;
+      window.open(url, '_blank');
+    }
+  }
 }

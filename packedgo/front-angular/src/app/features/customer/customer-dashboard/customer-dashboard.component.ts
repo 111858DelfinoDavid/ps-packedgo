@@ -717,6 +717,18 @@ export class CustomerDashboardComponent implements OnInit, OnDestroy {
     console.log('showQrModal:', this.showQrModal);
   }
 
+  openTicketLocation(ticket: Ticket): void {
+    if (ticket.eventLat && ticket.eventLng) {
+      const url = `https://www.google.com/maps/search/?api=1&query=${ticket.eventLat},${ticket.eventLng}`;
+      window.open(url, '_blank');
+    } else if (ticket.eventLocationName) {
+      const url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(ticket.eventLocationName)}`;
+      window.open(url, '_blank');
+    } else {
+      Swal.fire('Información', 'No hay ubicación disponible para este evento', 'info');
+    }
+  }
+
   closeQrModal(): void {
     console.log('❌ Cerrando modal QR');
     this.showQrModal = false;

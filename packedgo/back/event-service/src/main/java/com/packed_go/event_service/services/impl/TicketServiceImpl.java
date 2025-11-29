@@ -1,20 +1,9 @@
 package com.packed_go.event_service.services.impl;
 
-import com.packed_go.event_service.dtos.pass.PassDTO;
-import com.packed_go.event_service.dtos.ticket.ConsumptionItemDTO;
-import com.packed_go.event_service.dtos.ticket.CreateTicketDTO;
-import com.packed_go.event_service.dtos.ticket.CreateTicketWithConsumptionsRequest;
-import com.packed_go.event_service.dtos.ticket.TicketDTO;
-import com.packed_go.event_service.dtos.ticket.TicketWithConsumptionsResponse;
-import com.packed_go.event_service.dtos.ticketConsumption.TicketConsumptionDTO;
-import com.packed_go.event_service.dtos.ticketConsumptionDetail.TicketConsumptionDetailDTO;
-import com.packed_go.event_service.entities.*;
-import com.packed_go.event_service.repositories.*;
-import com.packed_go.event_service.services.TicketConsumptionService;
-import com.packed_go.event_service.services.TicketService;
-import com.packed_go.event_service.services.QRCodeService;
-import jakarta.transaction.Transactional;
-import lombok.RequiredArgsConstructor;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+
 import org.modelmapper.ModelMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,9 +12,32 @@ import org.springframework.retry.annotation.Recover;
 import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
+import com.packed_go.event_service.dtos.pass.PassDTO;
+import com.packed_go.event_service.dtos.ticket.ConsumptionItemDTO;
+import com.packed_go.event_service.dtos.ticket.CreateTicketDTO;
+import com.packed_go.event_service.dtos.ticket.CreateTicketWithConsumptionsRequest;
+import com.packed_go.event_service.dtos.ticket.TicketDTO;
+import com.packed_go.event_service.dtos.ticket.TicketWithConsumptionsResponse;
+import com.packed_go.event_service.dtos.ticketConsumption.TicketConsumptionDTO;
+import com.packed_go.event_service.dtos.ticketConsumptionDetail.TicketConsumptionDetailDTO;
+import com.packed_go.event_service.entities.Consumption;
+import com.packed_go.event_service.entities.Event;
+import com.packed_go.event_service.entities.Pass;
+import com.packed_go.event_service.entities.Ticket;
+import com.packed_go.event_service.entities.TicketConsumption;
+import com.packed_go.event_service.entities.TicketConsumptionDetail;
+import com.packed_go.event_service.repositories.ConsumptionRepository;
+import com.packed_go.event_service.repositories.EventRepository;
+import com.packed_go.event_service.repositories.PassRepository;
+import com.packed_go.event_service.repositories.TicketConsumptionDetailRepository;
+import com.packed_go.event_service.repositories.TicketConsumptionRepository;
+import com.packed_go.event_service.repositories.TicketRepository;
+import com.packed_go.event_service.services.QRCodeService;
+import com.packed_go.event_service.services.TicketConsumptionService;
+import com.packed_go.event_service.services.TicketService;
+
+import jakarta.transaction.Transactional;
+import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
@@ -185,12 +197,17 @@ public class TicketServiceImpl implements TicketService {
                 dto.setEventName(event.getName());
                 dto.setEventDate(event.getEventDate());
                 
-                // Formatear ubicación
+                // Formatear ubicación (mantener para compatibilidad)
                 String location = "";
                 if (event.getLat() != null && event.getLng() != null) {
                     location = event.getLat() + ", " + event.getLng();
                 }
                 dto.setEventLocation(location);
+                
+                // Mapear campos individuales de ubicación para Google Maps
+                dto.setEventLocationName(event.getLocationName());
+                dto.setEventLat(event.getLat());
+                dto.setEventLng(event.getLng());
             }
         }
         

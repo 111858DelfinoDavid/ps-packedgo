@@ -31,6 +31,9 @@ export interface Ticket {
   eventName: string;
   eventDate: string;
   eventLocation: string;
+  eventLocationName?: string; // Nombre del lugar
+  eventLat?: number; // Latitud para Google Maps
+  eventLng?: number; // Longitud para Google Maps
   active: boolean;
   redeemed: boolean;
   createdAt: string;

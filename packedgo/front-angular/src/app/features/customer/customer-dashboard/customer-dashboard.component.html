@@ -313,7 +313,14 @@
             </div>
             <div class="ticket-details">
               <p><strong>Fecha del evento:</strong> {{ ticket.eventDate | date: 'dd/MM/yyyy HH:mm' }}</p>
-              <p><strong>Ubicación:</strong> {{ ticket.eventLocation }}</p>
+              <p>
+                <strong>Ubicación:</strong> 
+                <span 
+                  class="location-link" 
+                  (click)="openTicketLocation(ticket)">
+                  {{ ticket.eventLocationName || ticket.eventLocation }}
+                </span>
+              </p>
               <p><strong>Código de pase:</strong> {{ ticket.passCode }}</p>
               <p><strong>Comprado el:</strong> {{ ticket.purchasedAt | date: 'dd/MM/yyyy HH:mm' }}</p>
               
