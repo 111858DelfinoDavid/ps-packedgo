@@ -14,6 +14,7 @@ interface Event {
   latitude?: number;
   longitude?: number;
   imageUrl?: string;
+  hasImageData?: boolean;
   category?: {
     id: number;
     name: string;
@@ -52,8 +53,26 @@ export class EventsExploreComponent implements OnInit, OnDestroy {
     this.http.get<Event[]>(`${apiUrl}/event-service/event`)
       .subscribe({
         next: (data) => {
-          // Filtrar solo eventos activos
-          this.events = data.filter(event => event.active);
+          // Filtrar solo eventos activos y procesar imágenes
+          this.events = data.filter(event => event.active).map(event => {
+            // Prioridad 1: imagen subida al servidor (archivo local)
+            if (event.hasImageData && event.id) {
+              return {
+                ...event,
+                imageUrl: `${apiUrl}/event-service/event/${event.id}/image`
+              };
+            }
+            // Prioridad 2: URL externa
+            if (event.imageUrl) {
+              return event;
+            }
+            // Prioridad 3: placeholder
+            return {
+              ...event,
+              imageUrl: 'https://via.placeholder.com/800x400?text=Sin+Imagen'
+            };
+          });
+          
           this.isLoading = false;
           if (this.events.length > 0) {
             this.startAutoPlay();
