@@ -45,4 +45,7 @@ public class EventDTO {
     
     // Consumptions disponibles (nuevo campo)
     private List<ConsumptionDTO> availableConsumptions;
+    
+    // IDs de consumptions a asociar/desasociar
+    private List<Long> consumptionIds;
 }

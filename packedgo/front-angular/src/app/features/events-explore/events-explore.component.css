@@ -294,6 +294,24 @@
   transform: translateX(5px);
 }
 
+.info-item-clickable {
+  cursor: pointer;
+}
+
+.info-item-clickable:hover {
+  background: #667eea;
+}
+
+.info-item-clickable:hover .info-label,
+.info-item-clickable:hover .info-value {
+  color: white;
+}
+
+.location-link {
+  text-decoration: underline;
+  font-weight: 600;
+}
+
 .info-icon {
   font-size: 1.4rem;
   min-width: 25px;

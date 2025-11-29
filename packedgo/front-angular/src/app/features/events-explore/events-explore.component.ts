@@ -11,6 +11,8 @@ interface Event {
   startTime: string;
   endTime: string;
   locationName: string;
+  latitude?: number;
+  longitude?: number;
   imageUrl?: string;
   category?: {
     id: number;
@@ -120,5 +122,15 @@ export class EventsExploreComponent implements OnInit, OnDestroy {
 
   goToLogin(): void {
     this.router.navigate(['/customer/login']);
+  }
+
+  openGoogleMaps(event: Event): void {
+    if (event.latitude && event.longitude) {
+      const url = `https://www.google.com/maps/search/?api=1&query=${event.latitude},${event.longitude}`;
+      window.open(url, '_blank');
+    } else if (event.locationName) {
+      const url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(event.locationName)}`;
+      window.open(url, '_blank');
+    }
   }
 }

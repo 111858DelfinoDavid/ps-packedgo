@@ -69,10 +69,10 @@ public class EventServiceImpl implements EventService {
             eventDTO.setCategoryId(event.getCategory().getId());
         }
         
-        // Cargar las consumptions del admin que creó el evento
-        if (event.getCreatedBy() != null) {
-            List<Consumption> consumptions = consumptionRepository.findByCreatedByAndActiveIsTrue(event.getCreatedBy());
-            List<ConsumptionDTO> consumptionDTOs = consumptions.stream()
+        // Cargar las consumptions asociadas al evento desde la tabla intermedia
+        if (event.getConsumptions() != null && !event.getConsumptions().isEmpty()) {
+            List<ConsumptionDTO> consumptionDTOs = event.getConsumptions().stream()
+                .filter(c -> c.isActive())
                 .map(c -> modelMapper.map(c, ConsumptionDTO.class))
                 .toList();
             eventDTO.setAvailableConsumptions(consumptionDTOs);
@@ -193,57 +193,72 @@ public class EventServiceImpl implements EventService {
 
     @Override
     public EventDTO updateEvent(Long id, EventDTO eventDto) {
-        Optional<Event> eventExist = eventRepository.findById(id);
-        if (eventExist.isPresent()) {
-            Event entity = eventExist.get();
+        Event entity = eventRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Event con id " + id + " no encontrado"));
 
-            // Validar que endTime > startTime
-            if (eventDto.getStartTime() != null && eventDto.getEndTime() != null) {
-                if (!eventDto.getEndTime().isAfter(eventDto.getStartTime())) {
-                    throw new IllegalArgumentException("La fecha y hora de finalización debe ser mayor que la de inicio");
+        // Validar que endTime > startTime
+        if (eventDto.getStartTime() != null && eventDto.getEndTime() != null) {
+            if (!eventDto.getEndTime().isAfter(eventDto.getStartTime())) {
+                throw new IllegalArgumentException("La fecha y hora de finalización debe ser mayor que la de inicio");
+            }
+        }
+
+        // Si viene una categoryId en el DTO, la buscamos y la asignamos
+        if (eventDto.getCategoryId() != null) {
+            EventCategory category = eventCategoryRepository.findById(eventDto.getCategoryId())
+                    .orElseThrow(() -> new RuntimeException("Category with id " + eventDto.getCategoryId() + " not found"));
+            entity.setCategory(category);
+        }
+
+        // Actualizamos los campos relevantes desde el DTO
+        if (eventDto.getName() != null) entity.setName(eventDto.getName());
+        if (eventDto.getDescription() != null) entity.setDescription(eventDto.getDescription());
+        if (eventDto.getEventDate() != null) entity.setEventDate(eventDto.getEventDate());
+        if (eventDto.getStartTime() != null) entity.setStartTime(eventDto.getStartTime());
+        if (eventDto.getEndTime() != null) entity.setEndTime(eventDto.getEndTime());
+        if (eventDto.getLat() != 0) entity.setLat(eventDto.getLat());
+        if (eventDto.getLng() != 0) entity.setLng(eventDto.getLng());
+        if (eventDto.getLocationName() != null) entity.setLocationName(eventDto.getLocationName());
+        if (eventDto.getMaxCapacity() != null) entity.setMaxCapacity(eventDto.getMaxCapacity());
+        if (eventDto.getCurrentCapacity() != null) entity.setCurrentCapacity(eventDto.getCurrentCapacity());
+        if (eventDto.getBasePrice() != null) entity.setBasePrice(eventDto.getBasePrice());
+        if (eventDto.getImageUrl() != null) entity.setImageUrl(eventDto.getImageUrl());
+        
+        // Solo actualizar status si viene en el DTO (no null)
+        if (eventDto.getStatus() != null) {
+            entity.setStatus(eventDto.getStatus());
+        }
+        
+        entity.setActive(eventDto.isActive());
+        // No tocar createdAt/createdBy para preservar histórico; actualizamos updatedAt
+        entity.setUpdatedAt(LocalDateTime.now());
+
+        // Campos de Pass (si vienen en el DTO)
+        if (eventDto.getTotalPasses() != null) entity.setTotalPasses(eventDto.getTotalPasses());
+        if (eventDto.getAvailablePasses() != null) entity.setAvailablePasses(eventDto.getAvailablePasses());
+        if (eventDto.getSoldPasses() != null) entity.setSoldPasses(eventDto.getSoldPasses());
+
+        // Actualizar consumiciones asociadas si vienen en el DTO
+        // SEGURIDAD MULTI-TENANT: Solo permitir consumiciones del mismo admin que creó el evento
+        if (eventDto.getConsumptionIds() != null) {
+            List<Consumption> consumptions = consumptionRepository.findAllById(eventDto.getConsumptionIds());
+            
+            // Validar que todas las consumiciones pertenecen al mismo admin que creó el evento
+            for (Consumption consumption : consumptions) {
+                if (!consumption.getCreatedBy().equals(entity.getCreatedBy())) {
+                    throw new IllegalArgumentException(
+                        "No se puede asociar la consumición '" + consumption.getName() + 
+                        "' porque pertenece a otro administrador"
+                    );
                 }
             }
-
-            // Si viene una categoryId en el DTO, la buscamos y la asignamos
-            if (eventDto.getCategoryId() != null) {
-                EventCategory category = eventCategoryRepository.findById(eventDto.getCategoryId())
-                        .orElseThrow(() -> new RuntimeException("Category with id " + eventDto.getCategoryId() + " not found"));
-                entity.setCategory(category);
-            }
-
-            // Actualizamos los campos relevantes desde el DTO
-            entity.setName(eventDto.getName());
-            entity.setDescription(eventDto.getDescription());
-            entity.setEventDate(eventDto.getEventDate());
-            entity.setStartTime(eventDto.getStartTime());
-            entity.setEndTime(eventDto.getEndTime());
-            entity.setLat(eventDto.getLat());
-            entity.setLng(eventDto.getLng());
-            entity.setLocationName(eventDto.getLocationName());
-            entity.setMaxCapacity(eventDto.getMaxCapacity());
-            entity.setCurrentCapacity(eventDto.getCurrentCapacity());
-            entity.setBasePrice(eventDto.getBasePrice());
-            entity.setImageUrl(eventDto.getImageUrl());
             
-            // Solo actualizar status si viene en el DTO (no null)
-            if (eventDto.getStatus() != null) {
-                entity.setStatus(eventDto.getStatus());
-            }
-            
-            entity.setActive(eventDto.isActive());
-            // No tocar createdAt/createdBy para preservar histórico; actualizamos updatedAt
-            entity.setUpdatedAt(LocalDateTime.now());
-
-            // Campos de Pass (si vienen en el DTO)
-            if (eventDto.getTotalPasses() != null) entity.setTotalPasses(eventDto.getTotalPasses());
-            if (eventDto.getAvailablePasses() != null) entity.setAvailablePasses(eventDto.getAvailablePasses());
-            if (eventDto.getSoldPasses() != null) entity.setSoldPasses(eventDto.getSoldPasses());
-
-            Event updatedEntity = eventRepository.save(entity);
-            return modelMapper.map(updatedEntity, EventDTO.class);
-        } else {
-            throw new RuntimeException("Event con id " + id + " no encontrado");
+            entity.getConsumptions().clear();
+            entity.getConsumptions().addAll(consumptions);
         }
+
+        Event updatedEntity = eventRepository.save(entity);
+        return mapEventToDTO(updatedEntity);
     }
 
     @Override

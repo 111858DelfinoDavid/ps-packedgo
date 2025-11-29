@@ -13,6 +13,8 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
+import jakarta.persistence.JoinTable;
+import jakarta.persistence.ManyToMany;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
@@ -82,8 +84,17 @@ public class Event {
     @OneToMany(mappedBy = "event", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<Pass> passes;
 
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+        name = "event_consumptions",
+        joinColumns = @JoinColumn(name = "event_id"),
+        inverseJoinColumns = @JoinColumn(name = "consumption_id")
+    )
+    private List<Consumption> consumptions = new ArrayList<>();
+
     @Version
-    private Long version;
+    @Column(nullable = false, columnDefinition = "BIGINT DEFAULT 0")
+    private Long version = 0L;
 
     // Constructor por defecto
     public Event() {
@@ -96,6 +107,8 @@ public class Event {
         this.soldPasses = 0;
         this.currentCapacity = 0;
         this.passes = new ArrayList<>();
+        this.consumptions = new ArrayList<>();
+        this.version = 0L;
     }
 
     // Métodos de utilidad para gestión de Pass

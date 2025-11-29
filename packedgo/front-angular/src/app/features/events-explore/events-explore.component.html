@@ -54,24 +54,15 @@
             <div class="info-item">
               <span class="info-icon">📅</span>
               <div class="info-text">
-                <span class="info-label">Inicio</span>
                 <span class="info-value">{{ formatDate(currentEvent.startTime) }}</span>
               </div>
             </div>
 
-            <div class="info-item">
-              <span class="info-icon">🏁</span>
-              <div class="info-text">
-                <span class="info-label">Fin</span>
-                <span class="info-value">{{ formatDate(currentEvent.endTime) }}</span>
-              </div>
-            </div>
-
-            <div class="info-item">
+            <div class="info-item info-item-clickable" (click)="openGoogleMaps(currentEvent)">
               <span class="info-icon">📍</span>
               <div class="info-text">
-                <span class="info-label">Ubicación</span>
-                <span class="info-value">{{ currentEvent.locationName }}</span>
+                <span class="info-label">UBICACIÓN</span>
+                <span class="info-value location-link">{{ currentEvent.locationName }}</span>
               </div>
             </div>
           </div>
