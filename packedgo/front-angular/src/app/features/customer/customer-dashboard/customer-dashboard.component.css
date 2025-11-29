@@ -97,6 +97,8 @@
 .ticket-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
 .ticket-header h4 { font-size: 1.2rem; margin: 0; }
 .ticket-status { background: rgba(255, 255, 255, 0.3); padding: 5px 15px; border-radius: 20px; font-size: 0.85rem; font-weight: 600; }
+.ticket-status.active { background: #22c55e; color: white; }
+.ticket-status.redeemed { background: #ef4444; color: white; }
 .ticket-qr { background: white; padding: 15px; border-radius: 8px; text-align: center; margin-bottom: 20px; }
 .ticket-qr img { max-width: 150px; height: auto; }
 .ticket-details { font-size: 0.95rem; }
