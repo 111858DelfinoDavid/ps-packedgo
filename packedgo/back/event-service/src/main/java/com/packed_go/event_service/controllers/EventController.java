@@ -92,11 +92,10 @@ public class EventController {
         Long userId = extractUserIdFromToken(authHeader);
         log.info("🔒 User {} fetching their own events", userId);
         
-        List<EventDTO> myEvents = service.findAll().stream()
-                .filter(event -> event.getCreatedBy().equals(userId))
-                .filter(event -> event.isActive()) // Solo eventos activos
-                .toList();
+        // Usar el servicio que mapea correctamente las consumiciones y categoría
+        List<EventDTO> myEvents = service.findByCreatedBy(userId);
         
+        log.info("🔍 Found {} events for user {}", myEvents.size(), userId);
         return ResponseEntity.ok(myEvents);
     }
 

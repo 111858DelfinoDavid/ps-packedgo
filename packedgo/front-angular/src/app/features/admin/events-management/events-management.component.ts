@@ -142,11 +142,6 @@ export class EventsManagementComponent implements OnInit {
     // Cargar eventos
     this.eventService.getEvents().subscribe({
       next: (events: any) => {
-        console.log('📦 Eventos recibidos del backend:', events);
-        events.forEach((e: Event) => {
-          console.log(`  - ${e.name}: locationName="${e.locationName}"`);
-        });
-        
         // Filtrar solo eventos activos
         const activeEvents = events.filter((event: Event) => event.active !== false);
         
@@ -159,6 +154,7 @@ export class EventsManagementComponent implements OnInit {
           // No hay eventos que necesiten geocoding, mostrar inmediatamente
           this.events = activeEvents;
           this.filteredEvents = activeEvents;
+          this.updatePagination();
           this.isLoading = false;
           this.cdr.detectChanges();
           return;
@@ -305,9 +301,14 @@ export class EventsManagementComponent implements OnInit {
     this.currentEvent = undefined;
     this.selectedConsumptions = [];
     this.eventForm.reset();
-    this.showModal = true;
     this.errorMessage = '';
     this.successMessage = '';
+    
+    // Usar setTimeout para evitar ExpressionChangedAfterItHasBeenCheckedError
+    setTimeout(() => {
+      this.showModal = true;
+      this.cdr.detectChanges();
+    }, 0);
   }
 
   openEditModal(event: Event): void {
@@ -353,9 +354,14 @@ export class EventsManagementComponent implements OnInit {
     this.imageUploadOption = event.hasImageData ? 'upload' : 'url';
     // NO limpiamos nada - conservamos tanto archivo como URL si existen
     
-    this.showModal = true;
     this.errorMessage = '';
     this.successMessage = '';
+    
+    // Usar setTimeout para evitar ExpressionChangedAfterItHasBeenCheckedError
+    setTimeout(() => {
+      this.showModal = true;
+      this.cdr.detectChanges();
+    }, 0);
   }
 
   closeModal(): void {

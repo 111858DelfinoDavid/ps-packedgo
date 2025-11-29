@@ -101,6 +101,14 @@ public class EventServiceImpl implements EventService {
     }
 
     @Override
+    public List<EventDTO> findByCreatedBy(Long createdBy) {
+        List<Event> eventEntities = eventRepository.findByCreatedBy(createdBy);
+        return eventEntities.stream()
+                .map(this::mapEventToDTO)
+                .toList();
+    }
+
+    @Override
     public List<EventDTO> findAllByIds(List<Long> ids) {
         if (ids == null || ids.isEmpty()) {
             return List.of();
