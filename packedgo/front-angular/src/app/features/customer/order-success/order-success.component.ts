@@ -214,7 +214,8 @@ export class OrderSuccessComponent implements OnInit {
     if (ticket.qrCode) {
       this.ticketService.downloadQRCode(
         ticket.qrCode,
-        `ticket-${ticket.ticketId}-${ticket.eventName.replace(/\s/g, '-')}.png`
+        `ticket-${ticket.ticketId}-${ticket.eventName.replace(/\s/g, '-')}.png`,
+        ticket.passCode
       );
     }
   }

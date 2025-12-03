@@ -321,7 +321,7 @@
                   {{ ticket.eventLocationName || ticket.eventLocation }}
                 </span>
               </p>
-              <p><strong>Código de pase:</strong> {{ ticket.passCode }}</p>
+              <p><strong>Código de pase:</strong> {{ ticket.passCode ? ticket.passCode.slice(-8) : 'N/A' }}</p>
               <p><strong>Comprado el:</strong> {{ ticket.purchasedAt | date: 'dd/MM/yyyy HH:mm' }}</p>
               
               <div *ngIf="ticket.ticketConsumption && ticket.ticketConsumption.ticketDetails && ticket.ticketConsumption.ticketDetails.length > 0">
@@ -340,7 +340,7 @@
             </div>
             
             <div class="ticket-actions">
-              <button class="btn btn-sm btn-primary" *ngIf="ticket.active && !ticket.redeemed" (click)="showTicketQR(ticket)">
+              <button class="btn btn-sm btn-primary" *ngIf="ticket.active" (click)="showTicketQR(ticket)">
                 <i class="bi bi-qr-code me-1"></i>Ver QR
               </button>
             </div>
@@ -367,7 +367,7 @@
             <!-- QR Code generado -->
             <div class="qr-code-display">
               <img *ngIf="selectedTicket.qrCode" [src]="selectedTicket.qrCode" alt="QR Code" class="qr-code-image">
-              <p class="mt-3"><strong>Código de Pase:</strong> {{ selectedTicket.passCode }}</p>
+              <p class="mt-3"><strong>Código de Pase:</strong> {{ selectedTicket.passCode ? selectedTicket.passCode.slice(-8) : 'N/A' }}</p>
               <p class="text-muted small">Muestra este QR en la entrada del evento</p>
             </div>
             

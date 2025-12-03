@@ -104,19 +104,82 @@ export class TicketService {
   }
 
   /**
-   * Download QR code as image
+   * Download QR code as image with ticket code
    */
-  downloadQRCode(qrCode: string, fileName: string): void {
+  downloadQRCode(qrCode: string, fileName: string, passCode?: string): void {
     if (!qrCode) {
       console.error('❌ No QR code available');
       return;
     }
-    const link = document.createElement('a');
-    link.href = qrCode;
-    link.download = fileName;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+
+    // Si no hay passCode, descargar el QR original
+    if (!passCode) {
+      const link = document.createElement('a');
+      link.href = qrCode;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      return;
+    }
+
+    // Crear canvas para combinar QR con información del código
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      
+      if (!ctx) {
+        console.error('❌ No se pudo obtener el contexto del canvas');
+        return;
+      }
+
+      // Dimensiones del canvas
+      const padding = 40;
+      const textHeight = 60;
+      canvas.width = img.width + (padding * 2);
+      canvas.height = img.height + textHeight + (padding * 2);
+
+      // Fondo blanco
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Dibujar QR code centrado
+      ctx.drawImage(img, padding, padding);
+
+      // Configurar texto
+      ctx.fillStyle = '#333333';
+      ctx.textAlign = 'center';
+      
+      // Texto "Código:"
+      ctx.font = 'bold 18px Arial';
+      ctx.fillText('Código:', canvas.width / 2, img.height + padding + 25);
+      
+      // Últimos 8 caracteres del código
+      const last8Chars = passCode.slice(-8);
+      ctx.font = 'bold 24px monospace';
+      ctx.fillText(last8Chars, canvas.width / 2, img.height + padding + 50);
+
+      // Convertir canvas a blob y descargar
+      canvas.toBlob((blob) => {
+        if (blob) {
+          const url = URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          link.href = url;
+          link.download = fileName;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          URL.revokeObjectURL(url);
+        }
+      }, 'image/png');
+    };
+
+    img.onerror = () => {
+      console.error('❌ Error cargando imagen QR');
+    };
+
+    img.src = qrCode;
   }
 
   /**
@@ -128,7 +191,8 @@ export class TicketService {
         setTimeout(() => {
           this.downloadQRCode(
             ticket.qrCode!,
-            `ticket-${ticket.ticketId}-${ticket.eventName.replace(/\s/g, '-')}.png`
+            `ticket-${ticket.ticketId}-${ticket.eventName.replace(/\s/g, '-')}.png`,
+            ticket.passCode
           );
         }, index * 500); // Delay between downloads to avoid browser blocking
       }

@@ -98,7 +98,7 @@
             <div class="ticket-info">
               <div class="info-row">
                 <span class="label">Código:</span>
-                <span class="value">{{ ticket.passCode }}</span>
+                <span class="value">{{ ticket.passCode ? ticket.passCode.slice(-8) : 'N/A' }}</span>
               </div>
               <div class="info-row">
                 <span class="label">Fecha:</span>
