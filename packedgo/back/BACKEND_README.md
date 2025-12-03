@@ -56,14 +56,14 @@ docker-compose logs -f auth-service
 
 ## 📚 Documentación Específica
 
-Cada microservicio cuenta con su propio `README.md` detallando sus endpoints, configuración y lógica de negocio:
+Cada microservicio cuenta con su propio archivo de documentación detallando sus endpoints, configuración y lógica de negocio:
 
-- [Auth Service](./auth-service/README.md)
-- [Users Service](./users-service/README.md)
-- [Event Service](./event-service/README.md)
-- [Order Service](./order-service/README.md)
-- [Payment Service](./payment-service/README.md)
-- [Analytics Service](./analytics-service/README.md)
+- [Auth Service](./auth-service/AUTH_SERVICE_README.md)
+- [Users Service](./users-service/USERS_SERVICE_README.md)
+- [Event Service](./event-service/EVENT_SERVICE_README.md)
+- [Order Service](./order-service/ORDER_SERVICE_README.md)
+- [Payment Service](./payment-service/PAYMENT_SERVICE_README.md)
+- [Analytics Service](./analytics-service/ANALYTICS_SERVICE_README.md)
 
 ## 🔄 Flujos Principales
 

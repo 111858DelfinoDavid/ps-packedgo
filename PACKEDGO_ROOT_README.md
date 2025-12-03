@@ -205,7 +205,7 @@ ps-packedgo/
 │   └── front/                         # Frontend Angular
 │       └── packedgo-app/
 ├── docs/                              # Documentación
-├── README.md
+├── PACKEDGO_ROOT_README.md
 └── packedgo_architecture_document.md  # Arquitectura detallada
 ```
 
@@ -274,8 +274,8 @@ npm run e2e
 ## 📖 Documentación Detallada
 
 ### Documentación por Microservicio
-- [AUTH-SERVICE](./packedgo/back/auth-service/README.md) - Sistema de autenticación diferenciada
-- [USERS-SERVICE](./packedgo/back/users-service/README.md) - Gestión de perfiles de usuario
+- [AUTH-SERVICE](./packedgo/back/auth-service/AUTH_SERVICE_README.md) - Sistema de autenticación diferenciada
+- [USERS-SERVICE](./packedgo/back/users-service/USERS_SERVICE_README.md) - Gestión de perfiles de usuario
 - [Próximamente] EVENT-SERVICE - Gestión de eventos y consumiciones
 - [Próximamente] ORDER-SERVICE - Procesamiento de órdenes
 - [Próximamente] PAYMENT-SERVICE - Integración MercadoPago
