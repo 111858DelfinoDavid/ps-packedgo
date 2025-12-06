@@ -8,17 +8,17 @@
 
 El proyecto se organiza en dos directorios principales:
 
-### 🔙 [Backend (`/back`)](./back/README.md)
+### 🔙 [Backend (`/back`)](./back/BACKEND_README.md)
 Contiene la arquitectura de **microservicios** construida con **Java 17** y **Spring Boot**.
 - **Servicios:** Auth, Users, Event, Order, Payment, Analytics.
 - **Infraestructura:** Docker, PostgreSQL, Nginx.
-- **Documentación:** Ver [README del Backend](./back/README.md) para detalles de arquitectura y endpoints.
+- **Documentación:** Ver [README del Backend](./back/BACKEND_README.md) para detalles de arquitectura y endpoints.
 
-### 📱 [Frontend (`/front-angular`)](./front-angular/README.md)
+### 📱 [Frontend (`/front-angular`)](./front-angular/FRONTEND_README.md)
 Contiene la aplicación web SPA desarrollada con **Angular 19**.
 - **Características:** Paneles para Administradores, Clientes y Empleados.
 - **Tecnologías:** Bootstrap 5, ZXing (Scanner QR), SweetAlert2.
-- **Documentación:** Ver [README del Frontend](./front-angular/README.md) para detalles de componentes y configuración.
+- **Documentación:** Ver [README del Frontend](./front-angular/FRONTEND_README.md) para detalles de componentes y configuración.
 
 ---
 
