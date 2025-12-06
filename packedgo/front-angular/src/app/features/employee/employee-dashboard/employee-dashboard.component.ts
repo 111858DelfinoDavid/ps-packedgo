@@ -293,28 +293,118 @@ export class EmployeeDashboardComponent implements OnInit, OnDestroy {
 
   private showConsumptionSelector(qrCode: string, consumptions: any[]): void {
     const options = consumptions.map(c =>
-      `<div style="padding: 10px; border: 1px solid #ddd; margin: 5px; border-radius: 5px; cursor: pointer;" data-detail-id="${c.id}">
-        <strong>${c.consumptionName || 'Producto sin nombre'}</strong>
-        <small>Cantidad disponible: ${c.quantity}</small>
+      `<div style="padding: 10px; border: 1px solid #ddd; margin: 5px; border-radius: 5px; display: flex; align-items: center; gap: 10px;">
+        <input type="checkbox" id="consumption-${c.id}" data-detail-id="${c.id}" style="width: 20px; height: 20px; cursor: pointer;">
+        <label for="consumption-${c.id}" style="flex: 1; cursor: pointer; margin: 0;">
+          <strong>${c.consumptionName || 'Producto sin nombre'}</strong><br>
+          <small>Disponible: ${c.quantity}</small>
+        </label>
+        <input type="number" id="quantity-${c.id}" min="1" max="${c.quantity}" value="1" 
+               style="width: 60px; padding: 5px; border: 1px solid #ddd; border-radius: 4px;" 
+               disabled data-max="${c.quantity}">
       </div>`
     ).join('');
 
     Swal.fire({
-      title: 'Seleccionar consumición',
-      html: `<div id="consumption-list" style="max-height: 400px; overflow-y: auto;">${options}</div>`,
+      title: 'Seleccionar consumiciones',
+      html: `
+        <div style="text-align: left; margin-bottom: 15px;">
+          <p style="margin: 0; color: #666; font-size: 14px;">✓ Marca las consumiciones que deseas canjear</p>
+        </div>
+        <div id="consumption-list" style="max-height: 400px; overflow-y: auto; text-align: left;">
+          ${options}
+        </div>
+      `,
       showCancelButton: true,
-      confirmButtonText: 'Cancelar',
-      showConfirmButton: false,
+      confirmButtonText: 'Canjear Seleccionadas',
+      cancelButtonText: 'Cancelar',
+      preConfirm: () => {
+        const selected: Array<{detailId: number, quantity: number, consumption: any}> = [];
+        consumptions.forEach(c => {
+          const checkbox = document.getElementById(`consumption-${c.id}`) as HTMLInputElement;
+          const quantityInput = document.getElementById(`quantity-${c.id}`) as HTMLInputElement;
+          
+          if (checkbox?.checked) {
+            const quantity = parseInt(quantityInput.value);
+            if (quantity > 0 && quantity <= c.quantity) {
+              selected.push({
+                detailId: c.id,
+                quantity: quantity,
+                consumption: c
+              });
+            }
+          }
+        });
+
+        if (selected.length === 0) {
+          Swal.showValidationMessage('Selecciona al menos una consumición');
+          return false;
+        }
+
+        return selected;
+      },
       didOpen: () => {
-        const listContainer = document.getElementById('consumption-list');
-        listContainer?.querySelectorAll('[data-detail-id]').forEach(element => {
-          element.addEventListener('click', () => {
-            const detailId = parseInt(element.getAttribute('data-detail-id') || '0');
-            const consumption = consumptions.find(c => c.id === detailId);
-            Swal.close();
-            this.confirmConsumption(qrCode, detailId, consumption);
+        // Enable/disable quantity inputs based on checkbox state
+        consumptions.forEach(c => {
+          const checkbox = document.getElementById(`consumption-${c.id}`) as HTMLInputElement;
+          const quantityInput = document.getElementById(`quantity-${c.id}`) as HTMLInputElement;
+          
+          checkbox?.addEventListener('change', () => {
+            if (quantityInput) {
+              quantityInput.disabled = !checkbox.checked;
+              if (checkbox.checked) {
+                quantityInput.focus();
+              }
+            }
+          });
+
+          // Validate quantity on input
+          quantityInput?.addEventListener('input', () => {
+            const max = parseInt(quantityInput.getAttribute('data-max') || '1');
+            const value = parseInt(quantityInput.value);
+            if (value > max) {
+              quantityInput.value = max.toString();
+            }
+            if (value < 1) {
+              quantityInput.value = '1';
+            }
           });
         });
+      }
+    }).then((result) => {
+      if (result.isConfirmed && result.value) {
+        this.confirmMultipleConsumptions(qrCode, result.value);
+      }
+    });
+  }
+
+  private confirmMultipleConsumptions(qrCode: string, selections: Array<{detailId: number, quantity: number, consumption: any}>): void {
+    if (!this.selectedEventId) return;
+
+    // Mostrar confirmación con resumen
+    const summaryHtml = selections.map(s => 
+      `<div style="padding: 8px; border-bottom: 1px solid #eee;">
+        <strong>${s.consumption.consumptionName}</strong>
+        <span style="float: right; color: #667eea; font-weight: bold;">x${s.quantity}</span>
+      </div>`
+    ).join('');
+
+    Swal.fire({
+      title: '¿Confirmar canje?',
+      html: `
+        <div style="text-align: left; max-height: 300px; overflow-y: auto; margin: 10px 0;">
+          ${summaryHtml}
+        </div>
+        <p style="margin-top: 15px; color: #666;">Se canjearán ${selections.length} consumición(es)</p>
+      `,
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonText: 'Sí, canjear',
+      cancelButtonText: 'Cancelar',
+      confirmButtonColor: '#667eea'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        this.registerMultipleConsumptions(qrCode, selections);
       }
     });
   }
@@ -355,6 +445,126 @@ export class EmployeeDashboardComponent implements OnInit, OnDestroy {
         this.registerConsumption(qrCode, detailId, quantity, consumption.consumptionName);
       }
     });
+  }
+
+  private registerMultipleConsumptions(qrCode: string, selections: Array<{detailId: number, quantity: number, consumption: any}>): void {
+    if (!this.selectedEventId) return;
+
+    let successCount = 0;
+    let failCount = 0;
+    const results: string[] = [];
+
+    // Mostrar loading
+    Swal.fire({
+      title: 'Procesando canjes...',
+      html: 'Por favor espera',
+      allowOutsideClick: false,
+      didOpen: () => {
+        Swal.showLoading();
+      }
+    });
+
+    // Procesar cada selección secuencialmente
+    const processNext = (index: number) => {
+      if (index >= selections.length) {
+        // Todas las consumiciones procesadas
+        this.showMultipleConsumptionsResult(successCount, failCount, results, qrCode);
+        return;
+      }
+
+      const selection = selections[index];
+      this.employeeService.registerConsumption({
+        qrCode,
+        eventId: this.selectedEventId!,
+        detailId: selection.detailId,
+        quantity: selection.quantity
+      }).subscribe({
+        next: (response) => {
+          if (response.success) {
+            successCount++;
+            this.stats.consumptionsToday++;
+            this.stats.totalScannedToday++;
+            results.push(`✓ ${selection.consumption.consumptionName} (x${selection.quantity})`);
+          } else {
+            failCount++;
+            results.push(`✗ ${selection.consumption.consumptionName}: ${response.message}`);
+          }
+          
+          const scanRecord: ScanRecord = {
+            id: Date.now() + index,
+            type: 'consumption',
+            qrCode: qrCode,
+            timestamp: new Date(),
+            status: response.success ? 'success' : 'error',
+            message: `${selection.consumption.consumptionName} (x${selection.quantity}) - ${response.message}`,
+            eventName: this.getSelectedEvent()?.name
+          };
+          this.scanHistory.unshift(scanRecord);
+          
+          processNext(index + 1);
+        },
+        error: (err) => {
+          failCount++;
+          results.push(`✗ ${selection.consumption.consumptionName}: Error de conexión`);
+          
+          const scanRecord: ScanRecord = {
+            id: Date.now() + index,
+            type: 'consumption',
+            qrCode: qrCode,
+            timestamp: new Date(),
+            status: 'error',
+            message: `${selection.consumption.consumptionName} - Error: ${err.error?.message || 'Error de conexión'}`,
+            eventName: this.getSelectedEvent()?.name
+          };
+          this.scanHistory.unshift(scanRecord);
+          
+          processNext(index + 1);
+        }
+      });
+    };
+
+    processNext(0);
+  }
+
+  private showMultipleConsumptionsResult(successCount: number, failCount: number, results: string[], qrCode: string): void {
+    const resultsHtml = results.map(r => `<div style="padding: 5px; text-align: left;">${r}</div>`).join('');
+    
+    if (failCount === 0) {
+      Swal.fire({
+        icon: 'success',
+        title: '¡Canjes completados!',
+        html: `
+          <p><strong>${successCount} consumición(es) canjeadas exitosamente</strong></p>
+          <div style="max-height: 200px; overflow-y: auto; margin-top: 10px;">
+            ${resultsHtml}
+          </div>
+        `,
+        timer: 3000,
+        showConfirmButton: false
+      });
+    } else if (successCount === 0) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Error en los canjes',
+        html: `
+          <p>No se pudo canjear ninguna consumición</p>
+          <div style="max-height: 200px; overflow-y: auto; margin-top: 10px;">
+            ${resultsHtml}
+          </div>
+        `
+      });
+    } else {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Canjes parcialmente completados',
+        html: `
+          <p><strong>Exitosos:</strong> ${successCount} | <strong>Fallidos:</strong> ${failCount}</p>
+          <div style="max-height: 200px; overflow-y: auto; margin-top: 10px;">
+            ${resultsHtml}
+          </div>
+        `
+      });
+    }
   }
 
   private registerConsumption(qrCode: string, detailId: number, quantity: number, consumptionName: string): void {
