@@ -1,11 +1,11 @@
 package com.packed_go.users_service.security;
 
-import jakarta.servlet.FilterChain;
-import jakarta.servlet.ServletException;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -14,12 +14,12 @@ import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 
-import java.io.IOException;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * Filtro JWT para users-service
@@ -43,6 +43,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 String username = tokenValidator.getUsernameFromToken(jwt);
                 Long userId = tokenValidator.getUserIdFromToken(jwt);
                 String role = tokenValidator.getRoleFromToken(jwt);
+                String email = tokenValidator.getEmailFromToken(jwt);
                 List<String> authorities = tokenValidator.getAuthoritiesFromToken(jwt);
 
                 // Create authorities list
@@ -62,6 +63,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 principal.put("username", username);
                 principal.put("userId", userId);
                 principal.put("role", role);
+                principal.put("email", email);
 
                 // Create authentication object
                 UsernamePasswordAuthenticationToken authentication =

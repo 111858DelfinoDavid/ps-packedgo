@@ -441,7 +441,7 @@ public boolean verifyEmail(String token) {
         List<String> permissions = rolePermissionRepository.findPermissionsByRole(user.getRole());
         
         String newToken = jwtTokenProvider.generateTokenFromUserId(
-                user.getId(), user.getUsername(), user.getRole(), permissions);
+                user.getId(), user.getUsername(), user.getEmail(), user.getRole(), permissions);
         
         session.setSessionToken(newToken);
         session.setLastActivity(LocalDateTime.now());
@@ -664,9 +664,13 @@ public boolean verifyEmail(String token) {
         // Obtener permisos del usuario
         List<String> permissions = rolePermissionRepository.findPermissionsByRole(user.getRole());
 
+        // Debug: verificar email
+        log.info("DEBUG - Generando token para usuario: id={}, username={}, email={}, role={}", 
+                user.getId(), user.getUsername(), user.getEmail(), user.getRole());
+
         // Generar tokens
         String token = jwtTokenProvider.generateTokenFromUserId(
-                user.getId(), user.getUsername(), user.getRole(), permissions);
+                user.getId(), user.getUsername(), user.getEmail(), user.getRole(), permissions);
         String refreshToken = jwtTokenProvider.generateRefreshToken(user.getId(), user.getUsername());
 
         // Crear sesión

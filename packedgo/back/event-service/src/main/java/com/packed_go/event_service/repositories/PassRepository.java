@@ -1,15 +1,17 @@
 package com.packed_go.event_service.repositories;
 
-import com.packed_go.event_service.entities.Pass;
-import jakarta.persistence.LockModeType;
+import java.util.List;
+import java.util.Optional;
+
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
-import java.util.List;
-import java.util.Optional;
+import com.packed_go.event_service.entities.Pass;
+
+import jakarta.persistence.LockModeType;
 
 @Repository
 public interface PassRepository extends JpaRepository<Pass, Long> {
@@ -51,4 +53,8 @@ public interface PassRepository extends JpaRepository<Pass, Long> {
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT p FROM Pass p WHERE p.id = :id")
     Optional<Pass> findByIdWithLock(@Param("id") Long id);
+
+    // Buscar pass por los últimos 8 caracteres del código
+    @Query("SELECT p FROM Pass p WHERE p.code LIKE CONCAT('%', :codeSuffix)")
+    List<Pass> findByCodeSuffix(@Param("codeSuffix") String codeSuffix);
 }

@@ -1,18 +1,31 @@
 package com.packed_go.users_service.controller;
 
-import com.packed_go.users_service.dto.EmployeeDTO.*;
-import com.packed_go.users_service.service.EmployeeService;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
-import org.springframework.web.bind.annotation.*;
-import org.springframework.web.reactive.function.client.WebClient;
-
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.reactive.function.client.WebClient;
+
+import com.packed_go.users_service.dto.EmployeeDTO.AssignedEventInfo;
+import com.packed_go.users_service.dto.EmployeeDTO.EmployeeStatsResponse;
+import com.packed_go.users_service.dto.EmployeeDTO.FindTicketByCodeRequest;
+import com.packed_go.users_service.dto.EmployeeDTO.RegisterConsumptionRequest;
+import com.packed_go.users_service.dto.EmployeeDTO.RegisterConsumptionResponse;
+import com.packed_go.users_service.dto.EmployeeDTO.TicketSearchResponse;
+import com.packed_go.users_service.dto.EmployeeDTO.ValidateTicketRequest;
+import com.packed_go.users_service.dto.EmployeeDTO.ValidateTicketResponse;
+import com.packed_go.users_service.service.EmployeeService;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 @RestController
 @RequestMapping("/employee")
@@ -175,13 +188,80 @@ public class EmployeeController {
         }
     }
 
+    @PostMapping("/find-ticket-by-code")
+    public ResponseEntity<Map<String, Object>> findTicketByCode(
+            @RequestBody FindTicketByCodeRequest request,
+            Authentication authentication) {
+
+        try {
+            Long employeeId = extractEmployeeId(authentication);
+
+            // Validar formato del código (8 caracteres alfanuméricos)
+            if (request.getCode() == null || !request.getCode().matches("^[A-Z0-9]{8}$")) {
+                return ResponseEntity.badRequest().body(Map.of(
+                    "success", false,
+                    "message", "El código debe tener exactamente 8 caracteres alfanuméricos"
+                ));
+            }
+
+            // Verificar que el empleado tiene acceso al evento
+            if (!employeeService.hasAccessToEvent(employeeId, request.getEventId())) {
+                return ResponseEntity.badRequest().body(Map.of(
+                    "success", false,
+                    "message", "No tienes acceso a este evento"
+                ));
+            }
+
+            // Llamar a event-service para buscar el ticket por código
+            log.info("🔍 Employee {} searching ticket with code {} for event {}", 
+                employeeId, request.getCode(), request.getEventId());
+
+            Map<String, Object> eventServiceRequest = new HashMap<>();
+            eventServiceRequest.put("code", request.getCode());
+            eventServiceRequest.put("eventId", request.getEventId());
+
+            TicketSearchResponse ticketResponse = eventServiceWebClient.post()
+                    .uri("/event-service/qr-validation/find-by-code")
+                    .bodyValue(eventServiceRequest)
+                    .retrieve()
+                    .bodyToMono(TicketSearchResponse.class)
+                    .block();
+
+            if (ticketResponse == null) {
+                return ResponseEntity.badRequest().body(Map.of(
+                    "success", false,
+                    "message", "Ticket no encontrado para este evento"
+                ));
+            }
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("data", ticketResponse);
+
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            log.error("Error finding ticket by code", e);
+            return ResponseEntity.badRequest().body(Map.of(
+                "success", false,
+                "message", "Ticket no encontrado para este evento"
+            ));
+        }
+    }
+
     private Long extractEmployeeId(Authentication authentication) {
-        // Extraer username del JWT token y buscar el empleado
-        Map<String, Object> claims = (Map<String, Object>) authentication.getPrincipal();
-        String username = (String) claims.get("username");
+        // Extraer email del JWT para búsqueda segura (email es único)
+        // El JwtAuthenticationFilter pone username, userId, role y email en el principal
+        Map<String, Object> principal = (Map<String, Object>) authentication.getPrincipal();
         
-        // Buscar el empleado por username para obtener su ID real en este servicio
-        // Esto maneja el caso donde el ID del token (auth-service) no coincide con el ID local
+        if (principal != null && principal.containsKey("email")) {
+            String email = (String) principal.get("email");
+            if (email != null) {
+                return employeeService.getEmployeeByEmail(email).getId();
+            }
+        }
+        
+        // Fallback temporal: usar username (solo hasta que todos los tokens tengan email)
+        String username = (String) principal.get("username");
         return employeeService.getEmployeeByUsername(username).getId();
     }
 }

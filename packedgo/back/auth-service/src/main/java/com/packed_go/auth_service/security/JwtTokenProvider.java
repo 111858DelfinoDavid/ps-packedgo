@@ -1,18 +1,22 @@
 package com.packed_go.auth_service.security;
 
-import io.jsonwebtoken.*;
-import io.jsonwebtoken.io.Decoders;
-import io.jsonwebtoken.security.Keys;
-import lombok.extern.slf4j.Slf4j;
+import java.util.Date;
+import java.util.List;
+import java.util.stream.Collectors;
+
+import javax.crypto.SecretKey;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.stereotype.Component;
 
-import javax.crypto.SecretKey;
-import java.util.Date;
-import java.util.List;
-import java.util.stream.Collectors;
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.JwtException;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.io.Decoders;
+import io.jsonwebtoken.security.Keys;
+import lombok.extern.slf4j.Slf4j;
 
 @Component
 @Slf4j
@@ -44,6 +48,7 @@ public class JwtTokenProvider {
         return Jwts.builder()
                 .subject(userPrincipal.getUsername())
                 .claim("userId", userPrincipal.getId())
+                .claim("email", userPrincipal.getEmail())
                 .claim("role", userPrincipal.getRole())
                 .claim("authorities", authorities)
                 .issuedAt(new Date())
@@ -52,13 +57,14 @@ public class JwtTokenProvider {
                 .compact();
     }
 
-    public String generateTokenFromUserId(Long userId, String username, String role, List<String> authorities) {
+    public String generateTokenFromUserId(Long userId, String username, String email, String role, List<String> authorities) {
         Date now = new Date();
         Date expiryDate = new Date(now.getTime() + jwtExpiration);
 
         return Jwts.builder()
                 .subject(username)
                 .claim("userId", userId)
+                .claim("email", email)
                 .claim("role", role)
                 .claim("authorities", authorities)
                 .issuedAt(new Date())

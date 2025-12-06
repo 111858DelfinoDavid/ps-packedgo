@@ -307,10 +307,11 @@ public class TicketServiceImpl implements TicketService {
         Ticket ticket = new Ticket(request.getUserId(), pass, ticketConsumption, request.getPurchasedAt());
         ticket = ticketRepository.save(ticket);
 
-        // 5. Generar QR Code
+        // 5. Generar QR Code (texto y imagen)
         String qrData = generateQRData(ticket, event);
         String qrCodeBase64 = qrCodeService.generateQRCodeBase64(qrData);
-        ticket.setQrCode(qrCodeBase64);
+        ticket.setQrText(qrData);        // Guardar formato texto para validación manual
+        ticket.setQrCode(qrCodeBase64);  // Guardar imagen base64 para escaneo
         ticket = ticketRepository.save(ticket);
 
         // 6. Crear TicketConsumptionDetails (si existen consumptions)

@@ -42,6 +42,11 @@ public class Ticket {
     @Column(nullable = false)
     private boolean redeemed = false;
 
+    // Código QR en formato texto (para validación): PACKEDGO|T:ticketId|TC:consumptionId|E:eventId|U:userId|TS:timestamp
+    @Column(columnDefinition = "TEXT")
+    private String qrText;
+
+    // Imagen del QR en formato base64 (para escanear)
     @Column(columnDefinition = "TEXT")
     private String qrCode;
 

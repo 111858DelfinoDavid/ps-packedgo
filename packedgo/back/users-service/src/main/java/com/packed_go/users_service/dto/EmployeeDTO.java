@@ -1,13 +1,13 @@
 package com.packed_go.users_service.dto;
 
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Set;
+
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-
-import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Set;
 
 public class EmployeeDTO {
 
@@ -144,5 +144,25 @@ public class EmployeeDTO {
         private String customerName;
         private String eventName;
         private LocalDateTime registeredAt;
+    }
+
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class FindTicketByCodeRequest {
+        private String code;
+        private Long eventId;
+    }
+
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class TicketSearchResponse {
+        private Long ticketId;
+        private String qrCode;
+        private String passCode;
+        private Long eventId;
+        private String eventName;
+        private Long userId;
     }
 }

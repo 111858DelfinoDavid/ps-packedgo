@@ -188,6 +188,24 @@ public class EventServiceImpl implements EventService {
         // El constructor ya inicializa: status, active, timestamps, passes, etc.
         // No es necesario setearlos de nuevo a menos que el DTO los override
 
+        // Asociar consumiciones si vienen en el DTO
+        if (createEventDto.getConsumptionIds() != null && !createEventDto.getConsumptionIds().isEmpty()) {
+            List<Consumption> consumptions = consumptionRepository.findAllById(createEventDto.getConsumptionIds());
+            
+            // Validar que todas las consumiciones pertenecen al mismo admin que crea el evento
+            for (Consumption consumption : consumptions) {
+                if (!consumption.getCreatedBy().equals(createEventDto.getCreatedBy())) {
+                    throw new IllegalArgumentException(
+                        "No se puede asociar la consumición '" + consumption.getName() + 
+                        "' porque pertenece a otro administrador"
+                    );
+                }
+            }
+            
+            event.getConsumptions().clear();
+            event.getConsumptions().addAll(consumptions);
+        }
+
         Event savedEvent = eventRepository.save(event);
 
         // Generate passes for the event

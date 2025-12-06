@@ -1,21 +1,26 @@
 package com.packed_go.event_service.services.impl;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.packed_go.event_service.dtos.qr.FindTicketByCodeRequest;
+import com.packed_go.event_service.dtos.qr.FindTicketByCodeResponse;
 import com.packed_go.event_service.dtos.qr.ValidateConsumptionQRRequest;
 import com.packed_go.event_service.dtos.qr.ValidateConsumptionQRResponse;
 import com.packed_go.event_service.dtos.qr.ValidateEntryQRRequest;
 import com.packed_go.event_service.dtos.qr.ValidateEntryQRResponse;
 import com.packed_go.event_service.entities.Event;
+import com.packed_go.event_service.entities.Pass;
 import com.packed_go.event_service.entities.Ticket;
 import com.packed_go.event_service.entities.TicketConsumption;
 import com.packed_go.event_service.entities.TicketConsumptionDetail;
 import com.packed_go.event_service.repositories.EventRepository;
+import com.packed_go.event_service.repositories.PassRepository;
 import com.packed_go.event_service.repositories.TicketConsumptionDetailRepository;
 import com.packed_go.event_service.repositories.TicketConsumptionRepository;
 import com.packed_go.event_service.repositories.TicketRepository;
@@ -31,6 +36,7 @@ import lombok.extern.slf4j.Slf4j;
 public class QRValidationServiceImpl implements QRValidationService {
 
     private final TicketRepository ticketRepository;
+    private final PassRepository passRepository;
     private final EventRepository eventRepository;
     private final TicketConsumptionDetailRepository detailRepository;
     private final TicketConsumptionDetailService detailService;
@@ -338,6 +344,65 @@ public class QRValidationServiceImpl implements QRValidationService {
             return null;
         } catch (Exception e) {
             log.warn("Could not retrieve event for detail {}", detail.getId());
+            return null;
+        }
+    }
+
+    @Override
+    public FindTicketByCodeResponse findTicketByCode(FindTicketByCodeRequest request) {
+        try {
+            log.info("🔍 Searching ticket with code suffix: {} for event: {}", request.getCode(), request.getEventId());
+
+            // 1. Buscar passes que terminen con el código proporcionado
+            List<Pass> matchingPasses = passRepository.findByCodeSuffix(request.getCode());
+
+            if (matchingPasses.isEmpty()) {
+                log.warn("❌ No passes found with code suffix: {}", request.getCode());
+                return null;
+            }
+
+            // 2. Filtrar por evento y buscar el ticket correspondiente
+            for (Pass pass : matchingPasses) {
+                // Verificar que el pass pertenece al evento solicitado
+                if (!pass.getEvent().getId().equals(request.getEventId())) {
+                    continue;
+                }
+
+                // Buscar el ticket asociado a este pass
+                Optional<Ticket> ticketOpt = ticketRepository.findByPass_Id(pass.getId());
+                
+                if (ticketOpt.isEmpty()) {
+                    continue;
+                }
+
+                Ticket ticket = ticketOpt.get();
+
+                // Verificar que el ticket esté activo
+                if (!ticket.isActive()) {
+                    continue;
+                }
+
+                // 3. Construir el código QR del ticket (usar texto para validación, no imagen)
+                String qrCode = ticket.getQrText();
+
+                log.info("✅ Ticket found: ID={}, Pass={}", ticket.getId(), pass.getCode());
+
+                // 4. Retornar la respuesta
+                return FindTicketByCodeResponse.builder()
+                        .ticketId(ticket.getId())
+                        .qrCode(qrCode)
+                        .passCode(pass.getCode())
+                        .eventId(pass.getEvent().getId())
+                        .eventName(pass.getEvent().getName())
+                        .userId(ticket.getUserId())
+                        .build();
+            }
+
+            log.warn("❌ No active ticket found with code suffix {} for event {}", request.getCode(), request.getEventId());
+            return null;
+
+        } catch (Exception e) {
+            log.error("❌ Error finding ticket by code", e);
             return null;
         }
     }

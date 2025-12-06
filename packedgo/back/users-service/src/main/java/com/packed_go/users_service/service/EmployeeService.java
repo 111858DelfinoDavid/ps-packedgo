@@ -1,10 +1,11 @@
 package com.packed_go.users_service.service;
 
-import com.packed_go.users_service.dto.EmployeeDTO.*;
-import com.packed_go.users_service.entity.Employee;
-import com.packed_go.users_service.repository.EmployeeRepository;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
+
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -12,11 +13,16 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.reactive.function.client.WebClient;
 
-import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
-import java.util.stream.Collectors;
+import com.packed_go.users_service.dto.EmployeeDTO.*;
+import com.packed_go.users_service.dto.EmployeeDTO.AssignedEventInfo;
+import com.packed_go.users_service.dto.EmployeeDTO.CreateEmployeeRequest;
+import com.packed_go.users_service.dto.EmployeeDTO.EmployeeResponse;
+import com.packed_go.users_service.dto.EmployeeDTO.UpdateEmployeeRequest;
+import com.packed_go.users_service.entity.Employee;
+import com.packed_go.users_service.repository.EmployeeRepository;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 @Service
 @RequiredArgsConstructor
@@ -163,6 +169,11 @@ public class EmployeeService {
     public Employee getEmployeeByUsername(String username) {
         return employeeRepository.findByUsername(username)
                 .orElseThrow(() -> new IllegalArgumentException("Employee not found with username: " + username));
+    }
+
+    public Employee getEmployeeByEmail(String email) {
+        return employeeRepository.findByEmail(email)
+                .orElseThrow(() -> new IllegalArgumentException("Employee not found with email: " + email));
     }
 
     public boolean validatePassword(Employee employee, String rawPassword) {

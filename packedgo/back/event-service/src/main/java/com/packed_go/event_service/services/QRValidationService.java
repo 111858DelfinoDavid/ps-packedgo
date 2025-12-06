@@ -1,5 +1,7 @@
 package com.packed_go.event_service.services;
 
+import com.packed_go.event_service.dtos.qr.FindTicketByCodeRequest;
+import com.packed_go.event_service.dtos.qr.FindTicketByCodeResponse;
 import com.packed_go.event_service.dtos.qr.ValidateConsumptionQRRequest;
 import com.packed_go.event_service.dtos.qr.ValidateConsumptionQRResponse;
 import com.packed_go.event_service.dtos.qr.ValidateEntryQRRequest;
@@ -16,4 +18,9 @@ public interface QRValidationService {
      * Valida y canjea un QR code de consumición
      */
     ValidateConsumptionQRResponse validateConsumptionQR(ValidateConsumptionQRRequest request);
+
+    /**
+     * Busca un ticket por los últimos 8 caracteres del código
+     */
+    FindTicketByCodeResponse findTicketByCode(FindTicketByCodeRequest request);
 }
