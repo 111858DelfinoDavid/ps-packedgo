@@ -43,16 +43,27 @@
 
     <!-- Scan Actions -->
     <div class="scan-actions" *ngIf="!isScanning">
-      <button class="btn-scan btn-scan-ticket" (click)="startScanMode('ticket')">
-        <i class="bi bi-qr-code-scan"></i>
-        <span>Escanear Ticket de Entrada</span>
-        <small>Validar entrada al evento</small>
-      </button>
-      <button class="btn-scan btn-scan-consumption" (click)="startScanMode('consumption')">
-        <i class="bi bi-upc-scan"></i>
-        <span>Escanear Consumo</span>
-        <small>Registrar consumo del cliente</small>
-      </button>
+      <div class="action-group">
+        <button class="btn-scan btn-scan-ticket" (click)="startScanMode('ticket')">
+          <i class="bi bi-qr-code-scan"></i>
+          <span>Escanear Ticket de Entrada</span>
+          <small>Validar entrada al evento</small>
+        </button>
+        <button class="btn-manual-small" (click)="startManualMode('ticket')" title="Ingresar código manualmente">
+          <i class="bi bi-keyboard"></i>
+        </button>
+      </div>
+      
+      <div class="action-group">
+        <button class="btn-scan btn-scan-consumption" (click)="startScanMode('consumption')">
+          <i class="bi bi-upc-scan"></i>
+          <span>Escanear Consumo</span>
+          <small>Registrar consumo del cliente</small>
+        </button>
+        <button class="btn-manual-small" (click)="startManualMode('consumption')" title="Ingresar código manualmente">
+          <i class="bi bi-keyboard"></i>
+        </button>
+      </div>
     </div>
 
     <!-- Scanner View (when scanning) -->
@@ -91,7 +102,10 @@
       <!-- Manual Input Alternative -->
       <div class="manual-input">
         <p>¿Problemas con la cámara?</p>
-        <button class="btn-manual">Ingresar código manualmente</button>
+        <button class="btn-manual" (click)="openManualInput()">
+          <i class="bi bi-keyboard"></i>
+          Ingresar código manualmente
+        </button>
       </div>
     </div>
 
@@ -105,7 +119,7 @@
                       [class.bi-exclamation-triangle-fill]="scanHistory[0]?.status === 'warning'"></i>
         <div class="alert-content">
           <strong>{{ scanHistory[0]?.message }}</strong>
-          <small>Código: {{ lastScanResult }}</small>
+          <small>Código: {{ lastScanResult ? getQRCodeSuffix(lastScanResult) : 'N/A' }}</small>
         </div>
       </div>
     </div>
@@ -140,7 +154,7 @@
               <i class="bi bi-calendar-event"></i>
               {{ record.eventName }}
             </div>
-            <div class="history-code">Código: {{ record.qrCode }}</div>
+            <div class="history-code">Código: {{ getQRCodeSuffix(record.qrCode) }}</div>
           </div>
           <div class="history-time">
             <i class="bi bi-clock"></i>

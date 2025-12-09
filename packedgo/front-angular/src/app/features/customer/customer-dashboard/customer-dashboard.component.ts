@@ -399,9 +399,23 @@ export class CustomerDashboardComponent implements OnInit, OnDestroy {
       cancelButtonText: 'Cancelar'
     }).then((result) => {
       if (result.isConfirmed) {
+        // Mostrar mensaje de procesamiento
+        Swal.fire({
+          title: 'Procesando tu pago...',
+          html: 'En breve serás dirigido a la pasarela de Stripe',
+          icon: 'info',
+          allowOutsideClick: false,
+          allowEscapeKey: false,
+          showConfirmButton: false,
+          didOpen: () => {
+            Swal.showLoading();
+          }
+        });
+
         this.orderService.checkoutSingleAdmin(adminId).subscribe({
           next: (response) => {
             if (response.paymentUrl) {
+              // Redirigir a Stripe
               window.location.href = response.paymentUrl;
             } else {
               Swal.fire('Error', 'No se recibió URL de pago', 'error');

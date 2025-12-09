@@ -162,7 +162,7 @@ public class AuthServiceImpl implements AuthService {
         if (!employeeData.getIsActive()) {
             log.error("Employee account is inactive: {}", request.getEmail());
             recordFailedLogin(request.getEmail(), "EMAIL", ipAddress, userAgent, "Account inactive");
-            throw new UnauthorizedException("Employee account is inactive");
+            throw new UnauthorizedException("Tu cuenta ha sido desactivada. Por favor, contacta con el administrador.");
         }
 
         // Buscar o crear usuario en auth-service

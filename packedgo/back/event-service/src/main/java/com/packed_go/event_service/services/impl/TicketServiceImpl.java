@@ -409,4 +409,22 @@ public class TicketServiceImpl implements TicketService {
     public TicketDTO recoverRedeemTicket(Exception ex, Long ticketId) {
         throw new RuntimeException("No se pudo canjear el ticket después de varios intentos debido a concurrencia: " + ex.getMessage(), ex);
     }
+
+    @Override
+    public java.util.Map<String, Long> getTicketRedemptionStatsByOrganizer(Long organizerId) {
+        java.util.Map<String, Long> stats = new java.util.HashMap<>();
+        
+        try {
+            Long totalTickets = ticketRepository.countTicketsByOrganizer(organizerId);
+            Long redeemedTickets = ticketRepository.countRedeemedTicketsByOrganizer(organizerId);
+            
+            stats.put("totalSold", totalTickets);
+            stats.put("totalRedeemed", redeemedTickets);
+        } catch (Exception e) {
+            stats.put("totalSold", 0L);
+            stats.put("totalRedeemed", 0L);
+        }
+        
+        return stats;
+    }
 }

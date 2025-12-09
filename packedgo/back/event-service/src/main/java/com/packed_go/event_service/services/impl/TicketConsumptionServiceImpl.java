@@ -225,4 +225,24 @@ public class TicketConsumptionServiceImpl implements TicketConsumptionService {
                 .orElseThrow(() -> new RuntimeException("TicketConsumption with id " + id + " not found"));
         return modelMapper.map(ticket, TicketConsumptionDTO.class);
     }
+
+    @Override
+    public java.util.Map<String, Long> getRedemptionStatsByOrganizer(Long organizerId) {
+        // Usar consulta nativa para obtener estadísticas de redención por organizador
+        // La relación es: tickets -> passes -> events (created_by = organizerId)
+        java.util.Map<String, Long> stats = new java.util.HashMap<>();
+        
+        try {
+            Long totalTickets = ticketConsumptionRepository.countTicketsByOrganizer(organizerId);
+            Long redeemedTickets = ticketConsumptionRepository.countRedeemedTicketsByOrganizer(organizerId);
+            
+            stats.put("totalSold", totalTickets);
+            stats.put("totalRedeemed", redeemedTickets);
+        } catch (Exception e) {
+            stats.put("totalSold", 0L);
+            stats.put("totalRedeemed", 0L);
+        }
+        
+        return stats;
+    }
 }

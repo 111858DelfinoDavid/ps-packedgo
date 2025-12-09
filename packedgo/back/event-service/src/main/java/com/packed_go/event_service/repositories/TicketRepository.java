@@ -1,15 +1,17 @@
 package com.packed_go.event_service.repositories;
 
-import com.packed_go.event_service.entities.Ticket;
-import jakarta.persistence.LockModeType;
+import java.util.List;
+import java.util.Optional;
+
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
-import java.util.List;
-import java.util.Optional;
+import com.packed_go.event_service.entities.Ticket;
+
+import jakarta.persistence.LockModeType;
 
 @Repository
 public interface TicketRepository extends JpaRepository<Ticket, Long> {
@@ -62,7 +64,25 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
     @Query("SELECT t FROM Ticket t WHERE t.id = :id")
     Optional<Ticket> findByIdWithLock(@Param("id") Long id);
 
+    // Buscar ticket por ID con Pass eager loaded
+    @Query("SELECT t FROM Ticket t LEFT JOIN FETCH t.pass p LEFT JOIN FETCH p.event WHERE t.id = :id")
+    Optional<Ticket> findByIdWithPass(@Param("id") Long id);
+
     // Buscar ticket por TicketConsumption
     @Query("SELECT t FROM Ticket t WHERE t.ticketConsumption = :ticketConsumption")
     Optional<Ticket> findByTicketConsumption(@Param("ticketConsumption") com.packed_go.event_service.entities.TicketConsumption ticketConsumption);
+
+    // Contar todos los tickets (entradas) por organizador
+    @Query(value = "SELECT COUNT(t.id) FROM tickets t " +
+                   "INNER JOIN passes p ON t.pass_id = p.id " +
+                   "INNER JOIN events e ON p.event_id = e.id " +
+                   "WHERE e.created_by = :organizerId AND t.active = true", nativeQuery = true)
+    Long countTicketsByOrganizer(@Param("organizerId") Long organizerId);
+
+    // Contar tickets (entradas) canjeados por organizador
+    @Query(value = "SELECT COUNT(t.id) FROM tickets t " +
+                   "INNER JOIN passes p ON t.pass_id = p.id " +
+                   "INNER JOIN events e ON p.event_id = e.id " +
+                   "WHERE e.created_by = :organizerId AND t.active = true AND t.redeemed = true", nativeQuery = true)
+    Long countRedeemedTicketsByOrganizer(@Param("organizerId") Long organizerId);
 }

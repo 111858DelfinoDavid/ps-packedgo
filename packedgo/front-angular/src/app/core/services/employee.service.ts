@@ -196,6 +196,16 @@ export class EmployeeService {
       this.getHeaders()
     ).pipe(map(response => response.data));
   }
+
+  /**
+   * Busca un ticket por los últimos 8 dígitos del código
+   */
+  findTicketByCode(code: string, eventId: number): Observable<TicketSearchResponse> {
+    return this.http.post<ApiResponse<TicketSearchResponse>>(
+      `${this.employeeApiUrl}/find-ticket-by-code`,
+      { code, eventId }
+    ).pipe(map(response => response.data));
+  }
 }
 
 // ========================================
@@ -252,4 +262,13 @@ export interface EmployeeStats {
   ticketsScannedToday: number;
   consumptionsToday: number;
   totalScannedToday: number;
+}
+
+export interface TicketSearchResponse {
+  ticketId: number;
+  qrCode: string;
+  passCode: string;
+  eventId: number;
+  eventName: string;
+  userId: number;
 }

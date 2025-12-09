@@ -1,14 +1,15 @@
 package com.packed_go.event_service.services;
 
+import java.util.List;
+
 import com.packed_go.event_service.dtos.ticketConsumption.CreateTicketConsumptionDTO;
 import com.packed_go.event_service.dtos.ticketConsumption.CreateTicketConsumptionWithDetailsDTO;
 import com.packed_go.event_service.dtos.ticketConsumption.CreateTicketConsumptionWithSimpleDetailsDTO;
 import com.packed_go.event_service.dtos.ticketConsumption.TicketConsumptionDTO;
 import com.packed_go.event_service.dtos.ticketConsumptionDetail.TicketConsumptionDetailDTO;
 import com.packed_go.event_service.entities.TicketConsumption;
-import jakarta.transaction.Transactional;
 
-import java.util.List;
+import jakarta.transaction.Transactional;
 
 public interface TicketConsumptionService {
 
@@ -38,8 +39,6 @@ public interface TicketConsumptionService {
 
     TicketConsumptionDTO findById(Long id);
 
-
-
-
+    java.util.Map<String, Long> getRedemptionStatsByOrganizer(Long organizerId);
 
 }

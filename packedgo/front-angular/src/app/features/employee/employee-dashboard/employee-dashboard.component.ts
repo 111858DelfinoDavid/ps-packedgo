@@ -116,8 +116,17 @@ export class EmployeeDashboardComponent implements OnInit, OnDestroy {
     this.scanMode = mode;
     this.isScanning = true;
     this.lastScanResult = null;
-    // TODO: Iniciar cámara para escaneo QR
     console.log(`Iniciando modo de escaneo: ${mode} para evento ${this.selectedEventId}`);
+  }
+
+  startManualMode(mode: 'ticket' | 'consumption'): void {
+    if (!this.selectedEventId) {
+      Swal.fire('Atención', 'Por favor, selecciona un evento primero', 'warning');
+      return;
+    }
+
+    this.scanMode = mode;
+    this.openManualInput();
   }
 
   stopScanning(): void {
@@ -161,6 +170,93 @@ export class EmployeeDashboardComponent implements OnInit, OnDestroy {
 
   onScanError(error: any): void {
     console.error('Error en scanner:', error);
+  }
+
+  openManualInput(): void {
+    Swal.fire({
+      title: 'Ingresar código manualmente',
+      html: `
+        <p style="text-align: left; margin-bottom: 15px; color: #666;">
+          Ingresa los últimos 8 dígitos del código del ticket
+        </p>
+        <input id="manual-code" class="swal2-input" placeholder="Ej: 87112433" 
+               maxlength="8" style="font-size: 18px; text-align: center; letter-spacing: 2px;">
+      `,
+      showCancelButton: true,
+      confirmButtonText: 'Buscar',
+      cancelButtonText: 'Cancelar',
+      confirmButtonColor: '#667eea',
+      preConfirm: () => {
+        const input = document.getElementById('manual-code') as HTMLInputElement;
+        const code = input?.value?.trim() || '';
+        
+        if (code.length !== 8) {
+          Swal.showValidationMessage('El código debe tener exactamente 8 caracteres');
+          return false;
+        }
+        
+        return code;
+      },
+      didOpen: () => {
+        const input = document.getElementById('manual-code') as HTMLInputElement;
+        input?.focus();
+        
+        // Permitir solo caracteres alfanuméricos
+        input?.addEventListener('input', (e) => {
+          const target = e.target as HTMLInputElement;
+          target.value = target.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+        });
+      }
+    }).then((result) => {
+      if (result.isConfirmed && result.value) {
+        this.processManualCode(result.value);
+      }
+    });
+  }
+
+  private processManualCode(code: string): void {
+    if (!this.selectedEventId) {
+      Swal.fire('Error', 'Selecciona un evento primero', 'error');
+      return;
+    }
+
+    // Mostrar loading
+    Swal.fire({
+      title: 'Buscando ticket...',
+      html: `Buscando ticket con código: <strong>${code}</strong>`,
+      allowOutsideClick: false,
+      didOpen: () => {
+        Swal.showLoading();
+      }
+    });
+
+    // Buscar el ticket por código en el backend
+    this.employeeService.findTicketByCode(code, this.selectedEventId).subscribe({
+      next: (ticket) => {
+        Swal.close();
+        
+        // Procesar según el modo actual
+        if (this.scanMode === 'ticket') {
+          this.validateTicketByCode(ticket.qrCode);
+        } else if (this.scanMode === 'consumption') {
+          this.handleConsumptionScan(ticket.qrCode);
+        }
+      },
+      error: (err) => {
+        console.error('Error buscando ticket:', err);
+        Swal.fire({
+          icon: 'error',
+          title: 'Ticket no encontrado',
+          text: err.error?.message || 'No se encontró un ticket con ese código para este evento',
+          confirmButtonColor: '#667eea'
+        });
+      }
+    });
+  }
+
+  private validateTicketByCode(qrCode: string): void {
+    // Usar el mismo método de validación que el escaneo
+    this.validateTicket(qrCode);
   }
 
   private validateTicket(qrCode: string): void {
@@ -208,7 +304,6 @@ export class EmployeeDashboardComponent implements OnInit, OnDestroy {
             icon: 'success',
             title: '¡Entrada autorizada!',
             html: `
-              <p><strong>Cliente:</strong> ${response.ticketInfo?.customerName}</p>
               <p><strong>Pass:</strong> ${response.ticketInfo?.passType}</p>
             `,
             timer: 2000,
@@ -660,6 +755,26 @@ export class EmployeeDashboardComponent implements OnInit, OnDestroy {
         this.router.navigate(['/employee/login']);
       }
     });
+  }
+
+  /**
+   * Extrae los últimos 8 dígitos del timestamp del código QR
+   * Formato: PACKEDGO|T:8|TC:8|E:1|U:2|TS:1765298590797
+   * Retorna: 98590797
+   */
+  getQRCodeSuffix(qrCode: string): string {
+    if (!qrCode) return 'N/A';
+    
+    // Buscar el timestamp (TS:)
+    const tsMatch = qrCode.match(/TS:(\d+)/);
+    if (tsMatch && tsMatch[1]) {
+      const timestamp = tsMatch[1];
+      // Retornar los últimos 8 dígitos del timestamp
+      return timestamp.length > 8 ? timestamp.slice(-8) : timestamp;
+    }
+    
+    // Si no hay timestamp, retornar los últimos 8 caracteres del código completo
+    return qrCode.length > 8 ? qrCode.slice(-8) : qrCode;
   }
 }
 

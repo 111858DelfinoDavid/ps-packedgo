@@ -70,8 +70,8 @@ export class EmployeeManagementComponent implements OnInit {
           .map((e: any) => ({
             id: e.id,
             name: e.name,
-            date: new Date(e.startDate),
-            location: e.location || 'Sin ubicación',
+            date: e.eventDate ? new Date(e.eventDate) : null,
+            location: e.locationName || 'Sin ubicación',
             status: e.active ? 'ACTIVE' : 'INACTIVE'
           }));
         console.log('Eventos cargados:', this.myEvents);

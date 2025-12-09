@@ -110,9 +110,10 @@ public class EmployeeDTO {
     @AllArgsConstructor
     public static class TicketInfo {
         private Long ticketId;
-        private String ticketType;
+        private Long userId;
         private String customerName;
         private String eventName;
+        private String passType;
         private Boolean alreadyUsed;
     }
 

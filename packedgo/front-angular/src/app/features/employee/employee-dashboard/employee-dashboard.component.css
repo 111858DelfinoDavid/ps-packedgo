@@ -299,6 +299,42 @@
   animation: fadeInUp 0.7s ease-out;
 }
 
+.action-group {
+  display: flex;
+  gap: 0.75rem;
+  align-items: stretch;
+}
+
+.btn-manual-small {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border: none;
+  border-radius: 15px;
+  padding: 1rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 20px rgba(102, 126, 234, 0.3);
+  color: white;
+  font-size: 1.5rem;
+  min-width: 70px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-manual-small:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 30px rgba(102, 126, 234, 0.4);
+  background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+}
+
+.btn-manual-small i {
+  font-size: 1.8rem;
+}
+
+.action-group .btn-scan {
+  flex: 1;
+}
+
 .btn-scan {
   background: white;
   border: 3px solid transparent;
@@ -503,19 +539,28 @@
 }
 
 .btn-manual {
-  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
   border: none;
-  padding: 0.6rem 1.5rem;
+  padding: 0.75rem 1.5rem;
   border-radius: 10px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
 }
 
 .btn-manual:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 15px rgba(99, 102, 241, 0.4);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+  background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+}
+
+.btn-manual i {
+  font-size: 1.2rem;
 }
 
 /* Last Scan Result */

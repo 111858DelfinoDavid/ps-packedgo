@@ -74,7 +74,7 @@ public class AnalyticsService {
             // Calcular métricas
             SalesMetricsDTO salesMetrics = calculateSalesMetrics(orders);
             EventMetricsDTO eventMetrics = calculateEventMetrics(events);
-            ConsumptionMetricsDTO consumptionMetrics = calculateConsumptionMetrics(consumptions, orders);
+            ConsumptionMetricsDTO consumptionMetrics = calculateConsumptionMetrics(consumptions, organizerId);
             RevenueMetricsDTO revenueMetrics = calculateRevenueMetrics(orders);
             TopPerformersDTO topPerformers = calculateTopPerformers(events, consumptions, orders);
             TrendsDTO trends = calculateTrends(orders);
@@ -165,75 +165,63 @@ public class AnalyticsService {
     }
 
     /**
-     * Obtiene todas las consumiciones con su estado de redención
-     * desde las órdenes pagadas del organizador (optimizado con batch)
+     * Obtiene estadísticas de redención de CONSUMIBLES desde event-service
      */
-    private Map<String, Long> fetchRedemptionStats(List<Map<String, Object>> orders) {
+    private Map<String, Long> fetchConsumptionRedemptionStats(Long organizerId) {
         Map<String, Long> stats = new HashMap<>();
-        long totalSold = 0;
-        long totalRedeemed = 0;
-
+        
         try {
-            // Recolectar todos los ticketConsumptionIds
-            List<Long> ticketConsumptionIds = new ArrayList<>();
+            String url = eventServiceUrl + "/api/event-service/ticket-consumption/redemption-stats/organizer/" + organizerId;
+            log.info("📡 Consultando estadísticas de redención de CONSUMIBLES para organizador {}", organizerId);
             
-            for (Map<String, Object> order : orders) {
-                if (!"PAID".equals(order.get("status"))) continue;
-
-                @SuppressWarnings("unchecked")
-                List<Map<String, Object>> items = (List<Map<String, Object>>) order.get("items");
-                if (items == null) continue;
-
-                for (Map<String, Object> item : items) {
-                    @SuppressWarnings("unchecked")
-                    List<Map<String, Object>> itemConsumptions = (List<Map<String, Object>>) item.get("consumptions");
-                    if (itemConsumptions == null) continue;
-
-                    for (Map<String, Object> consumption : itemConsumptions) {
-                        totalSold++;
-                        
-                        Object ticketConsumptionId = consumption.get("ticketConsumptionId");
-                        if (ticketConsumptionId != null) {
-                            ticketConsumptionIds.add(((Number) ticketConsumptionId).longValue());
-                        }
-                    }
-                }
-            }
-
-            // Si hay ticketConsumptionIds, consultar en batch
-            if (!ticketConsumptionIds.isEmpty()) {
-                try {
-                    String url = eventServiceUrl + "/api/event-service/ticket-consumption/redemption-stats";
-                    log.info("📡 Consultando estado de redención de {} consumiciones", ticketConsumptionIds.size());
-                    
-                    org.springframework.http.HttpHeaders headers = new org.springframework.http.HttpHeaders();
-                    headers.setContentType(org.springframework.http.MediaType.APPLICATION_JSON);
-                    org.springframework.http.HttpEntity<List<Long>> entity = new org.springframework.http.HttpEntity<>(ticketConsumptionIds, headers);
-                    
-                    ResponseEntity<Map<Long, Boolean>> response = restTemplate.exchange(
-                            url,
-                            HttpMethod.POST,
-                            entity,
-                            new ParameterizedTypeReference<Map<Long, Boolean>>() {}
-                    );
-                    
-                    Map<Long, Boolean> redemptionMap = response.getBody();
-                    if (redemptionMap != null) {
-                        totalRedeemed = redemptionMap.values().stream()
-                                .filter(Boolean::booleanValue)
-                                .count();
-                    }
-                } catch (Exception e) {
-                    log.error("❌ Error consultando estadísticas de redención en batch: {}", e.getMessage());
-                }
+            ResponseEntity<Map<String, Long>> response = restTemplate.exchange(
+                    url,
+                    HttpMethod.GET,
+                    null,
+                    new ParameterizedTypeReference<Map<String, Long>>() {}
+            );
+            
+            if (response.getBody() != null) {
+                stats = response.getBody();
+                log.info("📊 Consumibles: {} vendidos, {} canjeados", 
+                         stats.get("totalSold"), stats.get("totalRedeemed"));
             }
         } catch (Exception e) {
-            log.error("❌ Error calculando estadísticas de redención: {}", e.getMessage());
+            log.error("❌ Error consultando estadísticas de redención de consumibles: {}", e.getMessage(), e);
+            stats.put("totalSold", 0L);
+            stats.put("totalRedeemed", 0L);
         }
+        
+        return stats;
+    }
 
-        stats.put("totalSold", totalSold);
-        stats.put("totalRedeemed", totalRedeemed);
-        log.info("📊 Estadísticas de redención: {} vendidas, {} canjeadas", totalSold, totalRedeemed);
+    /**
+     * Obtiene estadísticas de redención de ENTRADAS desde event-service
+     */
+    private Map<String, Long> fetchTicketRedemptionStats(Long organizerId) {
+        Map<String, Long> stats = new HashMap<>();
+        
+        try {
+            String url = eventServiceUrl + "/api/event-service/tickets/redemption-stats/organizer/" + organizerId;
+            log.info("📡 Consultando estadísticas de redención de ENTRADAS para organizador {}", organizerId);
+            
+            ResponseEntity<Map<String, Long>> response = restTemplate.exchange(
+                    url,
+                    HttpMethod.GET,
+                    null,
+                    new ParameterizedTypeReference<Map<String, Long>>() {}
+            );
+            
+            if (response.getBody() != null) {
+                stats = response.getBody();
+                log.info("📊 Entradas: {} vendidas, {} canjeadas", 
+                         stats.get("totalSold"), stats.get("totalRedeemed"));
+            }
+        } catch (Exception e) {
+            log.error("❌ Error consultando estadísticas de redención de entradas: {}", e.getMessage(), e);
+            stats.put("totalSold", 0L);
+            stats.put("totalRedeemed", 0L);
+        }
         
         return stats;
     }
@@ -403,65 +391,60 @@ public class AnalyticsService {
                 .build();
     }
 
-    private ConsumptionMetricsDTO calculateConsumptionMetrics(List<Map<String, Object>> consumptions, List<Map<String, Object>> orders) {
+    private ConsumptionMetricsDTO calculateConsumptionMetrics(List<Map<String, Object>> consumptions, Long organizerId) {
         Long totalConsumptions = (long) consumptions.size();
         Long activeConsumptions = consumptions.stream().filter(c -> Boolean.TRUE.equals(c.get("active"))).count();
 
-        // Obtener estadísticas reales de redención
-        Map<String, Long> redemptionStats = fetchRedemptionStats(orders);
-        Long totalConsumptionsSold = redemptionStats.get("totalSold");
-        Long consumptionsRedeemed = redemptionStats.get("totalRedeemed");
+        // Obtener estadísticas de CONSUMIBLES
+        Map<String, Long> consumptionStats = fetchConsumptionRedemptionStats(organizerId);
+        Long totalConsumptionsSold = consumptionStats.get("totalSold");
+        Long consumptionsRedeemed = consumptionStats.get("totalRedeemed");
         Long consumptionsPending = totalConsumptionsSold - consumptionsRedeemed;
         
-        Double redemptionRate = totalConsumptionsSold > 0 
+        Double consumptionRedemptionRate = totalConsumptionsSold > 0 
                 ? (consumptionsRedeemed.doubleValue() / totalConsumptionsSold) * 100 
                 : 0.0;
 
-        // Consumición más vendida (requiere contar por tipo)
-        Map<Long, Long> consumptionCount = new HashMap<>();
-        orders.stream()
-                .filter(o -> "PAID".equals(o.get("status")))
-                .flatMap(o -> {
-                    @SuppressWarnings("unchecked")
-                    List<Map<String, Object>> items = (List<Map<String, Object>>) o.get("items");
-                    return items != null ? items.stream() : Stream.empty();
-                })
-                .flatMap(item -> {
-                    @SuppressWarnings("unchecked")
-                    List<Map<String, Object>> itemConsumptions = (List<Map<String, Object>>) item.get("consumptions");
-                    return itemConsumptions != null ? itemConsumptions.stream() : Stream.empty();
-                })
-                .forEach(ic -> {
-                    Long consumptionId = ((Number) ic.get("consumptionId")).longValue();
-                    consumptionCount.put(consumptionId, consumptionCount.getOrDefault(consumptionId, 0L) + 1);
-                });
+        // Obtener estadísticas de ENTRADAS
+        Map<String, Long> ticketStats = fetchTicketRedemptionStats(organizerId);
+        Long totalTicketsSold = ticketStats.get("totalSold");
+        Long ticketsRedeemed = ticketStats.get("totalRedeemed");
+        Long ticketsPending = totalTicketsSold - ticketsRedeemed;
+        
+        Double ticketRedemptionRate = totalTicketsSold > 0 
+                ? (ticketsRedeemed.doubleValue() / totalTicketsSold) * 100 
+                : 0.0;
 
-        Long mostSoldConsumptionId = consumptionCount.entrySet().stream()
-                .max(Map.Entry.comparingByValue())
-                .map(Map.Entry::getKey)
-                .orElse(null);
+        log.info("📊 Métricas calculadas - Consumibles: {} vendidos, {} canjeados ({}%) | Entradas: {} vendidas, {} canjeadas ({}%)", 
+                 totalConsumptionsSold, consumptionsRedeemed, Math.round(consumptionRedemptionRate * 100.0) / 100.0,
+                 totalTicketsSold, ticketsRedeemed, Math.round(ticketRedemptionRate * 100.0) / 100.0);
 
+        // Consumición más vendida (basado en las consumiciones disponibles)
+        // Por ahora mostramos N/A ya que necesitamos otro endpoint para obtener esta información
         String mostSoldConsumptionName = "N/A";
         Long mostSoldConsumptionQuantity = 0L;
-        if (mostSoldConsumptionId != null) {
-            mostSoldConsumptionQuantity = consumptionCount.get(mostSoldConsumptionId);
-            Optional<Map<String, Object>> consumption = consumptions.stream()
-                    .filter(c -> mostSoldConsumptionId.equals(((Number) c.get("id")).longValue()))
-                    .findFirst();
-            mostSoldConsumptionName = consumption.map(c -> (String) c.get("name")).orElse("N/A");
-        }
+        Long mostSoldConsumptionId = null;
 
-        return ConsumptionMetricsDTO.builder()
-                .totalConsumptions(totalConsumptions)
-                .activeConsumptions(activeConsumptions)
-                .totalConsumptionsSold(totalConsumptionsSold)
-                .consumptionsRedeemed(consumptionsRedeemed)
-                .consumptionsPending(consumptionsPending)
-                .redemptionRate(Math.round(redemptionRate * 100.0) / 100.0)
+        ConsumptionMetricsDTO metrics = ConsumptionMetricsDTO.builder()
+                .totalConsumptions(totalConsumptions != null ? totalConsumptions : 0L)
+                .activeConsumptions(activeConsumptions != null ? activeConsumptions : 0L)
+                .totalConsumptionsSold(totalConsumptionsSold != null ? totalConsumptionsSold : 0L)
+                .consumptionsRedeemed(consumptionsRedeemed != null ? consumptionsRedeemed : 0L)
+                .consumptionsPending(consumptionsPending != null ? consumptionsPending : 0L)
+                .redemptionRate(consumptionRedemptionRate != null ? Math.round(consumptionRedemptionRate * 100.0) / 100.0 : 0.0)
+                .totalTicketsSold(totalTicketsSold != null ? totalTicketsSold : 0L)
+                .ticketsRedeemed(ticketsRedeemed != null ? ticketsRedeemed : 0L)
+                .ticketsPending(ticketsPending != null ? ticketsPending : 0L)
+                .ticketRedemptionRate(ticketRedemptionRate != null ? Math.round(ticketRedemptionRate * 100.0) / 100.0 : 0.0)
                 .mostSoldConsumptionId(mostSoldConsumptionId)
-                .mostSoldConsumptionName(mostSoldConsumptionName)
-                .mostSoldConsumptionQuantity(mostSoldConsumptionQuantity)
+                .mostSoldConsumptionName(mostSoldConsumptionName != null ? mostSoldConsumptionName : "N/A")
+                .mostSoldConsumptionQuantity(mostSoldConsumptionQuantity != null ? mostSoldConsumptionQuantity : 0L)
                 .build();
+        
+        log.info("📊 Métricas de consumiciones calculadas: totalSold={}, redeemed={}, redemptionRate={}%", 
+                 totalConsumptionsSold, consumptionsRedeemed, metrics.getRedemptionRate());
+        
+        return metrics;
     }
 
     private RevenueMetricsDTO calculateRevenueMetrics(List<Map<String, Object>> orders) {

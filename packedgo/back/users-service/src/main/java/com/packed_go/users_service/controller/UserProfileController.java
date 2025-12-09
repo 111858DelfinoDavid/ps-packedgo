@@ -355,4 +355,5 @@ public class UserProfileController {
             return ResponseEntity.badRequest().build();
         }
     }
+
 }

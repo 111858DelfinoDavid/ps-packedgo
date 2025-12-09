@@ -277,7 +277,8 @@ export class EventDetailComponent implements OnInit {
 
   getTotalPrice(): number {
     const ticketsTotal = this.event ? this.event.basePrice * this.quantity : 0;
-    const consumptionsTotal = this.getSelectedConsumptionsTotal();
+    // Las consumiciones se multiplican por la cantidad de entradas porque cada entrada lleva sus consumiciones
+    const consumptionsTotal = this.getSelectedConsumptionsTotal() * this.quantity;
     return ticketsTotal + consumptionsTotal;
   }
 

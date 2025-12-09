@@ -2,6 +2,7 @@ package com.packed_go.order_service.service;
 
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
+import java.math.BigDecimal;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -26,6 +27,7 @@ import com.packed_go.order_service.dto.external.EventDTO;
 import com.packed_go.order_service.dto.external.TicketWithConsumptionsResponse;
 import com.packed_go.order_service.entity.Order;
 import com.packed_go.order_service.entity.OrderItem;
+import com.packed_go.order_service.entity.OrderItemConsumption;
 import com.packed_go.order_service.external.EventServiceClient;
 
 import jakarta.mail.MessagingException;
@@ -287,26 +289,72 @@ public class EmailService {
         
         // Detalle de entradas
         sb.append("<h2 style='color: #2c3e50; font-size: 20px; margin: 0 0 20px 0; font-weight: 700;'>🎫 Detalle de tus Entradas</h2>");
-        sb.append("<table style='width: 100%; border-collapse: collapse; margin-bottom: 30px;'>");
-        sb.append("<thead>");
-        sb.append("<tr style='background: ").append(primaryGradient).append(";'>");
-        sb.append("<th style='padding: 15px; text-align: left; color: white; font-weight: 700; font-size: 14px;'>Evento</th>");
-        sb.append("<th style='padding: 15px; text-align: center; color: white; font-weight: 700; font-size: 14px;'>Cant.</th>");
-        sb.append("<th style='padding: 15px; text-align: right; color: white; font-weight: 700; font-size: 14px;'>Precio</th>");
-        sb.append("</tr>");
-        sb.append("</thead>");
-        sb.append("<tbody>");
-
+        
+        BigDecimal totalGeneral = BigDecimal.ZERO;
+        
         for (OrderItem item : order.getItems()) {
             String eventName = getEventName(item.getEventId());
-            sb.append("<tr style='border-bottom: 1px solid #e5e7eb;'>");
-            sb.append("<td style='padding: 15px; color: #333; font-weight: 600;'>").append(eventName).append("</td>");
-            sb.append("<td style='padding: 15px; text-align: center; color: #666; font-weight: 600;'>").append(item.getQuantity()).append("</td>");
-            sb.append("<td style='padding: 15px; text-align: right; color: ").append(primaryColor).append("; font-weight: 700;'>$").append(String.format("%,.2f", item.getUnitPrice())).append("</td>");
+            
+            // Tabla para cada entrada
+            sb.append("<table style='width: 100%; border-collapse: collapse; margin-bottom: 25px; border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden;'>");
+            
+            // Header de la entrada
+            sb.append("<thead>");
+            sb.append("<tr style='background: ").append(primaryGradient).append(";'>");
+            sb.append("<th style='padding: 15px; text-align: left; color: white; font-weight: 700; font-size: 14px;'>Concepto</th>");
+            sb.append("<th style='padding: 15px; text-align: center; color: white; font-weight: 700; font-size: 14px;'>Cant.</th>");
+            sb.append("<th style='padding: 15px; text-align: right; color: white; font-weight: 700; font-size: 14px;'>Precio Unit.</th>");
+            sb.append("<th style='padding: 15px; text-align: right; color: white; font-weight: 700; font-size: 14px;'>Subtotal</th>");
             sb.append("</tr>");
+            sb.append("</thead>");
+            sb.append("<tbody>");
+            
+            // Fila de la entrada principal
+            BigDecimal entradaSubtotal = item.getUnitPrice().multiply(BigDecimal.valueOf(item.getQuantity()));
+            sb.append("<tr style='background: #f9fafb;'>");
+            sb.append("<td style='padding: 15px; color: #333; font-weight: 700;'>🎟️ ").append(eventName).append("</td>");
+            sb.append("<td style='padding: 15px; text-align: center; color: #666; font-weight: 600;'>").append(item.getQuantity()).append("</td>");
+            sb.append("<td style='padding: 15px; text-align: right; color: #666; font-weight: 600;'>$").append(String.format("%,.2f", item.getUnitPrice())).append("</td>");
+            sb.append("<td style='padding: 15px; text-align: right; color: ").append(primaryColor).append("; font-weight: 700;'>$").append(String.format("%,.2f", entradaSubtotal)).append("</td>");
+            sb.append("</tr>");
+            
+            // Filas de consumiciones asociadas
+            if (item.getConsumptions() != null && !item.getConsumptions().isEmpty()) {
+                sb.append("<tr style='background: #fff;'>");
+                sb.append("<td colspan='4' style='padding: 10px 15px 5px 15px;'>");
+                sb.append("<span style='color: #667eea; font-weight: 600; font-size: 13px;'>📦 Consumiciones incluidas:</span>");
+                sb.append("</td>");
+                sb.append("</tr>");
+                
+                for (OrderItemConsumption consumption : item.getConsumptions()) {
+                    sb.append("<tr style='background: #fff; border-bottom: 1px solid #f3f4f6;'>");
+                    sb.append("<td style='padding: 8px 15px 8px 35px; color: #666; font-size: 13px;'>").append(consumption.getConsumptionName()).append("</td>");
+                    sb.append("<td style='padding: 8px 15px; text-align: center; color: #888; font-size: 13px;'>").append(consumption.getQuantity()).append("</td>");
+                    sb.append("<td style='padding: 8px 15px; text-align: right; color: #888; font-size: 13px;'>$").append(String.format("%,.2f", consumption.getUnitPrice())).append("</td>");
+                    sb.append("<td style='padding: 8px 15px; text-align: right; color: #666; font-size: 13px;'>$").append(String.format("%,.2f", consumption.getSubtotal())).append("</td>");
+                    sb.append("</tr>");
+                }
+            }
+            
+            // Fila de subtotal del item (entrada + consumiciones)
+            sb.append("<tr style='background: #f3f4f6;'>");
+            sb.append("<td colspan='3' style='padding: 12px 15px; text-align: right; color: #333; font-weight: 700;'>Subtotal:</td>");
+            sb.append("<td style='padding: 12px 15px; text-align: right; color: ").append(primaryColor).append("; font-weight: 700; font-size: 16px;'>$").append(String.format("%,.2f", item.getSubtotal())).append("</td>");
+            sb.append("</tr>");
+            
+            sb.append("</tbody>");
+            sb.append("</table>");
+            
+            totalGeneral = totalGeneral.add(item.getSubtotal());
         }
-        sb.append("</tbody>");
-        sb.append("</table>");
+        
+        // Total General
+        sb.append("<div style='background: ").append(primaryGradient).append("; padding: 20px; border-radius: 8px; margin-bottom: 30px;'>");
+        sb.append("<div style='display: flex; justify-content: space-between; align-items: center;'>");
+        sb.append("<span style='color: white; font-size: 20px; font-weight: 700;'>💰 TOTAL GENERAL:</span>");
+        sb.append("<span style='color: white; font-size: 32px; font-weight: 900;'>$").append(String.format("%,.2f", totalGeneral)).append("</span>");
+        sb.append("</div>");
+        sb.append("</div>");
         
         // Sección de QR Codes
         if (!tickets.isEmpty()) {

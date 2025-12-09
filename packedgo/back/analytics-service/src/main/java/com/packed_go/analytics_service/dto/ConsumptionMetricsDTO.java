@@ -29,8 +29,22 @@ public class ConsumptionMetricsDTO {
     // Consumiciones pendientes de canje
     private Long consumptionsPending;
     
-    // Tasa de canje (%)
+    // Tasa de canje de consumibles (%)
     private Double redemptionRate;
+    
+    // === MÉTRICAS DE ENTRADAS ===
+    
+    // Total de entradas vendidas
+    private Long totalTicketsSold;
+    
+    // Entradas canjeadas
+    private Long ticketsRedeemed;
+    
+    // Entradas pendientes de canje
+    private Long ticketsPending;
+    
+    // Tasa de canje de entradas (%)
+    private Double ticketRedemptionRate;
     
     // Consumición más vendida (ID)
     private Long mostSoldConsumptionId;

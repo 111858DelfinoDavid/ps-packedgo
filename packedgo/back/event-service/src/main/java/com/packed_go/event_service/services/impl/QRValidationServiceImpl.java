@@ -92,8 +92,8 @@ public class QRValidationServiceImpl implements QRValidationService {
                         .build();
             }
 
-            // 3. Buscar el ticket
-            Optional<Ticket> ticketOpt = ticketRepository.findById(ticketId);
+            // 3. Buscar el ticket con pass eager loaded
+            Optional<Ticket> ticketOpt = ticketRepository.findByIdWithPass(ticketId);
             if (ticketOpt.isEmpty()) {
                 log.warn("❌ Ticket not found: {}", ticketId);
                 return ValidateEntryQRResponse.builder()
@@ -138,13 +138,13 @@ public class QRValidationServiceImpl implements QRValidationService {
                 log.warn("❌ Ticket already redeemed: {}", ticketId);
                 return ValidateEntryQRResponse.builder()
                         .valid(false)
-                        .message("❌ Entrada ya utilizada el " + ticket.getRedeemedAt())
+                        .message("❌ Entrada ya utilizada")
                         .ticketInfo(ValidateEntryQRResponse.TicketEntryInfo.builder()
                                 .ticketId(ticket.getId())
                                 .userId(ticket.getUserId())
                                 .customerName("Usuario " + userId)
                                 .eventName(event.getName())
-                                .passType(ticket.getPass().getCode())
+                                .passType(getPassCodeSuffix(ticket.getPass().getCode()))
                                 .alreadyUsed(true)
                                 .build())
                         .build();
@@ -166,7 +166,7 @@ public class QRValidationServiceImpl implements QRValidationService {
                             .userId(ticket.getUserId())
                             .customerName("Usuario " + userId) // TODO: Integrar con users-service
                             .eventName(event.getName())
-                            .passType(ticket.getPass().getCode()) // Pass code instead of name
+                            .passType(getPassCodeSuffix(ticket.getPass().getCode())) // Last 8 characters
                             .alreadyUsed(false)
                             .build())
                     .build();
@@ -405,5 +405,20 @@ public class QRValidationServiceImpl implements QRValidationService {
             log.error("❌ Error finding ticket by code", e);
             return null;
         }
+    }
+
+    /**
+     * Helper method to get the last 8 characters of the pass code
+     * @param passCode Full pass code
+     * @return Last 8 characters or full code if shorter
+     */
+    private String getPassCodeSuffix(String passCode) {
+        if (passCode == null) {
+            return "N/A";
+        }
+        if (passCode.length() <= 8) {
+            return passCode;
+        }
+        return passCode.substring(passCode.length() - 8);
     }
 }

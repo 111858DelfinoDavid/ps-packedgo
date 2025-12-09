@@ -1,5 +1,21 @@
 package com.packed_go.event_service.controllers;
 
+import java.util.List;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
 import com.packed_go.event_service.dtos.event.EventDTO;
 import com.packed_go.event_service.dtos.ticket.CreateTicketDTO;
 import com.packed_go.event_service.dtos.ticket.CreateTicketWithConsumptionsRequest;
@@ -8,15 +24,9 @@ import com.packed_go.event_service.dtos.ticket.TicketWithConsumptionsResponse;
 import com.packed_go.event_service.security.JwtTokenValidator;
 import com.packed_go.event_service.services.EventService;
 import com.packed_go.event_service.services.TicketService;
+
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @RestController
 @RequestMapping("/event-service/tickets")
@@ -173,6 +183,17 @@ public class TicketController {
                 .build();
         
         return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Endpoint para obtener estadísticas de redención de entradas por organizador.
+     * Retorna total de entradas vendidas y total de entradas canjeadas.
+     */
+    @GetMapping("/redemption-stats/organizer/{organizerId}")
+    public ResponseEntity<java.util.Map<String, Long>> getTicketRedemptionStatsByOrganizer(@PathVariable Long organizerId) {
+        log.info("📊 Obteniendo estadísticas de redención de ENTRADAS para organizador: {}", organizerId);
+        java.util.Map<String, Long> stats = ticketService.getTicketRedemptionStatsByOrganizer(organizerId);
+        return ResponseEntity.ok(stats);
     }
 
     private Long validateAndExtractUserId(String authHeader, Long requestedUserId) {

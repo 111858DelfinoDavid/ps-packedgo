@@ -1,12 +1,13 @@
 package com.packed_go.event_service.services;
 
+import java.util.List;
+
 import com.packed_go.event_service.dtos.ticket.CreateTicketDTO;
 import com.packed_go.event_service.dtos.ticket.CreateTicketWithConsumptionsRequest;
 import com.packed_go.event_service.dtos.ticket.TicketDTO;
 import com.packed_go.event_service.dtos.ticket.TicketWithConsumptionsResponse;
-import jakarta.transaction.Transactional;
 
-import java.util.List;
+import jakarta.transaction.Transactional;
 
 public interface TicketService {
 
@@ -40,4 +41,6 @@ public interface TicketService {
 
     @Transactional
     boolean isTicketRedeemed(Long ticketId);
+
+    java.util.Map<String, Long> getTicketRedemptionStatsByOrganizer(Long organizerId);
 }

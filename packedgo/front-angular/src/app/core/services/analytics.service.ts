@@ -34,8 +34,18 @@ export interface EventMetricsDTO {
 
 export interface ConsumptionMetricsDTO {
   totalConsumptions: number;
-  totalSold: number;
+  activeConsumptions: number;
+  totalConsumptionsSold: number;
+  consumptionsRedeemed: number;
+  consumptionsPending: number;
   redemptionRate: number;
+  totalTicketsSold: number;
+  ticketsRedeemed: number;
+  ticketsPending: number;
+  ticketRedemptionRate: number;
+  mostSoldConsumptionId?: number;
+  mostSoldConsumptionName?: string;
+  mostSoldConsumptionQuantity?: number;
 }
 
 export interface RevenueMetricsDTO {
@@ -66,8 +76,9 @@ export interface EventPerformanceDTO {
 export interface ConsumptionPerformanceDTO {
   consumptionId: number;
   consumptionName: string;
-  totalSold: number;
+  quantitySold: number;
   revenue: number;
+  redemptionRate?: number;
 }
 
 export interface CategoryPerformanceDTO {

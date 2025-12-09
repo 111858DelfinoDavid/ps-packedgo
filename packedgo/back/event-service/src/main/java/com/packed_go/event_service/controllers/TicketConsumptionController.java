@@ -188,4 +188,15 @@ public class TicketConsumptionController {
         
         return ResponseEntity.ok(stats);
     }
+
+    /**
+     * Endpoint para obtener estadísticas de redención por organizador.
+     * Retorna total de tickets vendidos y total de tickets canjeados.
+     */
+    @GetMapping("/redemption-stats/organizer/{organizerId}")
+    public ResponseEntity<java.util.Map<String, Long>> getRedemptionStatsByOrganizer(@PathVariable Long organizerId) {
+        log.info("📊 Obteniendo estadísticas de redención para organizador: {}", organizerId);
+        java.util.Map<String, Long> stats = ticketService.getRedemptionStatsByOrganizer(organizerId);
+        return ResponseEntity.ok(stats);
+    }
 }

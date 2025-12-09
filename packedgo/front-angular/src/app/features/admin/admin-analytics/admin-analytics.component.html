@@ -140,8 +140,12 @@
                 <h4 class="metric-value success">{{ formatNumber(dashboard.salesMetrics.averageTicketsPerOrder, 2) }}</h4>
               </div>
               <div class="metric-item">
-                <h6 class="metric-label">Tasa de Redención</h6>
+                <h6 class="metric-label">Redención Consumibles</h6>
                 <h4 class="metric-value warning">{{ formatPercentage(dashboard.consumptionMetrics.redemptionRate) }}</h4>
+              </div>
+              <div class="metric-item">
+                <h6 class="metric-label">Redención Entradas</h6>
+                <h4 class="metric-value success">{{ formatPercentage(dashboard.consumptionMetrics.ticketRedemptionRate) }}</h4>
               </div>
             </div>
           </div>
@@ -219,10 +223,10 @@
                 <div class="top-info">
                   <h6 class="top-name">{{ consumption.consumptionName }}</h6>
                   <small class="top-details">
-                    {{ consumption.totalSold }} unidades vendidas
+                    {{ consumption.quantitySold }} unidades • {{ formatCurrency(consumption.revenue) }}
                   </small>
                 </div>
-                <strong class="top-value danger">{{ formatCurrency(consumption.revenue) }}</strong>
+                <strong class="top-value danger">{{ consumption.quantitySold }} unidades</strong>
               </div>
             </div>
           </div>

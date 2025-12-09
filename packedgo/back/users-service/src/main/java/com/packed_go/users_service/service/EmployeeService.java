@@ -13,7 +13,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.reactive.function.client.WebClient;
 
-import com.packed_go.users_service.dto.EmployeeDTO.*;
 import com.packed_go.users_service.dto.EmployeeDTO.AssignedEventInfo;
 import com.packed_go.users_service.dto.EmployeeDTO.CreateEmployeeRequest;
 import com.packed_go.users_service.dto.EmployeeDTO.EmployeeResponse;
@@ -215,8 +214,8 @@ public class EmployeeService {
                         AssignedEventInfo info = new AssignedEventInfo();
                         info.setId(event.getId());
                         info.setName(event.getName());
-                        info.setLocation(event.getLocation());
-                        info.setEventDate(event.getStartDate());
+                        info.setLocation(event.getLocationName());
+                        info.setEventDate(event.getEventDate());
                         info.setStatus(event.isActive() ? "ACTIVE" : "INACTIVE");
                         return info;
                     })
@@ -233,18 +232,18 @@ public class EmployeeService {
     private static class EventDTO {
         private Long id;
         private String name;
-        private String location;
-        private LocalDateTime startDate;
+        private String locationName;  // Cambio: location -> locationName
+        private LocalDateTime eventDate;  // Cambio: startDate -> eventDate
         private boolean active;
 
         public Long getId() { return id; }
         public void setId(Long id) { this.id = id; }
         public String getName() { return name; }
         public void setName(String name) { this.name = name; }
-        public String getLocation() { return location; }
-        public void setLocation(String location) { this.location = location; }
-        public LocalDateTime getStartDate() { return startDate; }
-        public void setStartDate(LocalDateTime startDate) { this.startDate = startDate; }
+        public String getLocationName() { return locationName; }
+        public void setLocationName(String locationName) { this.locationName = locationName; }
+        public LocalDateTime getEventDate() { return eventDate; }
+        public void setEventDate(LocalDateTime eventDate) { this.eventDate = eventDate; }
         public boolean isActive() { return active; }
         public void setActive(boolean active) { this.active = active; }
     }
@@ -284,8 +283,8 @@ public class EmployeeService {
                     AssignedEventInfo info = new AssignedEventInfo();
                     info.setId(event.getId());
                     info.setName(event.getName());
-                    info.setLocation(event.getLocation());
-                    info.setEventDate(event.getStartDate());
+                    info.setLocation(event.getLocationName());
+                    info.setEventDate(event.getEventDate());
                     info.setStatus(event.isActive() ? "ACTIVE" : "INACTIVE");
                     return info;
                 })
