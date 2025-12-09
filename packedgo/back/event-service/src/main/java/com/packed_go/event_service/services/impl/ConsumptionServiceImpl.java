@@ -79,10 +79,21 @@ public class ConsumptionServiceImpl implements ConsumptionService {
     /**
      * Helper method para mapear Consumption entity a DTO con categoryId correcto
      */
-    private ConsumptionDTO mapToDTO(Consumption consumption) {
+    @Override
+    public ConsumptionDTO mapToDTO(Consumption consumption) {
         ConsumptionDTO dto = modelMapper.map(consumption, ConsumptionDTO.class);
         if (consumption.getCategory() != null) {
             dto.setCategoryId(consumption.getCategory().getId());
+        }
+        // Convertir imageData (byte[]) a Base64 para transmisión
+        if (consumption.getImageData() != null) {
+            String base64 = java.util.Base64.getEncoder().encodeToString(consumption.getImageData());
+            dto.setImageData(base64);
+            dto.setHasImageData(true);
+            System.out.println("📤 mapToDTO: Consumo '" + consumption.getName() + "' - imageData convertido a Base64 (length: " + base64.length() + "), hasImageData: true");
+        } else {
+            dto.setHasImageData(false);
+            System.out.println("📤 mapToDTO: Consumo '" + consumption.getName() + "' - NO tiene imageData");
         }
         return dto;
     }
@@ -117,6 +128,24 @@ public class ConsumptionServiceImpl implements ConsumptionService {
         consumption.setCategory(category);
         consumption.setCreatedBy(createdBy); // 🔒 Inyectar desde JWT
         consumption.setActive(true);
+        
+        // Convertir imageData de Base64 a byte[] si existe
+        System.out.println("🖼️ DEBUG: imageData recibido: " + (createConsumptionDto.getImageData() != null ? "SI (length: " + createConsumptionDto.getImageData().length() + ")" : "NO"));
+        System.out.println("🖼️ DEBUG: imageContentType: " + createConsumptionDto.getImageContentType());
+        
+        if (createConsumptionDto.getImageData() != null && !createConsumptionDto.getImageData().isEmpty()) {
+            try {
+                byte[] imageBytes = java.util.Base64.getDecoder().decode(createConsumptionDto.getImageData());
+                consumption.setImageData(imageBytes);
+                consumption.setImageContentType(createConsumptionDto.getImageContentType());
+                System.out.println("🖼️ DEBUG: Imagen convertida exitosamente. Tamaño: " + imageBytes.length + " bytes");
+            } catch (IllegalArgumentException e) {
+                System.err.println("🖼️ ERROR: Base64 inválido");
+                throw new RuntimeException("Invalid Base64 image data");
+            }
+        } else {
+            System.out.println("🖼️ DEBUG: No se recibió imageData");
+        }
         
         Consumption savedConsumption = consumptionRepository.save(consumption);
         return mapToDTO(savedConsumption);
@@ -165,6 +194,24 @@ public class ConsumptionServiceImpl implements ConsumptionService {
         existingConsumption.setPrice(dto.getPrice());
         existingConsumption.setImageUrl(dto.getImageUrl());
         existingConsumption.setActive(dto.isActive());
+        
+        // Convertir imageData de Base64 a byte[] si existe
+        System.out.println("🖼️ UPDATE DEBUG: imageData recibido: " + (dto.getImageData() != null ? "SI (length: " + dto.getImageData().length() + ")" : "NO"));
+        System.out.println("🖼️ UPDATE DEBUG: imageContentType: " + dto.getImageContentType());
+        
+        if (dto.getImageData() != null && !dto.getImageData().isEmpty()) {
+            try {
+                byte[] imageBytes = java.util.Base64.getDecoder().decode(dto.getImageData());
+                existingConsumption.setImageData(imageBytes);
+                existingConsumption.setImageContentType(dto.getImageContentType());
+                System.out.println("🖼️ UPDATE DEBUG: Imagen convertida exitosamente. Tamaño: " + imageBytes.length + " bytes");
+            } catch (IllegalArgumentException e) {
+                System.err.println("🖼️ UPDATE ERROR: Base64 inválido");
+                throw new RuntimeException("Invalid Base64 image data");
+            }
+        } else {
+            System.out.println("🖼️ UPDATE DEBUG: No se recibió imageData");
+        }
 
         Consumption updatedConsumption = consumptionRepository.save(existingConsumption);
         return mapToDTO(updatedConsumption);

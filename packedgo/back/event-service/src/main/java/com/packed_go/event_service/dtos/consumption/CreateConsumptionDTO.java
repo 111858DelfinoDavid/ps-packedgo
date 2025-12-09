@@ -1,10 +1,10 @@
 package com.packed_go.event_service.dtos.consumption;
 
-import lombok.Getter;
-import lombok.Setter;
-
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+
+import lombok.Getter;
+import lombok.Setter;
 
 @Getter
 @Setter
@@ -16,6 +16,8 @@ public class CreateConsumptionDTO {
     private String description;
     private BigDecimal price;
     private String imageUrl;
+    private String imageData; // Base64-encoded image
+    private String imageContentType;
     
     // Este campo NO se envía desde frontend, se inyecta desde JWT en el controller
     private Long createdBy;

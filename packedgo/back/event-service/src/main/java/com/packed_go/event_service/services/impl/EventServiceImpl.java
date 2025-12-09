@@ -23,6 +23,7 @@ import com.packed_go.event_service.repositories.EventCategoryRepository;
 import com.packed_go.event_service.repositories.EventRepository;
 import com.packed_go.event_service.repositories.PassRepository;
 import com.packed_go.event_service.repositories.TicketRepository;
+import com.packed_go.event_service.services.ConsumptionService;
 import com.packed_go.event_service.services.EventService;
 import com.packed_go.event_service.services.PassGenerationService;
 
@@ -44,6 +45,9 @@ public class EventServiceImpl implements EventService {
     
     @Autowired
     private final ConsumptionRepository consumptionRepository;
+    
+    @Autowired
+    private final ConsumptionService consumptionService;
     
     @Autowired
     private final PassRepository passRepository;
@@ -73,7 +77,7 @@ public class EventServiceImpl implements EventService {
         if (event.getConsumptions() != null && !event.getConsumptions().isEmpty()) {
             List<ConsumptionDTO> consumptionDTOs = event.getConsumptions().stream()
                 .filter(c -> c.isActive())
-                .map(c -> modelMapper.map(c, ConsumptionDTO.class))
+                .map(c -> consumptionService.mapToDTO(c))
                 .toList();
             eventDTO.setAvailableConsumptions(consumptionDTOs);
         }

@@ -2,6 +2,7 @@ package com.packed_go.event_service.services;
 
 import com.packed_go.event_service.dtos.consumption.ConsumptionDTO;
 import com.packed_go.event_service.dtos.consumption.CreateConsumptionDTO;
+import com.packed_go.event_service.entities.Consumption;
 import jakarta.transaction.Transactional;
 
 import java.util.List;
@@ -21,5 +22,7 @@ public interface ConsumptionService {
 
     @Transactional
     ConsumptionDTO deleteLogical(Long id);
+    
+    ConsumptionDTO mapToDTO(Consumption consumption);
 
 }

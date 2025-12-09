@@ -14,6 +14,7 @@ import com.packed_go.event_service.dtos.qr.ValidateConsumptionQRRequest;
 import com.packed_go.event_service.dtos.qr.ValidateConsumptionQRResponse;
 import com.packed_go.event_service.dtos.qr.ValidateEntryQRRequest;
 import com.packed_go.event_service.dtos.qr.ValidateEntryQRResponse;
+import com.packed_go.event_service.dtos.ticketConsumptionDetail.RedeemTicketDetailDTO;
 import com.packed_go.event_service.entities.Event;
 import com.packed_go.event_service.entities.Pass;
 import com.packed_go.event_service.entities.Ticket;
@@ -265,34 +266,60 @@ public class QRValidationServiceImpl implements QRValidationService {
                         .build();
             }
 
-            // 8. Canjear la consumición (parcial o total)
-            if (quantityToRedeem.equals(detail.getQuantity())) {
-                // Canje total
-                detailService.redeemDetail(detailId);
-
+            // 7.5. 🔒 VALIDACIÓN: Verificar que la entrada haya sido canjeada primero
+            Optional<Ticket> entryTicketOpt = ticketRepository.findByTicketConsumption_Id(detail.getTicketConsumption().getId());
+            if (entryTicketOpt.isEmpty()) {
                 return ValidateConsumptionQRResponse.builder()
-                        .success(true)
-                        .message("✅ Consumición canjeada exitosamente")
-                        .consumptionInfo(ValidateConsumptionQRResponse.ConsumptionRedeemInfo.builder()
-                                .detailId(detail.getId())
-                                .consumptionId(detail.getConsumption().getId())
-                                .consumptionName(detail.getConsumption().getName())
-                                .consumptionType(detail.getConsumption().getCategory() != null ?
-                                    detail.getConsumption().getCategory().getName() : "Sin categoría")
-                                .quantityRedeemed(quantityToRedeem)
-                                .remainingQuantity(0)
-                                .fullyRedeemed(true)
-                                .eventName(getEventNameFromDetail(detail))
-                                .build())
+                        .success(false)
+                        .message("❌ No se encontró el ticket de entrada asociado")
                         .build();
-            } else {
-                // Canje parcial
-                var updatedDetail = detailService.redeemDetailPartial(detailId, quantityToRedeem);
-
-                Integer originalQuantity = detail.getQuantity() + quantityToRedeem;
+            }
+            
+            Ticket entryTicket = entryTicketOpt.get();
+            if (!entryTicket.isRedeemed()) {
                 return ValidateConsumptionQRResponse.builder()
-                        .success(true)
-                        .message("✅ Consumición parcial canjeada (" + quantityToRedeem + " de " + originalQuantity + ")")
+                        .success(false)
+                        .message("Primero debe canjear la entrada")
+                        .build();
+            }
+
+            // 8. Canjear la consumición (parcial o total)
+            try {
+                if (quantityToRedeem.equals(detail.getQuantity())) {
+                    // Canje total
+                    RedeemTicketDetailDTO redeemResult = detailService.redeemDetail(detailId);
+                    
+                    // Verificar si el canje fue exitoso
+                    if (!redeemResult.isSuccess()) {
+                        return ValidateConsumptionQRResponse.builder()
+                                .success(false)
+                                .message(redeemResult.getMessage())
+                                .build();
+                    }
+
+                    return ValidateConsumptionQRResponse.builder()
+                            .success(true)
+                            .message("✅ Consumición canjeada exitosamente")
+                            .consumptionInfo(ValidateConsumptionQRResponse.ConsumptionRedeemInfo.builder()
+                                    .detailId(detail.getId())
+                                    .consumptionId(detail.getConsumption().getId())
+                                    .consumptionName(detail.getConsumption().getName())
+                                    .consumptionType(detail.getConsumption().getCategory() != null ?
+                                        detail.getConsumption().getCategory().getName() : "Sin categoría")
+                                    .quantityRedeemed(quantityToRedeem)
+                                    .remainingQuantity(0)
+                                    .fullyRedeemed(true)
+                                    .eventName(getEventNameFromDetail(detail))
+                                    .build())
+                            .build();
+                } else {
+                    // Canje parcial
+                    var updatedDetail = detailService.redeemDetailPartial(detailId, quantityToRedeem);
+
+                    Integer originalQuantity = detail.getQuantity() + quantityToRedeem;
+                    return ValidateConsumptionQRResponse.builder()
+                            .success(true)
+                            .message("✅ Consumición parcial canjeada (" + quantityToRedeem + " de " + originalQuantity + ")")
                         .consumptionInfo(ValidateConsumptionQRResponse.ConsumptionRedeemInfo.builder()
                                 .detailId(detail.getId())
                                 .consumptionId(detail.getConsumption().getId())
@@ -304,6 +331,14 @@ public class QRValidationServiceImpl implements QRValidationService {
                                 .fullyRedeemed(updatedDetail.isRedeem())
                                 .eventName(getEventNameFromDetail(detail))
                                 .build())
+                        .build();
+                }
+            } catch (RuntimeException redeemEx) {
+                // Capturar errores específicos del canje (ej: entrada no canjeada)
+                log.warn("❌ Error al canjear consumición: {}", redeemEx.getMessage());
+                return ValidateConsumptionQRResponse.builder()
+                        .success(false)
+                        .message(redeemEx.getMessage())
                         .build();
             }
 

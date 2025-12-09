@@ -72,6 +72,10 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
     @Query("SELECT t FROM Ticket t WHERE t.ticketConsumption = :ticketConsumption")
     Optional<Ticket> findByTicketConsumption(@Param("ticketConsumption") com.packed_go.event_service.entities.TicketConsumption ticketConsumption);
 
+    // Buscar ticket por ID de TicketConsumption
+    @Query("SELECT t FROM Ticket t WHERE t.ticketConsumption.id = :ticketConsumptionId")
+    Optional<Ticket> findByTicketConsumption_Id(@Param("ticketConsumptionId") Long ticketConsumptionId);
+
     // Contar todos los tickets (entradas) por organizador
     @Query(value = "SELECT COUNT(t.id) FROM tickets t " +
                    "INNER JOIN passes p ON t.pass_id = p.id " +
