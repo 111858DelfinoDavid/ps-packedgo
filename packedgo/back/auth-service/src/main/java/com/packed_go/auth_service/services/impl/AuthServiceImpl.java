@@ -181,12 +181,12 @@ public class AuthServiceImpl implements AuthService {
             throw new UnauthorizedException("Tu cuenta ha sido desactivada. Por favor, contacta con el administrador.");
         }
 
-        // Buscar o crear usuario en auth-service
-        AuthUser user = authUserRepository.findByEmailAndLoginType(request.getEmail(), "EMAIL")
+        // Buscar usuario en auth-service por documento (llave única) o crear uno nuevo
+        AuthUser user = authUserRepository.findByDocumentAndLoginType(employeeData.getDocument(), "EMAIL")
             .orElseGet(() -> {
-                log.info("Creating new auth user for employee: {}", request.getEmail());
+                log.info("Creating new auth user for employee: {} (document: {})", request.getEmail(), employeeData.getDocument());
                 AuthUser newUser = AuthUser.builder()
-                    .email(request.getEmail())
+                    .email(employeeData.getEmail()) // Usar email del users-service
                     .username(employeeData.getUsername())
                     .document(employeeData.getDocument())
                     .passwordHash(request.getPassword()) // Ya viene hasheado del users-service
