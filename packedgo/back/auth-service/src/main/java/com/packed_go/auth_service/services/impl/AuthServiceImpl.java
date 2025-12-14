@@ -97,6 +97,14 @@ public class AuthServiceImpl implements AuthService {
         }
         log.info("Admin account is not locked for user: {}", user.getId());
 
+        // Verificar si el email está verificado
+        if (!user.getIsEmailVerified()) {
+            log.error("Email not verified for admin user: {}", user.getId());
+            recordFailedLogin(request.getEmail(), "EMAIL", ipAddress, userAgent, "Email not verified");
+            throw new UnauthorizedException("Por favor verifica tu email antes de iniciar sesión. Revisa tu bandeja de entrada para encontrar el enlace de verificación.");
+        }
+        log.info("Email verified for admin user: {}", user.getId());
+
         // Verificar contraseña
         log.info("Verifying password for admin user: {}", user.getId());
         if (!passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
@@ -133,6 +141,14 @@ public class AuthServiceImpl implements AuthService {
             recordFailedLogin(String.valueOf(request.getDocument()), "DOCUMENT", ipAddress, userAgent, "Account locked");
             throw new UnauthorizedException("Account is locked until " + user.getLockedUntil());
         }
+
+        // Verificar si el email está verificado
+        if (!user.getIsEmailVerified()) {
+            log.error("Email not verified for customer user: {}", user.getId());
+            recordFailedLogin(String.valueOf(request.getDocument()), "DOCUMENT", ipAddress, userAgent, "Email not verified");
+            throw new UnauthorizedException("Por favor verifica tu email antes de iniciar sesión. Revisa tu bandeja de entrada para encontrar el enlace de verificación.");
+        }
+        log.info("Email verified for customer user: {}", user.getId());
 
         // Verificar contraseña
         if (!passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
@@ -223,7 +239,7 @@ public class AuthServiceImpl implements AuthService {
                 .role("CUSTOMER")
                 .loginType("DOCUMENT")
                 .isActive(true)
-                .isEmailVerified(true) // ✅ Auto-verificado para desarrollo
+                .isEmailVerified(false) // ❌ Requiere verificación de email
                 .isDocumentVerified(false)
                 .failedLoginAttempts(0)
                 .createdAt(LocalDateTime.now())
@@ -256,9 +272,7 @@ public class AuthServiceImpl implements AuthService {
         }
         
         
-        // 🚫 Email de verificación desactivado para desarrollo
-        // Los usuarios se crean ya verificados (isEmailVerified = true)
-        /*
+        // ✅ Email de verificación activado
         try {
             sendVerificationEmail(savedUser);
             log.info("Verification email sent for user ID: {}", savedUser.getId());
@@ -266,8 +280,7 @@ public class AuthServiceImpl implements AuthService {
             log.error("Failed to send verification email for user ID: {}", savedUser.getId(), e);
             // No lanzamos la excepción para que el registro continúe
         }
-        */
-        log.info("✅ User registered and auto-verified (development mode) - ID: {}", savedUser.getId());
+        log.info("✅ Customer registered - Email verification required - ID: {}", savedUser.getId());
         
         return savedUser;
     }
@@ -360,7 +373,7 @@ public boolean verifyEmail(String token) {
                 .role("ADMIN")
                 .loginType("EMAIL")
                 .isActive(true)
-                .isEmailVerified(true) // ✅ Auto-verificado para desarrollo
+                .isEmailVerified(false) // ❌ Requiere verificación de email
                 .isDocumentVerified(false)
                 .failedLoginAttempts(0)
                 .createdAt(LocalDateTime.now())
@@ -371,9 +384,7 @@ public boolean verifyEmail(String token) {
         AuthUser savedAdmin = authUserRepository.save(newAdmin);
         log.info("Admin registered successfully with ID: {}", savedAdmin.getId());
         
-        // 🚫 Email de verificación desactivado para desarrollo
-        // Los admins se crean ya verificados (isEmailVerified = true)
-        /*
+        // ✅ Email de verificación activado
         try {
             sendVerificationEmail(savedAdmin);
             log.info("Verification email sent for admin ID: {}", savedAdmin.getId());
@@ -381,8 +392,7 @@ public boolean verifyEmail(String token) {
             log.error("Failed to send verification email for admin ID: {}", savedAdmin.getId(), e);
             // No lanzamos la excepción para que el registro continúe
         }
-        */
-        log.info("✅ Admin registered and auto-verified (development mode) - ID: {}", savedAdmin.getId());
+        log.info("✅ Admin registered - Email verification required - ID: {}", savedAdmin.getId());
         
         return savedAdmin;
     }

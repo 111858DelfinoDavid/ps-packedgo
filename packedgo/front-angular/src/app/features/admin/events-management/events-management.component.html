@@ -661,8 +661,11 @@
             <i class="bi bi-info-circle"></i> PNG, JPG o JPEG. Máximo 5MB.
           </small>
           
-          <!-- Preview de la imagen seleccionada -->
+          <!-- Preview de la imagen seleccionada o existente -->
           <div *ngIf="imagePreviewUrl" class="image-preview mt-2">
+            <div *ngIf="isEditMode && !selectedImageFile" class="alert alert-success mb-2">
+              <i class="bi bi-check-circle"></i> Imagen actual del evento
+            </div>
             <img [src]="imagePreviewUrl" alt="Vista previa">
           </div>
         </div>

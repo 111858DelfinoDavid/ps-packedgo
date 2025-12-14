@@ -1,16 +1,28 @@
-# AUTH-SERVICE
+# 🔐 AUTH-SERVICE
 
-## Descripción General
+## 📋 Descripción General
 
-El AUTH-SERVICE es el microservicio de autenticación y autorización de PackedGo que maneja la gestión completa de usuarios y sesiones. Implementa autenticación diferenciada para administradores (email) y clientes (DNI), junto con funcionalidades de seguridad como JWT, recuperación de contraseñas y verificación de email.
+El AUTH-SERVICE es el **microservicio de autenticación y autorización** de PackedGo que maneja la gestión completa de usuarios y sesiones. Implementa autenticación diferenciada para administradores (email) y clientes (DNI), junto con funcionalidades de seguridad como JWT, recuperación de contraseñas y verificación de email.
 
-## Puerto de Servicio
-**8081**
+### Características Principales:
+- 🔑 Autenticación JWT con tokens de acceso y refresh
+- 👥 Multi-tenant por tipo de usuario (Admin/Customer/Employee)
+- 📧 Verificación de email con SendGrid
+- 🔒 Recuperación segura de contraseñas
+- 🛡️ Protección contra ataques de fuerza bruta
+- 📊 Auditoría completa de intentos de login
 
-## Base de Datos
+## 🚀 Puerto de Servicio
+**8081** (HTTP)
+**5005** (Debug JDWP)
+
+## 📦 Base de Datos
 - **Nombre:** auth_db
-- **Puerto:** 5433 (PostgreSQL)
-- **Tablas principales:**
+- **Puerto:** 5433 (PostgreSQL 15)
+- **Usuario:** auth_user
+- **Imagen:** postgres:15-alpine
+
+### Tablas principales:
   - `auth_users` - Usuarios del sistema
   - `user_sessions` - Sesiones activas
   - `email_verification_tokens` - Tokens de verificación de email
@@ -37,6 +49,7 @@ El AUTH-SERVICE es el microservicio de autenticación y autorización de PackedG
 - Sistema de bloqueo de cuenta por intentos fallidos (5 intentos, 30 min bloqueo)
 - Auditoría completa de intentos de login
 - Validación de tokens para otros microservicios
+- **✅ Verificación de email obligatoria antes del login**
 
 ### 4. Recuperación de Contraseñas
 - Sistema seguro de reset con validación de email + DNI
@@ -99,6 +112,233 @@ public class AuthUser {
     private Boolean isDocumentVerified;
     private LocalDateTime lastLogin;
     private Integer failedLoginAttempts;
+    private LocalDateTime accountLockedUntil;
+}
+```
+
+## 🚀 Tecnologías
+
+- **Java 17** - Lenguaje de programación
+- **Spring Boot 3.5.6** - Framework principal
+- **Spring Data JPA** - Persistencia de datos
+- **Spring Security** - Seguridad y autenticación
+- **Spring Validation** - Validación de datos
+- **Spring Mail** - Envío de emails
+- **JWT (0.12.5)** - Autenticación basada en tokens
+- **SendGrid 4.10.2** - Servicio de email transaccional
+- **BCrypt** - Hash de contraseñas
+- **ModelMapper 3.2.0** - Mapeo de objetos
+- **PostgreSQL 15** - Base de datos
+- **Lombok** - Reducción de boilerplate
+- **Docker** - Contenedorización
+
+## 🐳 Ejecución con Docker
+
+### Desde el directorio raíz del backend:
+```bash
+docker-compose up -d auth-service
+```
+
+### Logs del servicio:
+```bash
+docker-compose logs -f auth-service
+```
+
+### Variables de entorno requeridas (.env):
+```properties
+# Server
+SERVER_PORT=8081
+
+# Database
+DB_URL=jdbc:postgresql://auth-db:5432/auth_db
+DB_USERNAME=auth_user
+DB_PASSWORD=auth_password
+
+# JWT
+JWT_SECRET=your_jwt_secret_key_here
+JWT_EXPIRATION=86400000  # 24 horas en milisegundos
+JWT_REFRESH_EXPIRATION=604800000  # 7 días
+
+# SendGrid
+SENDGRID_API_KEY=your_sendgrid_api_key
+SENDGRID_FROM_EMAIL=noreply@packedgo.com
+
+# Users Service Integration
+USERS_SERVICE_URL=http://users-service:8082
+
+# Security
+ADMIN_REGISTRATION_CODE=ADMIN2025SECRET  # Código para registro de admins
+```
+
+## 🔧 Desarrollo Local
+
+### Requisitos:
+- Java 17+
+- Maven 3.8+
+- PostgreSQL 15+ (o usar Docker)
+
+### Ejecutar localmente:
+```bash
+./mvnw spring-boot:run
+```
+
+### Compilar:
+```bash
+./mvnw clean package
+```
+
+## 🔗 Integración con Otros Servicios
+
+El Auth Service se comunica con:
+- **USERS-SERVICE** (Puerto 8082) - Creación de perfiles de usuario tras registro
+
+Otros servicios validan tokens con:
+- **POST /auth/validate** - Endpoint de validación de tokens
+
+## 🔐 Seguridad Implementada
+
+### Hash de Contraseñas
+- **Algoritmo:** BCrypt con salt automático
+- **Factor de trabajo:** 10 rondas
+
+### Tokens JWT
+- **Algoritmo:** HS256 (HMAC con SHA-256)
+- **Claims:** userId, username, email, role, loginType
+- **Expiración:** Configurable (default 24h)
+
+### Protección contra Fuerza Bruta
+- **Intentos permitidos:** 5
+- **Tiempo de bloqueo:** 30 minutos
+- **Contador:** Por usuario y tipo de login
+
+### Tokens de Verificación
+- **Email Verification:** UUID único, expira en 24 horas
+- **Password Recovery:** UUID único, expira en 1 hora
+- **Invalidación:** Automática tras uso o expiración
+
+## 📊 Flujos de Autenticación
+
+### Registro de Cliente
+```mermaid
+sequenceDiagram
+    Cliente->>Auth: POST /auth/customer/register
+    Auth->>Auth: Validar datos
+    Auth->>Auth: Hash de contraseña
+    Auth->>DB: Guardar en auth_users (isEmailVerified=false)
+    Auth->>Users: POST /api/user-profiles/from-auth
+    Users->>DB: Crear perfil
+    Auth->>DB: Generar token de verificación
+    Auth->>Gmail: Enviar email de verificación
+    Auth->>Cliente: 201 Created + mensaje "revisa tu email"
+    
+    Note over Cliente,Auth: Usuario NO puede hacer login hasta verificar email
+    
+    Cliente->>Email: Clic en enlace de verificación
+    Cliente->>Auth: GET /auth/verify-email?token=xxx
+    Auth->>DB: Validar y marcar token como usado
+    Auth->>DB: Actualizar isEmailVerified=true
+    Auth->>Cliente: 200 Email verificado
+    
+    Cliente->>Auth: POST /auth/customer/login
+    Auth->>Auth: Verificar isEmailVerified=true
+    Auth->>Cliente: 200 Login exitoso + JWT
+```
+
+### Login de Administrador
+```mermaid
+sequenceDiagram
+    Admin->>Auth: POST /auth/admin/login {email, password}
+    Auth->>DB: Buscar por email
+    Auth->>Auth: Verificar isEmailVerified=true
+    Auth->>Auth: Verificar contraseña (BCrypt)
+    Auth->>Auth: Generar JWT
+    Auth->>DB: Crear sesión
+    Auth->>DB: Actualizar lastLogin
+    Auth->>Admin: {token, refreshToken, userInfo}
+    
+    Note over Admin,Auth: Si email no verificado: Error 401
+```
+
+## ⚠️ Manejo de Errores
+
+| Código | Escenario |
+|--------|----------|
+| 400 | Datos de entrada inválidos |
+| 401 | Credenciales incorrectas o email no verificado |
+| 403 | Cuenta no verificada o bloqueada |
+| 409 | Usuario ya existe (username/email/documento) |
+| 410 | Token expirado |
+| 500 | Error interno del servidor |
+
+## 📧 Sistema de Verificación de Email
+
+### Flujo Actual (✅ IMPLEMENTADO)
+
+1. **Registro:**
+   - Usuario se registra (customer o admin)
+   - Se crea con `isEmailVerified = false`
+   - Se genera token de verificación (expira en 24 horas)
+   - Se envía email con enlace de verificación a Gmail
+
+2. **Bloqueo de Login:**
+   - Si el usuario intenta hacer login sin verificar email
+   - **Error 401:** "Por favor verifica tu email antes de iniciar sesión. Revisa tu bandeja de entrada para encontrar el enlace de verificación."
+   - Login bloqueado hasta que verifique
+
+3. **Verificación:**
+   - Usuario hace clic en enlace del email
+   - GET `/auth/verify-email?token=xxx`
+   - Sistema valida token y marca `isEmailVerified = true`
+   - Usuario puede hacer login normalmente
+
+### Configuración de Email
+
+**Servicio SMTP:** Gmail
+```properties
+MAIL_HOST=smtp.gmail.com
+MAIL_PORT=587
+MAIL_USERNAME=packedgo.events@gmail.com
+MAIL_PASSWORD=oopk bpgu tllp uprg
+EMAIL_FROM=packedgo.events@gmail.com
+FRONTEND_BASE_URL=http://localhost:3000
+```
+
+### Template de Email
+
+El email de verificación incluye:
+- Logo de PackedGo
+- Mensaje de bienvenida
+- Botón con enlace de verificación
+- Advertencia de expiración (24 horas)
+- Diseño responsive HTML
+
+**Ubicación:** `src/main/resources/templates/email/verification-email.html`
+
+### Endpoints de Verificación
+
+- `GET /auth/verify-email?token={token}` - Verificar email con token
+- `POST /auth/resend-verification` - Reenviar email de verificación
+
+### Particularidades
+
+**Para Customers:**
+- Email enviado a la dirección proporcionada en el registro
+
+**Para Admins:**
+- Email enviado siempre a `packedgo.events@gmail.com`
+- Hardcoded en línea 329-331 de `AuthServiceImpl.java`
+
+## 📝 Notas de Desarrollo
+
+- Las sesiones se invalidan automáticamente tras logout
+- Los refresh tokens permiten renovar el access token sin re-autenticarse
+- Los empleados se autentican con DNI (similar a clientes)
+- Los administradores requieren un código de autorización para registrarse
+- Todos los endpoints de registro y login son públicos
+- **✅ La verificación de email es obligatoria antes de hacer login (implementado 14/12/2025)**
+- Los tokens de verificación expiran en 24 horas
+- Los mensajes de error están en español
+    private Integer failedLoginAttempts;
     private LocalDateTime lockedUntil;
     // ... campos de auditoría
 }
@@ -128,19 +368,22 @@ Tokens temporales para verificación de email y recuperación de contraseñas co
 ## Servicios
 
 ### AuthService / AuthServiceImpl
-- **loginAdmin()** - Autenticación de administradores con validación de intentos
-- **loginCustomer()** - Autenticación de clientes con validación de cuenta
-- **registerCustomer()** - Registro completo + creación de perfil en users-service
-- **registerAdmin()** - Registro de admin con código de autorización
+- **loginAdmin()** - Autenticación de administradores con validación de email verificado
+- **loginCustomer()** - Autenticación de clientes con validación de email verificado
+- **registerCustomer()** - Registro completo + creación de perfil + envío de email de verificación
+- **registerAdmin()** - Registro de admin con código de autorización + envío de email de verificación
 - **validateToken()** - Validación de JWT con permisos
-- **verifyEmail()** - Verificación de email con token
+- **verifyEmail()** - Verificación de email con token (marca isEmailVerified=true)
 - **requestPasswordReset()** - Generación de token de recuperación
 - **resetPassword()** - Cambio de contraseña con token
 
 ### EmailService / EmailServiceImpl
-- Envío de emails de verificación con templates HTML
+- Envío de emails de verificación con templates HTML responsivos
 - Envío de emails de recuperación de contraseña
-- Configuración SMTP con Gmail/SendGrid
+- Configuración SMTP con Gmail (smtp.gmail.com:587)
+- Uso de credenciales de aplicación de Gmail
+- Generación automática de tokens UUID
+- Links de verificación al frontend
 
 ### UsersServiceClient
 - Cliente HTTP para comunicación con users-service

@@ -600,7 +600,8 @@ export class EmployeeDashboardComponent implements OnInit, OnDestroy {
         },
         error: (err) => {
           failCount++;
-          results.push(`✗ ${selection.consumption.consumptionName}: Error de conexión`);
+          const errorMessage = err.error?.message || err.message || 'Error de conexión';
+          results.push(`✗ ${selection.consumption.consumptionName}: ${errorMessage}`);
           
           const scanRecord: ScanRecord = {
             id: Date.now() + index,
@@ -608,7 +609,7 @@ export class EmployeeDashboardComponent implements OnInit, OnDestroy {
             qrCode: qrCode,
             timestamp: new Date(),
             status: 'error',
-            message: `${selection.consumption.consumptionName} - Error: ${err.error?.message || 'Error de conexión'}`,
+            message: `${selection.consumption.consumptionName} - Error: ${errorMessage}`,
             eventName: this.getSelectedEvent()?.name
           };
           this.scanHistory.unshift(scanRecord);

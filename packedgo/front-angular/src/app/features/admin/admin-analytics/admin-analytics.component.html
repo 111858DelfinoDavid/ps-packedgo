@@ -234,37 +234,7 @@
       </div>
 
       <!-- Trends Section -->
-      <div class="analytics-card full-card">
-        <div class="card-header">
-          <h5><i class="bi bi-graph-down me-2"></i>Tendencias Diarias (Últimos 7 días)</h5>
-        </div>
-        <div class="card-content">
-          <div *ngIf="!dashboard.trends?.dailyTrends || dashboard.trends.dailyTrends.length === 0" class="empty-state">
-            <i class="bi bi-inbox"></i>
-            <p>No hay datos de tendencias disponibles</p>
-          </div>
-          <div class="table-wrapper" *ngIf="dashboard.trends?.dailyTrends && dashboard.trends.dailyTrends.length > 0">
-            <table class="trends-table">
-              <thead>
-                <tr>
-                  <th>Fecha</th>
-                  <th class="text-right">Órdenes</th>
-                  <th class="text-right">Tickets Vendidos</th>
-                  <th class="text-right">Ingresos</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr *ngFor="let trend of dashboard.trends.dailyTrends.slice(0, 7)">
-                  <td>{{ trend.date | date: 'dd/MM/yyyy' }}</td>
-                  <td class="text-right">{{ trend.orders }}</td>
-                  <td class="text-right">{{ trend.ticketsSold }}</td>
-                  <td class="text-right">{{ formatCurrency(trend.revenue) }}</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
+
     </div>
   </div>
 </div>

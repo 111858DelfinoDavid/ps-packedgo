@@ -1,15 +1,41 @@
 # 🛒 ORDER-SERVICE
 
-Microservicio para gestión de carritos de compra del sistema PackedGo.
+Microservicio para gestión de carritos de compra y órdenes del sistema PackedGo.
 
 ## 📋 Descripción
 
-ORDER-SERVICE maneja:
+ORDER-SERVICE maneja el flujo completo de compras en PackedGo:
 - ✅ Creación y gestión de carritos de compra
 - ✅ Expiración automática de carritos (10 minutos)
 - ✅ Integración con EVENT-SERVICE para validar stock
+- ✅ Generación de órdenes y checkout
 - ✅ Validación JWT para autenticación
 - ✅ Limpieza automática de carritos expirados
+- ✅ Integración con Payment Service para procesamiento de pagos
+
+### Características Principales:
+- 🛍️ Carrito de compra con múltiples items
+- ⏱️ Expiración automática (10 min de inactividad)
+- 📦 Validación de stock en tiempo real
+- 💳 Checkout con integración a pasarela de pagos
+- 🧹 Limpieza programada de datos antiguos
+- 🔐 Seguridad JWT en todos los endpoints
+
+## 🚀 Puerto de Servicio
+**8084** (HTTP)
+**5008** (Debug JDWP)
+
+## 📦 Base de Datos
+- **Nombre:** order_db
+- **Puerto:** 5436 (PostgreSQL 15)
+- **Usuario:** order_user
+- **Imagen:** postgres:15-alpine
+
+### Tablas principales:
+- `shopping_carts` - Carrito principal del usuario
+- `cart_items` - Items individuales (eventos) en el carrito
+- `cart_item_consumptions` - Consumos asociados a cada item
+- `orders` - Órdenes generadas (TBD si se usa esta tabla)
 
 ## 🚀 Tecnologías
 
@@ -28,15 +54,123 @@ ORDER-SERVICE maneja:
 ```
 order-service/
 ├── controller/       # Endpoints REST
+│   ├── CartController.java
+│   └── OrderController.java
 ├── service/          # Lógica de negocio
+│   ├── CartService.java
+│   ├── OrderService.java
 │   └── impl/
 ├── repository/       # Acceso a datos
+│   ├── ShoppingCartRepository.java
+│   ├── CartItemRepository.java
+│   └── OrderRepository.java
 ├── entity/           # Entidades JPA
+│   ├── ShoppingCart.java
+│   ├── CartItem.java
+│   ├── CartItemConsumption.java
+│   └── Order.java
 ├── dto/              # DTOs (request/response/external)
+│   ├── request/
+│   ├── response/
+│   └── external/
 ├── external/         # Clientes HTTP
+│   └── EventServiceClient.java
 ├── config/           # Configuraciones
+│   ├── WebClientConfig.java
+│   └── ModelMapperConfig.java
 ├── security/         # JWT validation
-└── exception/        # Manejo de errores
+│   └── JwtTokenValidator.java
+├── exception/        # Manejo de errores
+│   └── GlobalExceptionHandler.java
+└── util/             # Utilidades
+    └── JwtUtil.java
+```
+
+## 📊 Modelo de Datos
+
+### ShoppingCart
+```java
+@Entity
+@Table(name = "shopping_carts")
+public class ShoppingCart {
+    private Long id;
+    private Long userId;                    // ID del usuario
+    private CartStatus status;              // ACTIVE, EXPIRED, CHECKED_OUT
+    private LocalDateTime createdAt;
+    private LocalDateTime expiresAt;        // +10 minutos desde creación
+    private List<CartItem> items;
+    // totalAmount calculado dinámicamente
+}
+```
+
+### CartItem
+```java
+@Entity
+@Table(name = "cart_items")
+public class CartItem {
+    private Long id;
+    private Long eventId;                   // Referencia al evento
+    private Integer quantity;               // Cantidad de tickets
+    private BigDecimal unitPrice;           // Precio del evento
+    private List<CartItemConsumption> consumptions;
+    // subtotal calculado: unitPrice * quantity + sum(consumptions)
+}
+```
+
+### Estados del Carrito
+```java
+public enum CartStatus {
+    ACTIVE,      // Carrito activo, puede modificarse
+    EXPIRED,     // Expirado por timeout (10 min)
+    CHECKED_OUT  // Convertido a orden, no modificable
+}
+```
+
+## 🔄 Flujos Principales
+
+### Agregar al Carrito
+```mermaid
+sequenceDiagram
+    Usuario->>OrderService: POST /api/cart/add {eventId, consumptions}
+    OrderService->>EventService: Validar evento y stock
+    EventService->>OrderService: {evento, stock disponible}
+    OrderService->>DB: Crear/Actualizar carrito
+    OrderService->>DB: Agregar CartItem
+    OrderService->>Usuario: 201 Created {carrito actualizado}
+```
+
+### Checkout
+```mermaid
+sequenceDiagram
+    Usuario->>OrderService: POST /api/orders/checkout
+    OrderService->>DB: Validar carrito ACTIVE
+    OrderService->>DB: Marcar carrito como CHECKED_OUT
+    OrderService->>DB: Crear Order
+    OrderService->>PaymentService: POST /payments/create-checkout
+    PaymentService->>Stripe: Crear sesión
+    Stripe->>PaymentService: {checkoutUrl, sessionId}
+    PaymentService->>OrderService: {paymentUrl, paymentId}
+    OrderService->>Usuario: {orderNumber, paymentUrl}
+```
+
+## 📜 Migraciones SQL
+
+El servicio incluye migraciones para funcionalidad de sesiones robustas:
+
+### migration_add_session_token.sql
+- Agrega campo `sessionToken` a las órdenes
+- Permite rastrear sesiones de pago de Stripe
+- Índice para búsquedas rápidas
+
+### migration_robust_session.sql
+- Mejoras adicionales al sistema de sesiones
+- Campos de auditoría y seguimiento
+
+**Ubicación:** `./order-service/`
+
+**Aplicar manualmente:**
+```bash
+psql -h localhost -p 5436 -U order_user -d order_db -f migration_add_session_token.sql
 ```
 
 ## 📦 Base de Datos
@@ -47,15 +181,22 @@ order-service/
 - Carrito principal del usuario
 - Expiración automática a 10 minutos
 - Estados: ACTIVE, EXPIRED, CHECKED_OUT
+- Relación 1:N con cart_items
 
 **cart_items**
 - Items individuales (eventos) en el carrito
 - Cálculo automático de subtotales
-- Relación con consumos
+- Relación con consumos 1:N
 
 **cart_item_consumptions**
 - Consumos asociados a cada item
 - Cantidad y precios individuales
+- Vinculados a consumiciones del event-service
+
+**orders** (opcional)
+- Órdenes generadas tras checkout
+- Estado del pago
+- Referencia a carrito original
 
 ## 🔌 API Endpoints
 
@@ -273,24 +414,105 @@ curl http://localhost:8084/actuator/health
     "db": { "status": "UP" },
     "diskSpace": { "status": "UP" },
     "ping": { "status": "UP" }
-  }
-}
-```
+  } (configurable)
+- **Acción**: Marca carritos ACTIVE cuyo `expiresAt` < now() como EXPIRED
+- **Scheduler:** `@Scheduled(fixedDelay = 300000)` // 5 minutos
 
-## 🔄 Tareas Programadas
+**Eliminación de Carritos Antiguos**
+- **Frecuencia**: Diaria a las 3:00 AM (configurable)
+- **Acción**: Elimina físicamente carritos EXPIRED/CHECKED_OUT de más de 30 días
+- **Scheduler:** `@Scheduled(cron = "0 0 3 * * ?")`
+- **Propósito:** Mantener la base de datos limpia y optimizada
 
+## 🔗 Integración con Otros Servicios
+
+### EVENT-SERVICE (Outbound)
+- **Puerto:** 8086
+- **Endpoints utilizados:**
+  - `GET /api/events/{id}` - Obtener información del evento
+  - `POST /api/events/{id}/validate-stock` - Validar disponibilidad
+- **Configuración:** `EVENT_SERVICE_URL=http://event-service:8086/api`
+
+### PAYMENT-SERVICE (Outbound)
+- **Puerto:** 8085
+- **Endpoints utilizados:**
+  - `POST /payments/create-checkout-stripe` - Crear sesión de pago
+- **Flujo:** Order crea la orden → Payment genera URL de pago → Usuario paga
+
+### AUTH-SERVICE (Indirecto)
+- **Validación JWT:** Los tokens son validados localmente con `JWT_SECRET`
+- **No hace llamadas directas** pero confía en la firma del token
 **Limpieza de Carritos Expirados**
 - **Frecuencia**: Cada 5 minutos
 - **Acción**: Marca carritos activos que expiraron como EXPIRED
+PAYMENT-SERVICE** (8085): Procesamiento de pagos
+- **AUTH-SERVICE** (8081): Validación de tokens JWT (indirecta)
 
-**Eliminación de Carritos Antiguos**
-- **Frecuencia**: Diaria a las 3:00 AM
-- **Acción**: Elimina carritos EXPIRED/CHECKED_OUT de más de 30 días
+## 📝 Notas de Desarrollo
 
-## ⚠️ Manejo de Errores
+- Los carritos expiran automáticamente a los **10 minutos de inactividad**
+- Se valida stock disponible antes de agregar al carrito
+- **WebClient** con `.block()` para mantener API sincrónica (consideración: evaluar WebFlux completo en futuro)
+- **ModelMapper** para conversiones Entity ↔ DTO
+- **JWT extraído del header** `Authorization: Bearer {token}`
+- Los carritos expirados no son eliminados inmediatamente, solo marcados
+- Limpieza física ocurre después de 30 días para auditoría
 
-| Código | Error | Descripción |
-|--------|-------|-------------|
+## 🚨 Reglas de Negocio
+
+### Expiración de Carrito
+- Carrito se crea con `expiresAt = now() + 10 minutos`
+- Cualquier operación UPDATE renueva el tiempo de expiración
+- Carritos expirados no pueden modificarse (solo consulta)
+
+### Validación de Stock
+- Antes de agregar un evento, se consulta stock disponible en EVENT-SERVICE
+- Si no hay stock suficiente → `409 Conflict`
+- Stock se reserva temporalmente en el carrito (no confirmado hasta checkout)
+
+### Checkout
+- Solo carritos en estado `ACTIVE` pueden hacer checkout
+- Al hacer checkout, el carrito pasa a `CHECKED_OUT` (inmutable)
+- Se genera un `orderNumber` único: `ORD-{YYYYMM}-{random}`
+- Si el pago falla, la orden queda pendiente (no se revierte a carrito)
+
+## 🧪 Testing
+
+⚠️ **Nota:** Tests actualmente deshabilitados en pom.xml:
+```xml
+<skipTests>true</skipTests>
+```
+
+### Para implementar en el futuro:
+- **Unit tests** con JUnit 5 y Mockito
+- **Integration tests** con `@SpringBootTest`
+- **MockWebServer** para EventServiceClient
+- **@DataJpaTest** para repositorios
+- Tests de schedulers con `@EnableScheduling`
+
+## 🔐 Seguridad
+
+### JWT Validation
+```java
+// Extracción del token
+String token = request.getHeader("Authorization").substring(7);
+
+// Validación
+Claims claims = Jwts.parserBuilder()
+    .setSigningKey(jwtSecret)
+    .build()
+    .parseClaimsJws(token)
+    .getBody();
+    
+Long userId = claims.get("userId", Long.class);
+```
+
+### Endpoints Públicos
+Ninguno. Todos los endpoints requieren autenticación JWT.
+
+### Autorización
+- Los usuarios solo pueden acceder a **su propio carrito**
+- Validación automática: `userId` del JWT = `userId` del carrito
 | 200 | OK | Operación exitosa |
 | 201 | Created | Carrito creado/actualizado |
 | 204 | No Content | Carrito eliminado |

@@ -111,11 +111,11 @@
           <div *ngFor="let consumption of paginatedConsumptions" class="consumption-card">
             <div class="card-image">
               <img 
-                *ngIf="consumption.imageUrl"
-                [src]="consumption.imageUrl" 
-                [alt]="consumption.name"
+                *ngIf="consumption.imageUrl || consumption.hasImageData"
+                [src]="getConsumptionImageSrc(consumption)" 
+                alt="{{ consumption.name }}"
                 (error)="handleImageError($event)">
-              <div *ngIf="!consumption.imageUrl" class="placeholder-icon">
+              <div *ngIf="!consumption.imageUrl && !consumption.hasImageData" class="placeholder-icon">
                 🍔
               </div>
               <span class="status-badge" [class.inactive]="!consumption.active">
@@ -276,14 +276,63 @@
           </div>
 
           <div class="form-group">
-            <label for="consumption-image">URL de Imagen</label>
-            <input 
-              type="url" 
-              id="consumption-image"
-              [(ngModel)]="consumptionForm.imageUrl" 
-              name="imageUrl"
-              placeholder="https://ejemplo.com/imagen.jpg"
-              class="form-control">
+            <label>Imagen del Consumo</label>
+            
+            <!-- Radio buttons para elegir método de carga -->
+            <div class="image-option-selector mb-3">
+              <label class="radio-option">
+                <input 
+                  type="radio" 
+                  [(ngModel)]="imageUploadOption" 
+                  name="imageOption" 
+                  value="url">
+                <span>Usar URL de imagen</span>
+              </label>
+              <label class="radio-option">
+                <input 
+                  type="radio" 
+                  [(ngModel)]="imageUploadOption" 
+                  name="imageOption" 
+                  value="upload">
+                <span>Subir archivo local</span>
+              </label>
+            </div>
+
+            <!-- Campo para URL -->
+            <div *ngIf="imageUploadOption === 'url'" class="url-input-container">
+              <input 
+                type="url" 
+                id="consumption-image-url"
+                [(ngModel)]="consumptionForm.imageUrl" 
+                name="imageUrl"
+                placeholder="https://ejemplo.com/imagen.jpg"
+                class="form-control">
+            </div>
+
+            <!-- Campo para archivo local -->
+            <div *ngIf="imageUploadOption === 'upload'" class="file-input-container">
+              <input 
+                type="file" 
+                id="imageFile"
+                accept="image/png,image/jpeg,image/jpg"
+                (change)="onImageFileSelected($event)"
+                class="form-control">
+              
+              <!-- Preview de imagen -->
+              <div *ngIf="imagePreviewUrl" class="image-preview mt-2">
+                <img [src]="imagePreviewUrl" alt="Preview" class="preview-img">
+                <button 
+                  type="button" 
+                  class="btn btn-sm btn-danger mt-2" 
+                  (click)="clearImageFile()">
+                  Eliminar imagen
+                </button>
+              </div>
+              
+              <small class="form-text text-muted">
+                Formatos aceptados: PNG, JPG, JPEG. Tamaño máximo: 5MB
+              </small>
+            </div>
           </div>
         </form>
       </div>

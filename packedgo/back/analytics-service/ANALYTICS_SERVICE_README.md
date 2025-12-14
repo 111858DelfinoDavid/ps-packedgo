@@ -1,19 +1,22 @@
-# ANALYTICS-SERVICE
+# 📊 ANALYTICS-SERVICE
 
 Microservicio encargado de la generación de reportes y dashboards para el sistema PackedGo.
 
-## Descripción
+## 📋 Descripción
 
-Este servicio consolida información de otros microservicios (Orders, Payments, Events) para proporcionar métricas clave a los administradores y organizadores.
+Este servicio consolida información de otros microservicios (Orders, Payments, Events) para proporcionar métricas clave a los administradores y organizadores. Implementa un sistema de analítica centralizado que permite a los organizadores visualizar el rendimiento de sus eventos y tomar decisiones basadas en datos.
 
-## Tecnologías
+## 🚀 Tecnologías
 
-- **Java 17**
-- **Spring Boot 3.5.6**
-- **Spring Data JPA**
-- **Spring Security (JWT)**
-- **PostgreSQL**
-- **Lombok**
+- **Java 17** - Lenguaje de programación
+- **Spring Boot 3.5.6** - Framework principal
+- **Spring Data JPA** - Persistencia de datos
+- **Spring Security** - Seguridad y autenticación
+- **Spring WebFlux** - Cliente HTTP reactivo
+- **JWT (0.12.6)** - Autenticación basada en tokens
+- **PostgreSQL 15** - Base de datos
+- **Lombok** - Reducción de boilerplate
+- **Docker** - Contenedorización
 
 ## Arquitectura
 
@@ -94,6 +97,79 @@ El servicio utiliza JWT para autenticación y autorización.
 - **ADMIN**: Acceso a su propio dashboard.
 - **SUPER_ADMIN**: Acceso a cualquier dashboard.
 
-## Ejecución con Docker
+## 🐳 Ejecución con Docker
 
 El servicio se ejecuta en el puerto **8087** dentro de la red de Docker `packedgo-network`.
+
+### Desde el directorio raíz del backend:
+```bash
+docker-compose up -d analytics-service
+```
+
+### Construcción individual:
+```bash
+cd analytics-service
+docker build -t analytics-service:latest .
+docker run -p 8087:8087 --env-file .env analytics-service:latest
+```
+
+### Logs del servicio:
+```bash
+docker-compose logs -f analytics-service
+```
+
+## 🔧 Desarrollo Local
+
+### Requisitos:
+- Java 17+
+- Maven 3.8+
+- PostgreSQL 15+ (o usar Docker)
+
+### Ejecutar localmente:
+```bash
+./mvnw spring-boot:run
+```
+
+### Compilar:
+```bash
+./mvnw clean package
+```
+
+## 🔗 Integración con Otros Servicios
+
+El Analytics Service se comunica con:
+- **EVENT-SERVICE** (Puerto 8086) - Para datos de eventos
+- **ORDER-SERVICE** (Puerto 8084) - Para datos de órdenes
+- **PAYMENT-SERVICE** (Puerto 8085) - Para datos de pagos
+
+## 📦 Base de Datos
+
+**Nombre:** analytics_db (No especificado en docker-compose - servicio en desarrollo)
+**Puerto:** TBD
+**Usuario:** analytics_user
+
+## 🔐 Autorización
+
+El servicio implementa control de acceso basado en roles:
+
+| Rol | Permisos |
+|-----|----------|
+| **ADMIN** | Acceso a dashboard propio (`/dashboard`) |
+| **SUPER_ADMIN** | Acceso a cualquier dashboard (`/dashboard/{organizerId}`) |
+| **CUSTOMER** | Sin acceso a analytics |
+
+## ⚠️ Estado del Proyecto
+
+**Estado Actual:** ⚙️ En Desarrollo
+
+El servicio está parcialmente implementado y requiere:
+- Configuración completa de base de datos en docker-compose
+- Implementación de lógica de agregación de datos
+- Definición de métricas adicionales
+- Endpoints de reportes detallados
+
+## 📝 Notas
+
+- Los dashboards son multi-tenant (por `organizerId`)
+- Requiere autenticación JWT válida en todos los endpoints
+- Utiliza WebClient para comunicación reactiva con otros servicios

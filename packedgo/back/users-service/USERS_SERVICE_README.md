@@ -1,17 +1,45 @@
-# USERS-SERVICE
+# 👥 USERS-SERVICE
 
-## Descripción General
+## 📋 Descripción General
 
-El USERS-SERVICE es el microservicio encargado de gestionar los perfiles de usuario de PackedGo. Maneja toda la información personal y demográfica de los usuarios, complementando la autenticación del AUTH-SERVICE con datos completos del perfil.
+El USERS-SERVICE es el microservicio encargado de **gestionar los perfiles de usuario** de PackedGo. Maneja toda la información personal y demográfica de los usuarios, complementando la autenticación del AUTH-SERVICE con datos completos del perfil. También gestiona el sistema de empleados y sus operaciones.
 
-## Puerto de Servicio
-**8082**
+### Características Principales:
+- 👤 Gestión completa de perfiles de usuario
+- 🔄 Integración automática con AUTH-SERVICE
+- 👷 Sistema de gestión de empleados para admins
+- 📱 Validación de tickets y registro de consumos (proxy a event-service)
+- 🗑️ Soft delete para preservación de datos
+- 🔍 Consultas optimizadas por estado activo
 
-## Base de Datos
+## 🚀 Puerto de Servicio
+**8082** (HTTP)
+**5006** (Debug JDWP)
+
+## 📦 Base de Datos
 - **Nombre:** users_db
-- **Puerto:** 5434 (PostgreSQL)
-- **Tablas principales:**
+- **Puerto:** 5434 (PostgreSQL 15)
+- **Usuario:** users_user
+- **Imagen:** postgres:15-alpine
+
+### Tablas principales:
   - `user_profiles` - Perfiles completos de usuarios
+  - `employees` - Empleados asignados a eventos (TBD en el esquema mostrado)
+
+## 🚀 Tecnologías
+
+- **Java 17** - Lenguaje de programación
+- **Spring Boot 3.5.6** - Framework principal
+- **Spring Data JPA** - Persistencia de datos
+- **Spring Security** - Seguridad
+- **Spring Validation** - Validación de datos
+- **Spring WebFlux** - Cliente HTTP reactivo
+- **Spring Actuator** - Monitoreo y métricas
+- **ModelMapper 3.1.1** - Mapeo entre DTOs y entidades
+- **PostgreSQL 15** - Base de datos
+- **Lombok** - Reducción de boilerplate
+- **H2** - Base de datos en memoria para tests
+- **Docker** - Contenedorización
 
 ## Funcionalidades Principales
 
@@ -264,3 +292,88 @@ LOGGING_LEVEL_USERS=DEBUG
 - Consultas optimizadas por estado activo
 - Mapeo eficiente con ModelMapper
 - Validaciones tempranas para reducir carga en BD
+
+## 🐳 Ejecución con Docker
+
+### Desde el directorio raíz del backend:
+```bash
+docker-compose up -d users-service
+```
+
+### Logs del servicio:
+```bash
+docker-compose logs -f users-service
+```
+
+### Reconstruir imagen:
+```bash
+docker-compose up -d --build users-service
+```
+
+## 🔧 Desarrollo Local
+
+### Requisitos:
+- Java 17+
+- Maven 3.8+
+- PostgreSQL 15+ (o usar Docker)
+
+### Ejecutar localmente:
+```bash
+./mvnw spring-boot:run
+```
+
+### Compilar:
+```bash
+./mvnw clean package
+```
+
+### Tests:
+```bash
+./mvnw test
+```
+
+## 🔗 Integración con Otros Servicios
+
+### AUTH-SERVICE (Inbound)
+- **Endpoint:** `POST /api/user-profiles/from-auth`
+- **Propósito:** Creación automática de perfil tras registro exitoso
+- **Flujo:** AUTH-SERVICE → registro → users-service → crear perfil
+
+### EVENT-SERVICE (Outbound)
+- **Endpoints:** `/api/qr-validation/*`
+- **Propósito:** Validación de tickets y registro de consumos
+- **Flujo:** Employee → users-service (proxy) → event-service
+- **URL Configurada:** `EVENT_SERVICE_URL=http://event-service:8086/api`
+
+## 🔐 Seguridad
+
+- **Autenticación:** Spring Security configurado
+- **Endpoints Internos:** `/internal/*` solo para comunicación entre microservicios
+- **Validación:** Campos requeridos validados con `@Valid`
+- **Integridad:** Validación de unicidad en documento, teléfono y authUserId
+
+## 📊 Health Check
+
+```bash
+curl http://localhost:8082/actuator/health
+```
+
+Respuesta esperada:
+```json
+{
+  "status": "UP",
+  "components": {
+    "db": { "status": "UP" },
+    "diskSpace": { "status": "UP" },
+    "ping": { "status": "UP" }
+  }
+}
+```
+
+## 📝 Notas de Desarrollo
+
+- Los perfiles se crean automáticamente desde auth-service tras registro
+- El campo `isActive` permite soft delete sin perder datos históricos
+- Los empleados pueden validar tickets y registrar consumos en tiempo real
+- ModelMapper se configura globalmente para mapeos automáticos
+- Todas las timestamps son gestionadas automáticamente por JPA

@@ -122,8 +122,8 @@
                   class="consumption-card"
                   [class.selected]="isConsumptionSelected(consumption.id!)"
                 >
-                <div class="consumption-image" *ngIf="consumption.imageUrl">
-                  <img [src]="consumption.imageUrl" [alt]="consumption.name">
+                <div class="consumption-image" *ngIf="hasConsumptionImage(consumption)">
+                  <img [src]="getConsumptionImageSrc(consumption)" [alt]="consumption.name">
                 </div>
                 
                 <div class="consumption-info">

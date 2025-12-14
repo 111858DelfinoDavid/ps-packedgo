@@ -315,7 +315,6 @@ export class EventsManagementComponent implements OnInit {
     this.isEditMode = true;
     this.currentEventId = event.id;
     this.currentEvent = event;
-    this.currentEvent = event;
     
     // Cargar consumiciones existentes del evento
     this.selectedConsumptions = event.availableConsumptions 
@@ -350,9 +349,17 @@ export class EventsManagementComponent implements OnInit {
       categoryId: event.categoryId
     });
     
-    // Configurar modo de imagen: si tiene archivo local, mostrar 'upload', sino 'url'
-    this.imageUploadOption = event.hasImageData ? 'upload' : 'url';
-    // NO limpiamos nada - conservamos tanto archivo como URL si existen
+    // Configurar imagen existente para preview
+    this.selectedImageFile = null; // No hay nuevo archivo seleccionado
+    if (event.hasImageData && event.id) {
+      // Mostrar preview de la imagen existente almacenada en el servidor
+      this.imagePreviewUrl = this.eventService.getEventImageUrl(event.id);
+    } else if (event.imageUrl) {
+      // Mostrar preview de la URL externa
+      this.imagePreviewUrl = event.imageUrl;
+    } else {
+      this.imagePreviewUrl = null;
+    }
     
     this.errorMessage = '';
     this.successMessage = '';

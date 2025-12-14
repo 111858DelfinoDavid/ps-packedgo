@@ -51,6 +51,9 @@ export interface Consumption {
   description?: string;
   price: number;
   imageUrl?: string;
+  imageData?: string; // Base64-encoded image
+  imageContentType?: string;
+  hasImageData?: boolean; // Flag para indicar si tiene imagen local
   active?: boolean;
   createdBy?: number; // 🔒 Nuevo campo multi-tenant
   createdAt?: string;

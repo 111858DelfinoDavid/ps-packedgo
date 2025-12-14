@@ -50,6 +50,11 @@ export class ConsumptionsManagementComponent implements OnInit {
   itemsPerPage = 12; // 4 columnas x 3 filas
   totalPages = 1;
   paginatedConsumptions: Consumption[] = [];
+  
+  // Image Upload
+  imageUploadOption: 'url' | 'upload' = 'url';
+  selectedImageFile: File | null = null;
+  imagePreviewUrl: string | null = null;
 
   constructor(private eventService: EventService) {}
 
@@ -106,10 +111,15 @@ export class ConsumptionsManagementComponent implements OnInit {
     if (consumption) {
       this.consumptionForm = { ...consumption };
       this.isEditMode = true;
+      // Determinar opción de imagen basado en datos existentes
+      this.imageUploadOption = consumption.hasImageData ? 'upload' : 'url';
     } else {
       this.consumptionForm = this.getEmptyConsumption();
       this.isEditMode = false;
+      this.imageUploadOption = 'url';
     }
+    this.selectedImageFile = null;
+    this.imagePreviewUrl = null;
     this.showConsumptionModal = true;
   }
 
@@ -117,6 +127,7 @@ export class ConsumptionsManagementComponent implements OnInit {
     this.showConsumptionModal = false;
     this.consumptionForm = this.getEmptyConsumption();
     this.isEditMode = false;
+    this.clearImageFile();
   }
 
   saveConsumption(): void {
@@ -124,8 +135,41 @@ export class ConsumptionsManagementComponent implements OnInit {
       return;
     }
 
+    // Validar que si se eligió "upload" en modo creación, debe haber un archivo
+    if (!this.isEditMode && this.imageUploadOption === 'upload' && !this.selectedImageFile) {
+      this.showError('Por favor selecciona una imagen para subir');
+      return;
+    }
+
     this.isLoading = true;
 
+    // Convertir imagen a Base64 si fue seleccionada
+    if (this.imageUploadOption === 'upload' && this.selectedImageFile) {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const base64String = (reader.result as string).split(',')[1]; // Remover "data:image/...;base64,"
+        this.consumptionForm.imageData = base64String;
+        this.consumptionForm.imageContentType = this.selectedImageFile!.type;
+        this.consumptionForm.imageUrl = ''; // Limpiar URL cuando se usa archivo local
+        this.performSave();
+      };
+      reader.onerror = () => {
+        this.isLoading = false;
+        this.showError('Error al procesar la imagen');
+      };
+      reader.readAsDataURL(this.selectedImageFile);
+    } else if (this.imageUploadOption === 'url') {
+      // Si se usa URL, limpiar datos de imagen local
+      this.consumptionForm.imageData = undefined;
+      this.consumptionForm.imageContentType = undefined;
+      this.performSave();
+    } else {
+      // Modo edición sin nuevo archivo: mantener datos existentes
+      this.performSave();
+    }
+  }
+
+  performSave(): void {
     const operation = this.isEditMode
       ? this.eventService.updateConsumption(this.consumptionForm.id!, this.consumptionForm)
       : this.eventService.createConsumption(this.consumptionForm);
@@ -415,6 +459,70 @@ export class ConsumptionsManagementComponent implements OnInit {
   clearMessages(): void {
     this.successMessage = '';
     this.errorMessage = '';
+  }
+
+  // ============================================
+  // IMAGE UPLOAD METHODS
+  // ============================================
+
+  onImageFileSelected(event: any): void {
+    const input = event.target as HTMLInputElement;
+    
+    if (!input.files || input.files.length === 0) {
+      return;
+    }
+
+    const file = input.files[0];
+    
+    // Validar tipo de archivo
+    const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg'];
+    if (!allowedTypes.includes(file.type)) {
+      this.showError('Formato de archivo no válido. Use PNG, JPG o JPEG');
+      return;
+    }
+
+    // Validar tamaño (5MB)
+    const maxSize = 5 * 1024 * 1024; // 5MB en bytes
+    if (file.size > maxSize) {
+      this.showError(`El archivo excede el tamaño máximo de 5MB (${(file.size / 1024 / 1024).toFixed(2)} MB)`);
+      return;
+    }
+
+    this.selectedImageFile = file;
+    this.clearMessages();
+
+    // Crear preview
+    const reader = new FileReader();
+    reader.onload = (e: ProgressEvent<FileReader>) => {
+      this.imagePreviewUrl = e.target?.result as string;
+    };
+    reader.readAsDataURL(file);
+  }
+
+  clearImageFile(): void {
+    this.selectedImageFile = null;
+    this.imagePreviewUrl = null;
+    
+    // Limpiar el input file
+    const fileInput = document.getElementById('imageFile') as HTMLInputElement;
+    if (fileInput) {
+      fileInput.value = '';
+    }
+  }
+
+  getConsumptionImageSrc(consumption: Consumption): string {
+    // Prioridad 1: imagen subida como Base64
+    if (consumption.hasImageData && consumption.imageData) {
+      return `data:${consumption.imageContentType || 'image/jpeg'};base64,${consumption.imageData}`;
+    }
+    
+    // Prioridad 2: URL externa
+    if (consumption.imageUrl) {
+      return consumption.imageUrl;
+    }
+    
+    // Fallback: retornar cadena vacía, el placeholder se mostrará con CSS
+    return '';
   }
 
   handleImageError(event: any): void {

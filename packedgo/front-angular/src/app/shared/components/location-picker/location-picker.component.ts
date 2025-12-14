@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, Output, OnInit, AfterViewInit, PLATFORM_ID, Inject } from '@angular/core';
+import { Component, EventEmitter, Input, Output, OnInit, AfterViewInit, OnChanges, SimpleChanges, PLATFORM_ID, Inject } from '@angular/core';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
@@ -18,7 +18,7 @@ declare var L: any;
   templateUrl: './location-picker.component.html',
   styleUrls: ['./location-picker.component.css']
 })
-export class LocationPickerComponent implements OnInit, AfterViewInit {
+export class LocationPickerComponent implements OnInit, AfterViewInit, OnChanges {
   @Input() lat: number = -34.603722; // Buenos Aires por defecto
   @Input() lng: number = -58.381592;
   @Output() locationChange = new EventEmitter<Location>();
@@ -44,6 +44,21 @@ export class LocationPickerComponent implements OnInit, AfterViewInit {
 
   ngAfterViewInit(): void {
     // La inicialización del mapa se hace en loadLeafletScript después de cargar el script
+  }
+
+  ngOnChanges(changes: SimpleChanges): void {
+    // Detectar cambios en lat/lng y actualizar mapa si ya está inicializado
+    if ((changes['lat'] || changes['lng']) && this.map && this.marker) {
+      const newLat = changes['lat']?.currentValue ?? this.lat;
+      const newLng = changes['lng']?.currentValue ?? this.lng;
+      
+      // Solo actualizar si los valores realmente cambiaron
+      if (newLat !== this.marker.getLatLng().lat || newLng !== this.marker.getLatLng().lng) {
+        this.marker.setLatLng([newLat, newLng]);
+        this.map.setView([newLat, newLng], this.map.getZoom());
+        this.emitLocation(newLat, newLng);
+      }
+    }
   }
 
   private loadLeafletScript(): void {

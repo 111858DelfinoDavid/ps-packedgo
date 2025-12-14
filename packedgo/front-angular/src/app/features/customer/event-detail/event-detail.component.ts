@@ -407,4 +407,29 @@ export class EventDetailComponent implements OnInit {
   goToPage(page: number): void {
     this.currentConsumptionIndex = page * this.itemsPerPage;
   }
+
+  /**
+   * Obtiene la URL de la imagen de una consumición con prioridades
+   */
+  getConsumptionImageSrc(consumption: Consumption): string {
+    // Prioridad 1: imagen subida como Base64
+    if (consumption.hasImageData && consumption.imageData) {
+      return `data:${consumption.imageContentType || 'image/jpeg'};base64,${consumption.imageData}`;
+    }
+    
+    // Prioridad 2: URL externa
+    if (consumption.imageUrl) {
+      return consumption.imageUrl;
+    }
+    
+    // Fallback: sin imagen
+    return '';
+  }
+
+  /**
+   * Verifica si una consumición tiene imagen para mostrar
+   */
+  hasConsumptionImage(consumption: Consumption): boolean {
+    return !!(consumption.hasImageData || consumption.imageUrl);
+  }
 }
