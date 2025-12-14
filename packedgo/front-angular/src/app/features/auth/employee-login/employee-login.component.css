@@ -255,11 +255,43 @@
   transform: translateX(-3px);
 }
 
-/* Responsive */
+/* Responsive - MEJORADO */
+@media (max-width: 992px) {
+  .logo-container img {
+    width: 180px;
+  }
+
+  .login-form h2 {
+    font-size: 1.75rem;
+  }
+}
+
 @media (max-width: 768px) {
   .login-container {
     padding: 2.5rem 2rem;
     padding-top: 70px;
+  }
+
+  .logo-container img {
+    width: 150px;
+  }
+
+  .login-form h2 {
+    font-size: 1.5rem;
+  }
+
+  .login-form p {
+    font-size: 0.9rem;
+  }
+
+  .form-group input {
+    padding: 0.8rem;
+    font-size: 0.95rem;
+  }
+
+  .btn-submit {
+    padding: 0.85rem;
+    font-size: 0.95rem;
   }
 
   .btn-back-landing {
@@ -280,6 +312,32 @@
     padding-top: 65px;
   }
 
+  .logo-container img {
+    width: 120px;
+  }
+
+  .login-form h2 {
+    font-size: 1.3rem;
+  }
+
+  .login-form p {
+    font-size: 0.85rem;
+  }
+
+  .form-group label {
+    font-size: 0.9rem;
+  }
+
+  .form-group input {
+    padding: 0.7rem;
+    font-size: 0.9rem;
+  }
+
+  .btn-submit {
+    padding: 0.75rem;
+    font-size: 0.9rem;
+  }
+
   .btn-back-landing {
     top: 10px;
     left: 10px;
@@ -287,4 +345,28 @@
     font-size: 0.8rem;
     gap: 5px;
   }
+
+  .alert {
+    padding: 0.85rem;
+    font-size: 0.85rem;
+  }
 }
+
+@media (max-width: 375px) {
+  .logo-container img {
+    width: 100px;
+  }
+
+  .login-form h2 {
+    font-size: 1.2rem;
+  }
+
+  .form-group input {
+    font-size: 0.85rem;
+  }
+
+  .btn-submit {
+    font-size: 0.85rem;
+  }
+}
+

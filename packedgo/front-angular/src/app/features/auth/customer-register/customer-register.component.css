@@ -448,16 +448,28 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
   50% { transform: scale(1.1); }
 }
 
-/* Responsive Design */
+/* Responsive Design - MEJORADO */
+@media (max-width: 992px) {
+  .register-card {
+    max-width: 550px;
+  }
+}
+
 @media (max-width: 768px) {
+  :host {
+    padding: 10px;
+  }
+  
   .register-container {
     padding: 20px 10px;
+    min-height: auto;
   }
 
   .register-card {
-    padding: 30px 20px;
+    padding: 25px 15px;
     padding-top: 70px;
     max-width: 100%;
+    border-radius: 12px;
   }
 
   .btn-back-landing {
@@ -477,6 +489,11 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
 
   .register-header i {
     font-size: 3rem;
+    margin-bottom: 10px;
+  }
+  
+  .register-header p {
+    font-size: 0.85rem;
   }
 
   .form-group label {
@@ -493,30 +510,180 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
     padding: 12px 20px;
     font-size: 1rem;
   }
+  
+  .password-strength {
+    font-size: 0.8rem;
+  }
+  
+  .strength-bars {
+    height: 4px;
+  }
+  
+  .terms-modal-content {
+    max-width: 95%;
+    max-height: 90vh;
+    border-radius: 12px;
+  }
 }
 
 @media (max-width: 480px) {
+  :host {
+    padding: 5px;
+  }
+  
+  .register-container {
+    padding: 15px 5px;
+  }
+  
   .register-card {
-    padding: 25px 15px;
+    padding: 20px 12px;
     padding-top: 65px;
+    border-radius: 10px;
   }
 
   .btn-back-landing {
     top: 10px;
     left: 10px;
     padding: 6px 12px;
-    font-size: 0.8rem;
+    font-size: 0.75rem;
     gap: 5px;
+    border-radius: 20px;
+  }
+  
+  .btn-back-landing i {
+    font-size: 0.9rem;
+  }
+
+  .register-header {
+    margin-bottom: 25px;
   }
 
   .register-header h2 {
     font-size: 1.3rem;
+    margin-bottom: 8px;
   }
 
   .register-header p {
+    font-size: 0.8rem;
+  }
+  
+  .register-header i {
+    font-size: 2.5rem;
+    margin-bottom: 8px;
+  }
+  
+  .form-group {
+    margin-bottom: 1rem;
+  }
+  
+  .form-group label {
+    font-size: 0.85rem;
+    margin-bottom: 0.4rem;
+  }
+  
+  .form-control,
+  .form-select {
+    padding: 9px 10px;
+    font-size: 0.9rem;
+    border-radius: 10px;
+  }
+  
+  .password-toggle {
+    right: 10px;
+    font-size: 0.9rem;
+  }
+  
+  .btn-register {
+    padding: 10px 16px;
+    font-size: 0.95rem;
+    border-radius: 10px;
+  }
+  
+  .password-strength {
+    font-size: 0.75rem;
+  }
+  
+  .strength-bars {
+    height: 3px;
+    margin-top: 4px;
+  }
+  
+  .terms-checkbox {
+    font-size: 0.8rem;
+  }
+  
+  .terms-link {
+    font-size: 0.8rem;
+  }
+  
+  .login-link {
+    font-size: 0.85rem;
+  }
+  
+  .alert {
+    font-size: 0.85rem;
+    padding: 10px 12px;
+    border-radius: 10px;
+  }
+  
+  .invalid-feedback {
+    font-size: 0.75rem;
+  }
+  
+  .terms-modal-overlay {
+    padding: 10px;
+  }
+  
+  .terms-modal-content {
+    max-width: 98%;
+    max-height: 92vh;
+    border-radius: 10px;
+  }
+  
+  .modal-header h3 {
+    font-size: 1.1rem;
+  }
+  
+  .modal-footer button {
+    padding: 8px 16px;
+    font-size: 0.85rem;
+  }
+}
+
+/* Extra pequeño - iPhone SE */
+@media (max-width: 375px) {
+  .register-card {
+    padding: 18px 10px;
+    padding-top: 60px;
+  }
+  
+  .register-header h2 {
+    font-size: 1.2rem;
+  }
+  
+  .register-header i {
+    font-size: 2.2rem;
+  }
+  
+  .btn-back-landing {
+    top: 8px;
+    left: 8px;
+    padding: 5px 10px;
+    font-size: 0.7rem;
+  }
+  
+  .form-control,
+  .form-select {
+    padding: 8px 9px;
+    font-size: 0.85rem;
+  }
+  
+  .btn-register {
+    padding: 9px 14px;
     font-size: 0.9rem;
   }
 }
+
 
 /* ========================================
    MODAL DE TÉRMINOS Y CONDICIONES

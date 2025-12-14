@@ -109,7 +109,7 @@
   box-shadow: 0 15px 40px rgba(0, 0, 0, 0.3);
 }
 
-/* Responsive */
+/* Responsive - MEJORADO */
 @media (max-width: 768px) {
   .terms-content {
     padding: 2rem 1.5rem;
@@ -119,6 +119,10 @@
     font-size: 2rem;
   }
 
+  .terms-header p {
+    font-size: 0.95rem;
+  }
+
   .term-section h2 {
     font-size: 1.3rem;
   }
@@ -126,5 +130,61 @@
   .term-section p,
   .term-section li {
     text-align: left;
+    font-size: 0.95rem;
   }
 }
+
+@media (max-width: 480px) {
+  .terms-content {
+    padding: 1.5rem 1rem;
+  }
+
+  .terms-header {
+    padding: 1.5rem;
+  }
+
+  .terms-header h1 {
+    font-size: 1.75rem;
+  }
+
+  .terms-header p {
+    font-size: 0.9rem;
+  }
+
+  .term-section {
+    padding: 1.25rem;
+  }
+
+  .term-section h2 {
+    font-size: 1.2rem;
+  }
+
+  .term-section p,
+  .term-section li {
+    font-size: 0.9rem;
+  }
+
+  .term-section ul {
+    padding-left: 1.25rem;
+  }
+}
+
+@media (max-width: 375px) {
+  .terms-header h1 {
+    font-size: 1.5rem;
+  }
+
+  .terms-header p {
+    font-size: 0.85rem;
+  }
+
+  .term-section h2 {
+    font-size: 1.1rem;
+  }
+
+  .term-section p,
+  .term-section li {
+    font-size: 0.85rem;
+  }
+}
+

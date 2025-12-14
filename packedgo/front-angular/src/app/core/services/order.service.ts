@@ -42,10 +42,6 @@ export class OrderService {
       { adminId, timezone },
       { headers: this.getHeaders() }
     ).pipe(
-      tap(response => {
-        console.log('Checkout single iniciado:', response);
-        console.log('Timezone detectado:', timezone);
-      }),
       catchError(this.handleError)
     );
   }

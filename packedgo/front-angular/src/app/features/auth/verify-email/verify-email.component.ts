@@ -15,6 +15,7 @@ export class VerifyEmailComponent implements OnInit {
   isSuccess = false;
   errorMessage = '';
   successMessage = '';
+  userRole = '';
 
   constructor(
     private route: ActivatedRoute,
@@ -36,14 +37,17 @@ export class VerifyEmailComponent implements OnInit {
     // Verificar el email
     this.authService.verifyEmail(token).subscribe({
       next: (response) => {
-        console.log('✅ Email verificado exitosamente:', response);
         this.isVerifying = false;
         this.isSuccess = true;
         this.successMessage = 'Tu email ha sido verificado exitosamente. Ahora puedes iniciar sesión.';
         
-        // Redirigir al login después de 3 segundos
+        // Obtener el rol del usuario de la respuesta
+        this.userRole = response.data?.role || 'CUSTOMER';
+        const loginPath = this.getLoginPathByRole(this.userRole);
+        
+        // Redirigir al login apropiado después de 3 segundos
         setTimeout(() => {
-          this.router.navigate(['/admin/login'], {
+          this.router.navigate([loginPath], {
             queryParams: { emailVerified: 'true' }
           });
         }, 3000);
@@ -63,15 +67,33 @@ export class VerifyEmailComponent implements OnInit {
           this.errorMessage = 'Error al verificar el email. Por favor, intenta nuevamente o solicita un nuevo email de verificación.';
         }
         
+        // Asumir customer por defecto para el error
+        this.userRole = 'CUSTOMER';
+        const loginPath = this.getLoginPathByRole(this.userRole);
+        
         // Redirigir al login después de 5 segundos
         setTimeout(() => {
-          this.router.navigate(['/admin/login']);
+          this.router.navigate([loginPath]);
         }, 5000);
       }
     });
   }
 
   goToLogin(): void {
-    this.router.navigate(['/admin/login']);
+    const loginPath = this.getLoginPathByRole(this.userRole || 'CUSTOMER');
+    this.router.navigate([loginPath]);
+  }
+
+  private getLoginPathByRole(role: string): string {
+    switch (role.toUpperCase()) {
+      case 'ADMIN':
+      case 'SUPER_ADMIN':
+        return '/admin/login';
+      case 'EMPLOYEE':
+        return '/employee/login';
+      case 'CUSTOMER':
+      default:
+        return '/customer/login';
+    }
   }
 }

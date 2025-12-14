@@ -615,16 +615,54 @@
   border-top: 2px solid #e0e0e0;
 }
 
-/* Responsive */
+/* Responsive - MEJORADO */
+@media (max-width: 992px) {
+  .checkout-container {
+    padding: 2rem 1.5rem;
+  }
+  
+  .session-summary {
+    gap: 1.25rem;
+  }
+}
+
 @media (max-width: 768px) {
+  .checkout-container {
+    padding: 1.5rem 1rem;
+  }
+  
   .checkout-header {
     flex-direction: column;
     align-items: flex-start;
     gap: 1rem;
+    margin-bottom: 1.5rem;
+  }
+  
+  .checkout-header h1 {
+    font-size: 1.8rem;
+  }
+  
+  .session-timer {
+    font-size: 0.9rem;
+    padding: 8px 15px;
   }
 
   .session-summary {
     grid-template-columns: 1fr;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+  }
+  
+  .summary-item {
+    padding: 1rem;
+  }
+  
+  .summary-item i {
+    font-size: 1.5rem;
+  }
+  
+  .summary-value {
+    font-size: 1.3rem;
   }
 
   .card-header {
@@ -632,20 +670,269 @@
     align-items: flex-start;
     gap: 0.75rem;
   }
+  
+  .card-header h2 {
+    font-size: 1.3rem;
+  }
+  
+  .order-items,
+  .payment-methods,
+  .order-summary {
+    padding: 1.25rem;
+  }
+  
+  .item-details h4 {
+    font-size: 1.1rem;
+  }
+  
+  .consumption-item {
+    font-size: 0.9rem;
+  }
 
   .payment-buttons {
     flex-direction: column;
+    gap: 1rem;
   }
 
   .btn-pay {
     min-width: 100%;
+    padding: 1rem;
+    font-size: 1rem;
+  }
+  
+  .summary-row {
+    font-size: 0.95rem;
+  }
+  
+  .summary-total {
+    font-size: 1.1rem;
   }
 
   .checkout-actions {
     flex-direction: column;
+    gap: 0.75rem;
   }
 
   .checkout-actions .btn {
     width: 100%;
+    padding: 0.85rem;
+    font-size: 0.95rem;
   }
 }
+
+@media (max-width: 480px) {
+  .checkout-container {
+    padding: 1rem 0.75rem;
+  }
+  
+  .checkout-header {
+    gap: 0.75rem;
+    margin-bottom: 1.25rem;
+  }
+  
+  .checkout-header h1 {
+    font-size: 1.5rem;
+  }
+  
+  .session-timer {
+    font-size: 0.85rem;
+    padding: 6px 12px;
+    gap: 5px;
+  }
+  
+  .session-summary {
+    gap: 0.75rem;
+    margin-bottom: 1.25rem;
+  }
+  
+  .summary-item {
+    padding: 0.85rem;
+    border-radius: 10px;
+  }
+  
+  .summary-item i {
+    font-size: 1.3rem;
+  }
+  
+  .summary-label {
+    font-size: 0.85rem;
+  }
+  
+  .summary-value {
+    font-size: 1.1rem;
+  }
+  
+  .order-items,
+  .payment-methods,
+  .order-summary {
+    padding: 1rem 0.85rem;
+    border-radius: 10px;
+    margin-bottom: 1rem;
+  }
+  
+  .card-header {
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+    padding-bottom: 0.85rem;
+  }
+  
+  .card-header h2 {
+    font-size: 1.2rem;
+  }
+  
+  .card-header .badge {
+    padding: 4px 10px;
+    font-size: 0.8rem;
+  }
+  
+  .order-item {
+    padding: 1rem 0.75rem;
+    margin-bottom: 0.85rem;
+    border-radius: 10px;
+  }
+  
+  .item-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+  
+  .item-details h4 {
+    font-size: 1rem;
+  }
+  
+  .item-quantity {
+    font-size: 0.9rem;
+  }
+  
+  .item-price {
+    font-size: 1.1rem;
+  }
+  
+  .consumption-list {
+    gap: 6px;
+    margin-top: 10px;
+  }
+  
+  .consumption-item {
+    font-size: 0.85rem;
+    gap: 5px;
+  }
+  
+  .item-footer {
+    margin-top: 10px;
+    padding-top: 10px;
+  }
+  
+  .item-total {
+    font-size: 1rem;
+  }
+  
+  .payment-buttons {
+    gap: 0.75rem;
+  }
+  
+  .btn-pay {
+    padding: 0.85rem;
+    font-size: 0.95rem;
+    gap: 8px;
+    border-radius: 10px;
+  }
+  
+  .btn-pay i {
+    font-size: 1.1rem;
+  }
+  
+  .summary-row {
+    font-size: 0.9rem;
+    padding: 0.65rem 0;
+  }
+  
+  .summary-row.subtotal,
+  .summary-row.tax {
+    font-size: 0.85rem;
+  }
+  
+  .summary-total {
+    font-size: 1rem;
+    padding: 0.85rem 0;
+  }
+  
+  .total-amount {
+    font-size: 1.3rem;
+  }
+  
+  .checkout-actions {
+    gap: 0.6rem;
+    margin-top: 1.25rem;
+  }
+  
+  .checkout-actions .btn {
+    padding: 0.75rem;
+    font-size: 0.9rem;
+    gap: 6px;
+    border-radius: 10px;
+  }
+  
+  .checkout-actions .btn i {
+    font-size: 1rem;
+  }
+}
+
+/* Extra pequeño - iPhone SE */
+@media (max-width: 375px) {
+  .checkout-container {
+    padding: 0.85rem 0.5rem;
+  }
+  
+  .checkout-header h1 {
+    font-size: 1.3rem;
+  }
+  
+  .session-timer {
+    font-size: 0.8rem;
+    padding: 5px 10px;
+  }
+  
+  .summary-item {
+    padding: 0.75rem;
+  }
+  
+  .summary-item i {
+    font-size: 1.2rem;
+  }
+  
+  .summary-label {
+    font-size: 0.8rem;
+  }
+  
+  .summary-value {
+    font-size: 1rem;
+  }
+  
+  .card-header h2 {
+    font-size: 1.1rem;
+  }
+  
+  .item-details h4 {
+    font-size: 0.95rem;
+  }
+  
+  .item-price {
+    font-size: 1rem;
+  }
+  
+  .consumption-item {
+    font-size: 0.8rem;
+  }
+  
+  .btn-pay {
+    padding: 0.75rem;
+    font-size: 0.9rem;
+  }
+  
+  .total-amount {
+    font-size: 1.2rem;
+  }
+}
+

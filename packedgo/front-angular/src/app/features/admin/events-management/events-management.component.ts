@@ -925,9 +925,6 @@ export class EventsManagementComponent implements OnInit {
 
   // Ver descripción del evento
   viewDetails(event: Event): void {
-    console.log('🔍 Ver detalles del evento:', event.name);
-    console.log('📋 Consumiciones disponibles:', event.availableConsumptions);
-    
     // Construir HTML con descripción
     let htmlContent = `
       <div style="text-align: left; max-height: 500px; overflow-y: auto; padding: 10px;">

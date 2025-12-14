@@ -46,7 +46,6 @@ export class AdminRegisterComponent {
 
     this.authService.adminRegister(this.registerForm.value).subscribe({
       next: (response) => {
-        console.log('Registro exitoso:', response);
         this.successMessage = 'Registro exitoso. Redirigiendo al login...';
         setTimeout(() => {
           this.router.navigate(['/admin/login']);

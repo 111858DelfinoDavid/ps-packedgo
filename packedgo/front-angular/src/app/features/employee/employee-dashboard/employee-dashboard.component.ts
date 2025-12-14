@@ -66,8 +66,6 @@ export class EmployeeDashboardComponent implements OnInit, OnDestroy {
   }
 
   loadAssignedEvents(): void {
-    console.log('Cargando eventos asignados al empleado...');
-
     this.employeeService.getAssignedEvents().subscribe({
       next: (events) => {
         this.assignedEvents = events.map(e => ({
@@ -93,7 +91,6 @@ export class EmployeeDashboardComponent implements OnInit, OnDestroy {
   selectEvent(eventId: number): void {
     this.selectedEventId = eventId;
     this.stopScanning();
-    console.log('Evento seleccionado:', eventId);
   }
 
   getSelectedEvent(): AssignedEvent | undefined {
@@ -116,7 +113,6 @@ export class EmployeeDashboardComponent implements OnInit, OnDestroy {
     this.scanMode = mode;
     this.isScanning = true;
     this.lastScanResult = null;
-    console.log(`Iniciando modo de escaneo: ${mode} para evento ${this.selectedEventId}`);
   }
 
   startManualMode(mode: 'ticket' | 'consumption'): void {
@@ -133,11 +129,9 @@ export class EmployeeDashboardComponent implements OnInit, OnDestroy {
     this.isScanning = false;
     this.scanMode = null;
     // TODO: Detener cámara
-    console.log('Deteniendo escaneo');
   }
 
   onScanSuccess(result: string): void {
-    console.log('QR escaneado:', result);
     this.lastScanResult = result;
     this.isScanning = false;
 
@@ -262,8 +256,6 @@ export class EmployeeDashboardComponent implements OnInit, OnDestroy {
   private validateTicket(qrCode: string): void {
     if (!this.selectedEventId) return;
 
-    console.log('Validando ticket:', qrCode, 'para evento:', this.selectedEventId);
-
     // Pre-validación del formato y evento
     const qrPattern = /PACKEDGO\|T:(\d+)(?:\|TC:(\d+))?\|E:(\d+)\|U:(\d+)\|TS:(\d+)/;
     const match = qrCode.match(qrPattern);
@@ -332,8 +324,6 @@ export class EmployeeDashboardComponent implements OnInit, OnDestroy {
 
   private handleConsumptionScan(qrCode: string): void {
     if (!this.selectedEventId) return;
-
-    console.log('Escaneando consumo:', qrCode);
 
     // Extract ticketConsumptionId from QR
     // Allow TC to be optional (some QRs might only have T which we'll use as ID)

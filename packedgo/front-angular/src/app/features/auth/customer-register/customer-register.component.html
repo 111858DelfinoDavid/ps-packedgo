@@ -12,29 +12,48 @@
     </div>
 
     <!-- Success Alert -->
-    <div *ngIf="successMessage" class="alert alert-success alert-dismissible fade show" role="alert">
+    <div
+      *ngIf="successMessage"
+      class="alert alert-success alert-dismissible fade show"
+      role="alert"
+    >
       <i class="bi bi-check-circle-fill me-2"></i>
       {{ successMessage }}
-      <button type="button" class="btn-close" (click)="successMessage = ''"></button>
+      <button
+        type="button"
+        class="btn-close"
+        (click)="successMessage = ''"
+      ></button>
     </div>
 
     <!-- Error Alert -->
-    <div *ngIf="errorMessage" class="alert alert-danger alert-dismissible fade show" role="alert">
+    <div
+      *ngIf="errorMessage"
+      class="alert alert-danger alert-dismissible fade show"
+      role="alert"
+    >
       <i class="bi bi-exclamation-triangle-fill me-2"></i>
       {{ errorMessage }}
-      <button type="button" class="btn-close" (click)="errorMessage = ''"></button>
+      <button
+        type="button"
+        class="btn-close"
+        (click)="errorMessage = ''"
+      ></button>
     </div>
 
-    <form [formGroup]="registerForm" (ngSubmit)="onSubmit()" class="register-form">
-      
+    <form
+      [formGroup]="registerForm"
+      (ngSubmit)="onSubmit()"
+      class="register-form"
+    >
       <!-- Username -->
       <div class="form-group">
         <label for="username">
           <i class="bi bi-person"></i>
           Nombre de Usuario
         </label>
-        <input 
-          type="text" 
+        <input
+          type="text"
           id="username"
           formControlName="username"
           class="form-control"
@@ -43,9 +62,15 @@
           placeholder="Ingresa tu nombre de usuario"
         />
         <div class="invalid-feedback" *ngIf="username?.touched">
-          <span *ngIf="username?.errors?.['required']">El nombre de usuario es requerido</span>
-          <span *ngIf="username?.errors?.['minlength']">Mínimo 3 caracteres</span>
-          <span *ngIf="username?.errors?.['maxlength']">Máximo 50 caracteres</span>
+          <span *ngIf="username?.errors?.['required']"
+            >El nombre de usuario es requerido</span
+          >
+          <span *ngIf="username?.errors?.['minlength']"
+            >Mínimo 3 caracteres</span
+          >
+          <span *ngIf="username?.errors?.['maxlength']"
+            >Máximo 50 caracteres</span
+          >
         </div>
       </div>
 
@@ -55,8 +80,8 @@
           <i class="bi bi-envelope"></i>
           Correo Electrónico
         </label>
-        <input 
-          type="email" 
+        <input
+          type="email"
           id="email"
           formControlName="email"
           class="form-control"
@@ -65,7 +90,9 @@
           placeholder="ejemplo@correo.com"
         />
         <div class="invalid-feedback" *ngIf="email?.touched">
-          <span *ngIf="email?.errors?.['required']">El correo es requerido</span>
+          <span *ngIf="email?.errors?.['required']"
+            >El correo es requerido</span
+          >
           <span *ngIf="email?.errors?.['email']">Ingresa un correo válido</span>
         </div>
       </div>
@@ -76,8 +103,8 @@
           <i class="bi bi-card-text"></i>
           Documento de Identidad
         </label>
-        <input 
-          type="text" 
+        <input
+          type="text"
           id="document"
           formControlName="document"
           class="form-control"
@@ -86,8 +113,12 @@
           placeholder="Ingresa tu documento"
         />
         <div class="invalid-feedback" *ngIf="document?.touched">
-          <span *ngIf="document?.errors?.['required']">El documento es requerido</span>
-          <span *ngIf="document?.errors?.['pattern']">Solo números sin puntos ni guiones</span>
+          <span *ngIf="document?.errors?.['required']"
+            >El documento es requerido</span
+          >
+          <span *ngIf="document?.errors?.['pattern']"
+            >Solo números sin puntos ni guiones</span
+          >
         </div>
       </div>
 
@@ -98,7 +129,7 @@
           Contraseña
         </label>
         <div class="password-wrapper">
-          <input 
+          <input
             [type]="showPassword ? 'text' : 'password'"
             id="password"
             formControlName="password"
@@ -107,18 +138,27 @@
             [class.is-valid]="password?.valid && password?.touched"
             placeholder="Ingresa tu contraseña"
           />
-          <button 
-            type="button" 
-            class="password-toggle" 
+          <button
+            type="button"
+            class="password-toggle"
             (click)="togglePasswordVisibility()"
-            [attr.aria-label]="showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'"
+            [attr.aria-label]="
+              showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'
+            "
           >
             <i [class]="showPassword ? 'bi bi-eye-slash' : 'bi bi-eye'"></i>
           </button>
         </div>
-        <div class="invalid-feedback d-block" *ngIf="password?.touched && password?.invalid">
-          <span *ngIf="password?.errors?.['required']">La contraseña es requerida</span>
-          <span *ngIf="password?.errors?.['minlength']">Mínimo 6 caracteres</span>
+        <div
+          class="invalid-feedback d-block"
+          *ngIf="password?.touched && password?.invalid"
+        >
+          <span *ngIf="password?.errors?.['required']"
+            >La contraseña es requerida</span
+          >
+          <span *ngIf="password?.errors?.['minlength']"
+            >Mínimo 6 caracteres</span
+          >
         </div>
       </div>
 
@@ -128,8 +168,8 @@
           <i class="bi bi-person-badge"></i>
           Nombre
         </label>
-        <input 
-          type="text" 
+        <input
+          type="text"
           id="name"
           formControlName="name"
           class="form-control"
@@ -150,8 +190,8 @@
           <i class="bi bi-person-badge-fill"></i>
           Apellido
         </label>
-        <input 
-          type="text" 
+        <input
+          type="text"
           id="lastName"
           formControlName="lastName"
           class="form-control"
@@ -160,9 +200,13 @@
           placeholder="Ingresa tu apellido"
         />
         <div class="invalid-feedback" *ngIf="lastName?.touched">
-          <span *ngIf="lastName?.errors?.['required']">El apellido es requerido</span>
+          <span *ngIf="lastName?.errors?.['required']"
+            >El apellido es requerido</span
+          >
           <span *ngIf="lastName?.errors?.['minlength']">Mínimo 1 caracter</span>
-          <span *ngIf="lastName?.errors?.['maxlength']">Máximo 100 caracteres</span>
+          <span *ngIf="lastName?.errors?.['maxlength']"
+            >Máximo 100 caracteres</span
+          >
         </div>
       </div>
 
@@ -172,8 +216,8 @@
           <i class="bi bi-calendar-event"></i>
           Fecha de Nacimiento
         </label>
-        <input 
-          type="date" 
+        <input
+          type="date"
           id="bornDate"
           formControlName="bornDate"
           class="form-control"
@@ -181,7 +225,9 @@
           [class.is-valid]="bornDate?.valid && bornDate?.touched"
         />
         <div class="invalid-feedback" *ngIf="bornDate?.touched">
-          <span *ngIf="bornDate?.errors?.['required']">La fecha de nacimiento es requerida</span>
+          <span *ngIf="bornDate?.errors?.['required']"
+            >La fecha de nacimiento es requerida</span
+          >
         </div>
       </div>
 
@@ -191,8 +237,8 @@
           <i class="bi bi-telephone"></i>
           Teléfono
         </label>
-        <input 
-          type="text" 
+        <input
+          type="text"
           id="telephone"
           formControlName="telephone"
           class="form-control"
@@ -201,8 +247,12 @@
           placeholder="Ingresa tu teléfono"
         />
         <div class="invalid-feedback" *ngIf="telephone?.touched">
-          <span *ngIf="telephone?.errors?.['required']">El teléfono es requerido</span>
-          <span *ngIf="telephone?.errors?.['pattern']">Solo números sin espacios</span>
+          <span *ngIf="telephone?.errors?.['required']"
+            >El teléfono es requerido</span
+          >
+          <span *ngIf="telephone?.errors?.['pattern']"
+            >Solo números sin espacios</span
+          >
         </div>
       </div>
 
@@ -212,7 +262,7 @@
           <i class="bi bi-gender-ambiguous"></i>
           Género
         </label>
-        <select 
+        <select
           id="gender"
           formControlName="gender"
           class="form-select"
@@ -226,35 +276,53 @@
           <option value="PREFER_NOT_TO_SAY">Prefiero no decir</option>
         </select>
         <div class="invalid-feedback" *ngIf="gender?.touched">
-          <span *ngIf="gender?.errors?.['required']">El género es requerido</span>
+          <span *ngIf="gender?.errors?.['required']"
+            >El género es requerido</span
+          >
         </div>
       </div>
 
       <!-- Términos y Condiciones -->
       <div class="form-group terms-section">
         <div class="terms-status" [class.accepted]="acceptTerms?.value">
-          <i class="bi" [class.bi-check-circle-fill]="acceptTerms?.value" [class.bi-circle]="!acceptTerms?.value"></i>
-          <span *ngIf="!acceptTerms?.value">Debe leer y aceptar los Términos y Condiciones</span>
-          <span *ngIf="acceptTerms?.value" class="text-success">✓ Términos y Condiciones aceptados</span>
+          <i
+            class="bi"
+            [class.bi-check-circle-fill]="acceptTerms?.value"
+            [class.bi-circle]="!acceptTerms?.value"
+          ></i>
+          <span *ngIf="!acceptTerms?.value"
+            >Debe leer y aceptar los Términos y Condiciones</span
+          >
+          <span *ngIf="acceptTerms?.value" class="text-success"
+            >✓ Términos y Condiciones aceptados</span
+          >
         </div>
-        <button 
-          type="button" 
+        <button
+          type="button"
           class="btn-read-terms"
           (click)="openTermsModal()"
           [class.btn-accepted]="acceptTerms?.value"
           [disabled]="acceptTerms?.value"
         >
           <i class="bi bi-file-text"></i>
-          {{ acceptTerms?.value ? 'Términos Aceptados' : 'Leer Términos y Condiciones' }}
+          {{
+            acceptTerms?.value
+              ? "Términos Aceptados"
+              : "Leer Términos y Condiciones"
+          }}
         </button>
-        <div class="invalid-feedback d-block" *ngIf="acceptTerms?.touched && acceptTerms?.invalid">
-          <i class="bi bi-exclamation-circle"></i> Debes leer y aceptar los términos para continuar
+        <div
+          class="invalid-feedback d-block"
+          *ngIf="acceptTerms?.touched && acceptTerms?.invalid"
+        >
+          <i class="bi bi-exclamation-circle"></i> Debes leer y aceptar los
+          términos para continuar
         </div>
       </div>
 
       <!-- Submit Button -->
-      <button 
-        type="submit" 
+      <button
+        type="submit"
         class="btn btn-primary btn-register"
         [disabled]="isLoading"
       >
@@ -262,21 +330,32 @@
           <i class="bi bi-person-check"></i> Registrarse
         </span>
         <span *ngIf="isLoading">
-          <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+          <span
+            class="spinner-border spinner-border-sm me-2"
+            role="status"
+            aria-hidden="true"
+          ></span>
           Registrando...
         </span>
       </button>
 
       <!-- Login Link -->
       <div class="register-footer">
-        <p>¿Ya tienes una cuenta? <a routerLink="/customer/login">Inicia Sesión</a></p>
+        <p>
+          ¿Ya tienes una cuenta?
+          <a routerLink="/customer/login">Inicia Sesión</a>
+        </p>
       </div>
     </form>
   </div>
 </div>
 
 <!-- Modal de Términos y Condiciones -->
-<div class="terms-modal-overlay" *ngIf="showTermsModal" (click)="closeTermsModal()">
+<div
+  class="terms-modal-overlay"
+  *ngIf="showTermsModal"
+  (click)="closeTermsModal()"
+>
   <div class="terms-modal-content" (click)="$event.stopPropagation()">
     <div class="terms-modal-header">
       <h2>Términos y Condiciones de Uso</h2>
@@ -284,182 +363,226 @@
         <i class="bi bi-x-lg"></i>
       </button>
     </div>
-    
-    <div class="terms-modal-body" #termsContent (scroll)="onTermsScroll($event)">
+
+    <div
+      class="terms-modal-body"
+      #termsContent
+      (scroll)="onTermsScroll($event)"
+    >
       <div class="terms-text">
         <p class="last-update">Última actualización: Noviembre 2025</p>
 
         <section class="term-section">
           <h3>1. Aceptación de los Términos</h3>
           <p>
-            Al acceder y utilizar la plataforma PACKEDGO, usted acepta quedar sujeto a los presentes Términos y Condiciones de Uso (en adelante, "Términos y Condiciones").
-            Si no está de acuerdo con alguna de sus disposiciones, deberá abstenerse de utilizar nuestros servicios.
-            La utilización de la plataforma implica el pleno conocimiento y aceptación de todas las condiciones aquí establecidas.
+            Al acceder, registrarse y utilizar la plataforma PACKEDGO (en
+            adelante, la “Plataforma”), el usuario acepta quedar sujeto a los
+            presentes Términos y Condiciones de Uso (los “Términos”).
+          </p>
+          <p>
+            Si el Usuario no estuviera de acuerdo con alguna de sus
+            disposiciones, deberá abstenerse de utilizar los servicios. El uso
+            de la Plataforma implica el conocimiento pleno y la aceptación
+            expresa de estos Términos.
           </p>
         </section>
 
         <section class="term-section">
           <h3>2. Descripción del Servicio</h3>
           <p>
-            PACKEDGO S.A.S., C.U.I.T. XX-XXXXXXXX-X, es una empresa dedicada a la prestación de servicios digitales de intermediación para la compra, venta y gestión de entradas electrónicas para eventos de diversa índole.
+            PACKEDGO S.A.S., C.U.I.T. XX-XXXXXXXX-X, presta servicios digitales
+            de intermediación tecnológica para la gestión, administración y
+            venta de entradas electrónicas para eventos de diversa índole.
           </p>
-          <p>La plataforma permite:</p>
+          <p>La Plataforma permite, entre otras funcionalidades:</p>
           <ul>
-            <li>La compra de entradas digitales.</li>
-            <li>La gestión de eventos por parte de los organizadores.</li>
-            <li>La generación de códigos QR para control y validación de accesos.</li>
-            <li>La implementación de sistemas de consumiciones dentro de eventos.</li>
+            <li>La compra de entradas digitales por parte de los Usuarios.</li>
+            <li>La gestión de eventos por parte de los Organizadores.</li>
+            <li>
+              La generación de códigos QR para control y validación de accesos.
+            </li>
+            <li>La implementación de consumiciones u otros beneficios.</li>
           </ul>
           <p>
-            PACKEDGO actúa únicamente como intermediario tecnológico entre el organizador del evento (en adelante, el "Organizador") y el usuario final (en adelante, el "Usuario"), y no asume responsabilidad alguna respecto de la organización, calidad, contenido o seguridad del evento.
+            PACKEDGO actúa exclusivamente como intermediario tecnológico entre
+            el Organizador y el Usuario, no siendo organizador, productor ni
+            responsable del evento, ni participando en la fijación de precios,
+            condiciones de acceso o políticas de devolución.
           </p>
         </section>
 
         <section class="term-section">
           <h3>3. Registro de Usuario</h3>
           <p>
-            Para utilizar determinados servicios, el Usuario deberá crear una cuenta en la plataforma, proporcionando información veraz, completa y actualizada.
-            Al registrarse, el Usuario se compromete a:
+            Para utilizar determinadas funcionalidades, el Usuario deberá crear
+            una cuenta proporcionando información veraz, completa y actualizada.
           </p>
           <ul>
             <li>Mantener la confidencialidad de sus credenciales de acceso.</li>
-            <li>Ser responsable de todas las actividades realizadas con su cuenta.</li>
-            <li>Notificar de inmediato a PACKEDGO ante cualquier uso no autorizado.</li>
-            <li>No crear cuentas falsas, duplicadas ni utilizar datos ajenos.</li>
+            <li>
+              Ser responsable de toda actividad realizada desde su cuenta.
+            </li>
+            <li>Notificar inmediatamente cualquier uso no autorizado.</li>
+            <li>No crear cuentas falsas ni utilizar datos de terceros.</li>
           </ul>
-          <p>El incumplimiento de estas condiciones podrá derivar en la suspensión o eliminación de la cuenta del Usuario.</p>
+          <p>
+            PACKEDGO podrá suspender o cancelar cuentas que incumplan estas
+            obligaciones.
+          </p>
         </section>
 
         <section class="term-section">
           <h3>4. Compra de Entradas</h3>
+
           <h4>4.1 Proceso de Compra</h4>
-          <p>Las entradas se encuentran sujetas a disponibilidad. Al completar una compra, el Usuario recibirá:</p>
-          <ul>
-            <li>Un correo electrónico de confirmación.</li>
-            <li>Un código QR único e intransferible por cada entrada adquirida.</li>
-            <li>La garantía de validez del ticket exclusivamente para el evento especificado.</li>
-          </ul>
+          <p>
+            Las entradas están sujetas a disponibilidad. Una vez completada la
+            compra, el Usuario recibirá un correo de confirmación y un código QR
+            único por cada entrada adquirida, válido exclusivamente para el
+            evento indicado.
+          </p>
 
           <h4>4.2 Precios y Pagos</h4>
           <p>
-            Todos los precios se expresan en pesos argentinos (ARS) e incluyen los impuestos aplicables.
-            Los pagos se procesan a través de MERCADOPAGO u otros medios autorizados.
-            PACKEDGO actúa como intermediario y no percibe la totalidad de los fondos, sino únicamente la comisión correspondiente por el uso de su sistema.
+            Los precios se expresan en pesos argentinos (ARS) e incluyen
+            impuestos. Los pagos se procesan mediante proveedores externos como
+            STRIPE.
+          </p>
+          <p>
+            PACKEDGO percibe únicamente la comisión correspondiente por el uso
+            de la Plataforma.
           </p>
 
           <h4>4.3 Cancelaciones y Reembolsos</h4>
           <p>
-            Las políticas de devolución o reembolso dependen exclusivamente del Organizador del evento.
-            En caso de cancelación o modificación del evento, PACKEDGO no se responsabiliza de la devolución de los montos abonados, salvo que el Organizador haya solicitado la gestión del reembolso a través de nuestra plataforma, dentro de los plazos que determine el procesador de pagos.
+            Las políticas de cancelación, modificación y reembolso son definidas
+            exclusivamente por el Organizador del evento.
+          </p>
+          <p>
+            PACKEDGO podrá colaborar en la gestión del reembolso cuando así lo
+            instruya el Organizador y conforme a las condiciones del medio de
+            pago utilizado.
           </p>
         </section>
 
         <section class="term-section">
           <h3>5. Responsabilidades del Organizador</h3>
-          <p>Los Organizadores que utilicen la plataforma se obligan a:</p>
           <ul>
-            <li>Brindar información veraz y actualizada sobre sus eventos.</li>
-            <li>Cumplir con todas las disposiciones legales aplicables.</li>
-            <li>Informar oportunamente sobre modificaciones, cancelaciones o reprogramaciones.</li>
-            <li>Garantizar la seguridad, accesibilidad y condiciones generales del evento.</li>
+            <li>Brindar información veraz y actualizada.</li>
+            <li>Cumplir con la normativa legal vigente.</li>
+            <li>Informar cancelaciones o modificaciones.</li>
+            <li>Garantizar la seguridad y condiciones del evento.</li>
           </ul>
-          <p>PACKEDGO no interviene ni asume responsabilidad alguna por el cumplimiento de estas obligaciones.</p>
+          <p>
+            PACKEDGO no asume responsabilidad por el incumplimiento de estas
+            obligaciones.
+          </p>
         </section>
 
         <section class="term-section">
           <h3>6. Uso de Entradas Digitales</h3>
-          <p>Las entradas digitales emitidas por PACKEDGO y sus códigos QR:</p>
           <ul>
-            <li>Son personales e intransferibles, salvo autorización expresa del Organizador.</li>
-            <li>No pueden ser duplicadas, falsificadas ni revendidas sin permiso.</li>
-            <li>Serán validadas mediante escaneo electrónico al ingreso del evento.</li>
-            <li>Podrán incluir consumiciones u otros beneficios asociados a la categoría adquirida.</li>
+            <li>
+              Las entradas son personales e intransferibles salvo autorización.
+            </li>
+            <li>No pueden ser falsificadas ni revendidas.</li>
+            <li>Serán validadas electrónicamente al ingreso.</li>
           </ul>
-          <p>PACKEDGO no se responsabiliza por entradas extraviadas, adulteradas o adquiridas fuera de los canales oficiales.</p>
+          <p>
+            PACKEDGO no se responsabiliza por entradas extraviadas o adquiridas
+            fuera de los canales oficiales.
+          </p>
         </section>
 
         <section class="term-section">
           <h3>7. Propiedad Intelectual</h3>
           <p>
-            Todos los contenidos de la plataforma PACKEDGO —incluyendo el diseño, software, bases de datos, logotipos, textos, imágenes, gráficos y demás elementos— son propiedad exclusiva de PACKEDGO S.A.S. o de sus licenciantes.
-            Su reproducción, copia, distribución o modificación sin autorización previa y por escrito está estrictamente prohibida.
+            Todos los contenidos de la Plataforma son propiedad exclusiva de
+            PACKEDGO S.A.S. o de sus licenciantes y se encuentran protegidos por
+            la legislación vigente.
           </p>
         </section>
 
         <section class="term-section">
           <h3>8. Privacidad y Datos Personales</h3>
-          <p>El tratamiento de los datos personales del Usuario se realiza conforme a la Ley N° 25.326 de Protección de Datos Personales y normas complementarias.</p>
-          <p>PACKEDGO podrá utilizar los datos para:</p>
+          <p>
+            PACKEDGO es responsable del tratamiento de los datos personales
+            conforme a la Ley N° 25.326 de Protección de Datos Personales.
+          </p>
           <ul>
             <li>Procesar operaciones y emitir entradas.</li>
             <li>Validar transacciones y prevenir fraudes.</li>
-            <li>Brindar soporte técnico y atención al Usuario.</li>
-            <li>Mejorar la calidad de los servicios.</li>
+            <li>Brindar soporte y mejorar los servicios.</li>
           </ul>
           <p>
-            PACKEDGO no almacena información de los medios de pago utilizados.
-            Los Usuarios podrán solicitar el acceso, rectificación o eliminación de sus datos comunicándose a legal&#64;packedgo.com.
+            El Usuario podrá ejercer sus derechos de acceso, rectificación,
+            cancelación u oposición escribiendo a legal&#64;packedgo.com.
+          </p>
+          <p>
+            La Agencia de Acceso a la Información Pública es el órgano de
+            control de la Ley N° 25.326.
           </p>
         </section>
 
         <section class="term-section">
           <h3>9. Limitación de Responsabilidad</h3>
-          <p>PACKEDGO no será responsable, directa o indirectamente, por:</p>
           <ul>
-            <li>La cancelación, reprogramación o modificación de eventos.</li>
-            <li>Cualquier daño, lesión o pérdida que ocurra durante el evento.</li>
-            <li>Fallos técnicos, interrupciones o pérdida de información.</li>
-            <li>Daños indirectos, incidentales o consecuenciales derivados del uso de la plataforma.</li>
+            <li>Cancelaciones o modificaciones de eventos.</li>
+            <li>Daños ocurridos durante el evento.</li>
+            <li>Fallos técnicos o interrupciones del servicio.</li>
+            <li>Daños indirectos derivados del uso de la Plataforma.</li>
           </ul>
-          <p>El Usuario reconoce que PACKEDGO actúa exclusivamente como intermediario tecnológico entre las partes.</p>
-        </section>
-
-        <section class="term-section">
-          <h3>10. Conducta Prohibida</h3>
-          <p>Queda expresamente prohibido:</p>
-          <ul>
-            <li>Revender entradas sin autorización del Organizador.</li>
-            <li>Falsificar, duplicar o manipular códigos QR.</li>
-            <li>Utilizar la plataforma para fines ilegales o fraudulentos.</li>
-            <li>Interferir con el funcionamiento del sistema o de los servidores.</li>
-            <li>Crear múltiples cuentas sin justificación válida.</li>
-          </ul>
-          <p>El incumplimiento de estas disposiciones podrá resultar en la suspensión inmediata de la cuenta y posibles acciones legales.</p>
-        </section>
-
-        <section class="term-section">
-          <h3>11. Modificaciones del Servicio</h3>
           <p>
-            PACKEDGO podrá, en cualquier momento y sin previo aviso, modificar, suspender o discontinuar total o parcialmente el servicio ofrecido, así como también actualizar estos Términos y Condiciones.
-            El uso continuado de la plataforma por parte del Usuario implicará la aceptación tácita de las nuevas condiciones.
+            Nada de lo dispuesto limitará la responsabilidad de PACKEDGO cuando
+            ello esté prohibido por la legislación vigente.
           </p>
         </section>
 
         <section class="term-section">
-          <h3>12. Jurisdicción y Ley Aplicable</h3>
+          <h3>10. Conducta Prohibida</h3>
+          <ul>
+            <li>Revender entradas sin autorización.</li>
+            <li>Manipular o falsificar códigos QR.</li>
+            <li>Utilizar la Plataforma con fines ilegales.</li>
+            <li>Interferir con el funcionamiento del sistema.</li>
+          </ul>
+        </section>
+
+        <section class="term-section">
+          <h3>11. Modificaciones</h3>
           <p>
-            Estos Términos y Condiciones se rigen por las leyes de la República Argentina.
-            Cualquier controversia será sometida a los Tribunales Ordinarios de la Ciudad de Córdoba, con renuncia expresa a cualquier otro fuero o jurisdicción que pudiera corresponder.
+            PACKEDGO podrá modificar estos Términos, los cuales entrarán en
+            vigencia desde su publicación en la Plataforma.
+          </p>
+        </section>
+
+        <section class="term-section">
+          <h3>12. Jurisdicción</h3>
+          <p>
+            Estos Términos se rigen por las leyes de la República Argentina.
+            Cualquier controversia será sometida a los Tribunales Ordinarios de
+            la Ciudad de Córdoba, sin perjuicio de los derechos del consumidor.
           </p>
         </section>
 
         <section class="term-section">
           <h3>13. Contacto</h3>
-          <p>Para consultas relacionadas con estos Términos y Condiciones o el funcionamiento de la plataforma, puede contactarse con nosotros a través de:</p>
           <ul>
-            <li>📧 legal&#64;packedgo.com</li>
-            <li>📞 +54 351 456-7890</li>
-            <li>🏢 Av. Colón 1234, Ciudad de Córdoba, República Argentina</li>
+            <li>📧 events.packedgo&#64;gmail.com</li>
+            <li>📞 +54 351 1234-567</li>
+            <li>
+              🏢 Maestro M. Lopez esq, Cruz Roja Argentina S/N Córdoba,
+              Argentina
+            </li>
           </ul>
         </section>
 
         <section class="term-section">
-          <h3>14. Aceptación y Vigencia</h3>
+          <h3>14. Aceptación</h3>
           <p>
-            Al hacer clic en "Acepto los Términos y Condiciones" durante el registro o utilización del servicio, el Usuario declara haber leído, comprendido y aceptado la totalidad del presente documento.
-          </p>
-          <p>
-            Estos Términos y Condiciones entran en vigencia desde el momento de su aceptación y permanecerán aplicables mientras el Usuario utilice los servicios de PACKEDGO.
+            Al hacer clic en “Acepto los Términos y Condiciones”, el Usuario
+            declara haber leído, comprendido y aceptado íntegramente el presente
+            documento.
           </p>
         </section>
       </div>
@@ -470,7 +593,7 @@
         <i class="bi bi-arrow-down"></i>
         <span>Desplázate hacia abajo para continuar</span>
       </div>
-      <button 
+      <button
         class="btn-accept-terms"
         [disabled]="!hasScrolledToBottom"
         (click)="acceptTermsAndClose()"

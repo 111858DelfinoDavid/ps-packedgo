@@ -281,11 +281,41 @@
   transform: translateX(-3px);
 }
 
-/* Responsive */
-@media (max-width: 768px) {
+/* Responsive - MEJORADO */
+@media (max-width: 992px) {
   .login-container {
-    padding: 2.5rem 2rem;
+    max-width: 500px;
+    padding: 2.5rem;
+  }
+}
+
+@media (max-width: 768px) {
+  :host {
+    padding: 1rem;
+  }
+  
+  .customer-alert {
+    font-size: 0.85rem;
+    padding: 0.6rem 0.5rem;
+  }
+  
+  .login-container {
+    padding: 2rem 1.5rem;
     padding-top: 70px;
+    margin-top: 3rem;
+    max-width: 100%;
+  }
+  
+  .logo-container .logo-main {
+    width: 150px;
+  }
+  
+  .title {
+    font-size: 1.5rem;
+  }
+  
+  .subtitle {
+    font-size: 0.85rem;
   }
 
   .btn-back-landing {
@@ -298,19 +328,149 @@
   .btn-back-landing i {
     font-size: 1rem;
   }
+  
+  .btn-customer {
+    font-size: 1rem;
+    padding: 0.85rem;
+  }
+  
+  .form-control {
+    font-size: 0.95rem;
+    padding: 0.65rem 0.85rem;
+  }
+  
+  .divider {
+    margin: 1.5rem 0;
+  }
 }
 
 @media (max-width: 480px) {
+  :host {
+    padding: 0.5rem;
+    min-height: 100vh;
+  }
+  
+  .customer-alert {
+    font-size: 0.75rem;
+    padding: 0.5rem 0.25rem;
+  }
+  
   .login-container {
-    padding: 2rem 1.5rem;
+    padding: 1.5rem 1rem;
     padding-top: 65px;
+    margin-top: 2.5rem;
+    border-radius: 10px;
+  }
+  
+  .logo-container {
+    font-size: 3rem;
+    margin-bottom: 0.75rem;
+  }
+  
+  .logo-container .logo-main {
+    width: 120px;
+  }
+  
+  .title {
+    font-size: 1.3rem;
+    margin-bottom: 0.4rem;
+  }
+  
+  .subtitle {
+    font-size: 0.8rem;
+    margin-bottom: 1.5rem;
   }
 
   .btn-back-landing {
     top: 10px;
     left: 10px;
     padding: 6px 12px;
-    font-size: 0.8rem;
+    font-size: 0.75rem;
     gap: 5px;
+    border-radius: 20px;
+  }
+  
+  .btn-back-landing i {
+    font-size: 0.9rem;
+  }
+  
+  .form-label {
+    font-size: 0.85rem;
+    margin-bottom: 0.4rem;
+  }
+  
+  .form-control {
+    font-size: 0.9rem;
+    padding: 0.6rem 0.75rem;
+    border-radius: 10px;
+  }
+  
+  .password-toggle {
+    right: 10px;
+    padding: 0.4rem;
+    font-size: 0.9rem;
+  }
+  
+  .btn-customer {
+    font-size: 0.95rem;
+    padding: 0.75rem;
+    border-radius: 10px;
+  }
+  
+  .divider {
+    margin: 1.2rem 0;
+  }
+  
+  .divider span {
+    font-size: 0.85rem;
+    padding: 0 0.75rem;
+  }
+  
+  .register-text {
+    font-size: 0.85rem;
+    margin-bottom: 0.75rem;
+  }
+  
+  .admin-link {
+    font-size: 0.85rem;
+  }
+  
+  .alert {
+    font-size: 0.85rem;
+    padding: 0.75rem;
+    border-radius: 10px;
+  }
+  
+  .invalid-feedback {
+    font-size: 0.8rem;
   }
 }
+
+/* Extra pequeño - iPhone SE */
+@media (max-width: 375px) {
+  .login-container {
+    padding: 1.2rem 0.85rem;
+    padding-top: 60px;
+    margin-top: 2rem;
+  }
+  
+  .logo-container .logo-main {
+    width: 100px;
+  }
+  
+  .title {
+    font-size: 1.2rem;
+  }
+  
+  .subtitle {
+    font-size: 0.75rem;
+  }
+  
+  .btn-back-landing {
+    top: 8px;
+    left: 8px;
+    padding: 5px 10px;
+    font-size: 0.7rem;
+  }
+}
+

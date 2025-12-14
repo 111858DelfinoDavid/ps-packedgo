@@ -46,7 +46,7 @@ public interface AuthService {
     
     boolean existsByDocument(Long document);
     
-    boolean verifyEmail(String token);
+    java.util.Map<String, Object> verifyEmail(String token);
     
     void requestPasswordReset(PasswordResetRequest request);
     

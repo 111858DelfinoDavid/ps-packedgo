@@ -3,11 +3,13 @@
   <nav class="navbar">
     <div class="container">
       <div class="navbar-brand">
-        <img src="images/logo-icon.svg" alt="PackedGo" class="logo-icon">
+        <img src="images/logo-icon.svg" alt="PackedGo" class="logo-icon" />
         <span class="logo">PackedGo</span>
       </div>
       <div class="navbar-menu">
-        <a class="nav-link" (click)="scrollToSection('features')">Características</a>
+        <a class="nav-link" (click)="scrollToSection('features')"
+          >Características</a
+        >
         <a class="nav-link" (click)="scrollToSection('faq')">FAQ</a>
         <button class="btn-employee" (click)="goToEmployeeLogin()">
           👤 Empleados
@@ -27,7 +29,7 @@
     <div class="container">
       <div class="hero-content">
         <h1 class="hero-title">
-          Descubre y Reserva<br>
+          Descubre y Obten<br />
           <span class="highlight">los Mejores Eventos</span>
         </h1>
         <p class="hero-description">
@@ -53,7 +55,9 @@
         <div class="feature-card">
           <div class="feature-icon">🎫</div>
           <h3>Entradas Digitales</h3>
-          <p>Código QR único para cada entrada. Sin papeles, sin complicaciones.</p>
+          <p>
+            Código QR único para cada entrada. Sin papeles, sin complicaciones.
+          </p>
         </div>
         <div class="feature-card">
           <div class="feature-icon">⚡</div>
@@ -121,10 +125,14 @@
     <div class="container">
       <h2 class="section-title">Preguntas Frecuentes</h2>
       <div class="faq-container">
-        <div class="faq-item" *ngFor="let faq of faqs; let i = index" [class.open]="faq.open">
+        <div
+          class="faq-item"
+          *ngFor="let faq of faqs; let i = index"
+          [class.open]="faq.open"
+        >
           <div class="faq-question" (click)="toggleFaq(i)">
             <h3>{{ faq.question }}</h3>
-            <span class="faq-toggle">{{ faq.open ? '−' : '+' }}</span>
+            <span class="faq-toggle">{{ faq.open ? "−" : "+" }}</span>
           </div>
           <div class="faq-answer" *ngIf="faq.open">
             <p>{{ faq.answer }}</p>
@@ -150,53 +158,46 @@
     <div class="container">
       <div class="footer-grid">
         <div class="footer-column">
-          <h3>📅 PackedGo</h3>
-          <p>Tu plataforma de confianza para descubrir y asistir a los mejores eventos.</p>
-          <div class="social-links">
-            <a href="#" class="social-link">📘 Facebook</a>
-            <a href="#" class="social-link">📷 Instagram</a>
-            <a href="#" class="social-link">🐦 Twitter</a>
-          </div>
-        </div>
-
-        <div class="footer-column">
           <h4>Para Usuarios</h4>
           <a (click)="goToCustomerLogin()">Iniciar Sesión</a>
           <a (click)="goToCustomerRegister()">Registrarse</a>
           <a (click)="scrollToSection('faq')">Preguntas Frecuentes</a>
-          <a (click)="goToEvents()">Ver Eventos</a>
+          <a (click)="goToExploreEvents()">Ver Eventos</a>
         </div>
 
         <div class="footer-column">
           <h4>Para Organizadores</h4>
           <a (click)="goToAdminLogin()">Login Admin</a>
           <a (click)="goToEmployeeLogin()">Login Empleados</a>
-          <a href="#">Crear Evento</a>
-          <a href="#">Reportes</a>
+          <a (click)="goToWinEvents()">Crear Evento</a>
+          <a (click)="goToAnalytics()">Reportes</a>
         </div>
 
         <div class="footer-column">
           <h4>Legal</h4>
           <a (click)="goToTerms()">Términos y Condiciones</a>
           <a (click)="goToPrivacy()">Política de Privacidad</a>
-          <a href="#">Política de Cookies</a>
-          <a href="#">Devoluciones</a>
+          <a (click)="goToWinEvents()">Política de Cookies</a>
         </div>
 
         <div class="footer-column">
           <h4>Contacto</h4>
-          <p>📧 info&#64;packedgo.com</p>
-          <p>📞 +54 11 1234-5678</p>
-          <p>📍 Av. Corrientes 1234<br>CABA, Argentina</p>
+          <p>📧 packedgo.events&#64;gmail.com</p>
+          <p>📞 +54 351 1234-567</p>
+          <p>
+            📍 Maestro M. Lopez esq, Cruz Roja Argentina S/N<br />Córdoba,
+            Argentina
+          </p>
         </div>
       </div>
 
       <div class="footer-bottom">
         <p>&copy; 2025 PackedGo. Todos los derechos reservados.</p>
         <p class="footer-legal">
-          PackedGo es una plataforma de gestión y venta de entradas para eventos. 
-          Los organizadores son responsables de sus eventos. 
-          Cumplimos con la Ley de Protección de Datos Personales (Ley 25.326).
+          PackedGo es una plataforma tecnológica de gestión y venta de entradas
+          para eventos. Los organizadores son los únicos responsables de la
+          organización y realización de sus eventos. Tratamos datos personales
+          conforme a la Ley N° 25.326.
         </p>
       </div>
     </div>

@@ -275,27 +275,69 @@
   opacity: 0.6;
 }
 
-/* Responsive Design */
+/* Responsive Design - MEJORADO */
+@media (max-width: 1024px) {
+  .consumptions-display {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.25rem;
+  }
+  
+  .event-info-section {
+    padding: 1.5rem;
+  }
+}
+
 @media (max-width: 768px) {
   .event-info-section {
     grid-template-columns: 1fr;
     padding: 1rem;
+    gap: 1.5rem;
   }
 
   .event-image-column {
-    height: 250px;
+    height: 220px;
+  }
+  
+  .event-info-card {
+    padding: 1.5rem;
   }
 
   .event-info-card h1 {
     font-size: 1.5rem;
+    margin-bottom: 1rem;
+  }
+  
+  .event-description {
+    font-size: 0.95rem;
+    line-height: 1.6;
+  }
+  
+  .info-grid {
+    gap: 1rem;
+  }
+  
+  .info-item {
+    font-size: 0.9rem;
+  }
+  
+  .info-item i {
+    font-size: 1.1rem;
+  }
+  
+  .price-display {
+    padding: 1.25rem;
   }
 
   .price-amount {
     font-size: 1.5rem;
   }
+  
+  .quantity-selector {
+    padding: 1.25rem;
+  }
 
   .total-amount {
-    font-size: 1.4rem;
+    font-size: 1.3rem;
   }
 
   .btn-add-to-cart {
@@ -305,6 +347,26 @@
 
   .consumptions-display {
     grid-template-columns: 1fr !important;
+    gap: 1rem;
+  }
+  
+  .consumptions-wrapper {
+    padding: 1.5rem 1rem;
+    margin-bottom: 1.5rem;
+  }
+  
+  .consumption-search-wrapper {
+    margin-bottom: 1.25rem;
+  }
+  
+  .category-tabs {
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  
+  .category-tab {
+    padding: 8px 16px;
+    font-size: 0.9rem;
   }
 
   .carousel-btn {
@@ -317,11 +379,254 @@
   }
 }
 
-@media (max-width: 1024px) {
+@media (max-width: 480px) {
+  .event-info-section {
+    padding: 0.75rem;
+    gap: 1.25rem;
+  }
+  
+  .event-image-column {
+    height: 180px;
+    border-radius: 10px;
+  }
+  
+  .event-info-card {
+    padding: 1.25rem 1rem;
+    border-radius: 10px;
+  }
+  
+  .event-info-card h1 {
+    font-size: 1.3rem;
+    margin-bottom: 0.75rem;
+  }
+  
+  .event-description {
+    font-size: 0.9rem;
+    line-height: 1.5;
+    margin-bottom: 1rem;
+  }
+  
+  .info-grid {
+    gap: 0.75rem;
+  }
+  
+  .info-item {
+    font-size: 0.85rem;
+    gap: 6px;
+    padding: 8px;
+  }
+  
+  .info-item i {
+    font-size: 1rem;
+  }
+  
+  .price-display {
+    padding: 1rem;
+    border-radius: 10px;
+  }
+  
+  .price-label {
+    font-size: 0.85rem;
+  }
+  
+  .price-amount {
+    font-size: 1.3rem;
+  }
+  
+  .quantity-selector {
+    padding: 1rem;
+    border-radius: 10px;
+  }
+  
+  .quantity-label {
+    font-size: 0.9rem;
+  }
+  
+  .quantity-controls button {
+    width: 35px;
+    height: 35px;
+    font-size: 1.1rem;
+  }
+  
+  .quantity-display {
+    font-size: 1.1rem;
+    min-width: 40px;
+  }
+  
+  .quantity-hint {
+    font-size: 0.8rem;
+    margin-top: 6px;
+  }
+  
+  .total-section {
+    padding: 1rem;
+    border-radius: 10px;
+  }
+  
+  .total-label {
+    font-size: 0.9rem;
+  }
+  
+  .total-amount {
+    font-size: 1.2rem;
+  }
+  
+  .btn-add-to-cart {
+    font-size: 0.95rem;
+    padding: 0.7rem 0.9rem;
+    gap: 6px;
+    border-radius: 10px;
+  }
+  
+  .btn-add-to-cart i {
+    font-size: 1rem;
+  }
+  
+  .consumptions-wrapper {
+    padding: 1.25rem 0.75rem;
+    border-radius: 10px;
+    margin-bottom: 1.25rem;
+  }
+  
+  .consumptions-wrapper h3 {
+    font-size: 1.1rem;
+    margin-bottom: 1rem;
+  }
+  
+  .consumption-search-wrapper {
+    margin-bottom: 1rem;
+  }
+  
+  .consumption-search-input {
+    padding: 10px 15px 10px 40px;
+    font-size: 0.9rem;
+    border-radius: 10px;
+  }
+  
+  .search-icon {
+    left: 12px;
+    font-size: 0.95rem;
+  }
+  
+  .category-tabs {
+    gap: 6px;
+    margin-bottom: 1rem;
+  }
+  
+  .category-tab {
+    padding: 7px 14px;
+    font-size: 0.85rem;
+    border-radius: 8px;
+  }
+  
   .consumptions-display {
-    grid-template-columns: repeat(2, 1fr);
+    gap: 0.85rem;
+  }
+  
+  .consumption-card {
+    padding: 1rem;
+    border-radius: 10px;
+  }
+  
+  .consumption-card h4 {
+    font-size: 1rem;
+    margin-bottom: 6px;
+  }
+  
+  .consumption-card .price {
+    font-size: 1rem;
+  }
+  
+  .consumption-controls {
+    margin-top: 10px;
+  }
+  
+  .consumption-controls button {
+    padding: 6px 12px;
+    font-size: 0.85rem;
+    border-radius: 8px;
+  }
+  
+  .carousel-btn {
+    width: 34px;
+    height: 34px;
+  }
+  
+  .carousel-btn i {
+    font-size: 1rem;
+  }
+  
+  .carousel-indicators {
+    gap: 5px;
+    margin-top: 10px;
+  }
+  
+  .indicator {
+    width: 8px;
+    height: 8px;
   }
 }
+
+/* Extra pequeño - iPhone SE */
+@media (max-width: 375px) {
+  .event-info-section {
+    padding: 0.5rem;
+  }
+  
+  .event-image-column {
+    height: 160px;
+  }
+  
+  .event-info-card {
+    padding: 1rem 0.75rem;
+  }
+  
+  .event-info-card h1 {
+    font-size: 1.2rem;
+  }
+  
+  .event-description {
+    font-size: 0.85rem;
+  }
+  
+  .price-amount {
+    font-size: 1.2rem;
+  }
+  
+  .quantity-controls button {
+    width: 32px;
+    height: 32px;
+    font-size: 1rem;
+  }
+  
+  .quantity-display {
+    font-size: 1rem;
+    min-width: 35px;
+  }
+  
+  .total-amount {
+    font-size: 1.1rem;
+  }
+  
+  .btn-add-to-cart {
+    font-size: 0.9rem;
+    padding: 0.65rem 0.85rem;
+  }
+  
+  .consumptions-wrapper {
+    padding: 1rem 0.5rem;
+  }
+  
+  .consumptions-wrapper h3 {
+    font-size: 1rem;
+  }
+  
+  .category-tab {
+    padding: 6px 12px;
+    font-size: 0.8rem;
+  }
+}
+
 
 .quantity-hint { display: block; margin-top: 8px; color: #666; font-size: 0.85rem; font-style: italic; }
 

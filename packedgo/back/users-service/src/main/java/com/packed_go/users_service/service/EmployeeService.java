@@ -264,31 +264,43 @@ public class EmployeeService {
      */
     private List<AssignedEventInfo> getAssignedEventsForMapping(Set<Long> eventIds) {
         if (eventIds == null || eventIds.isEmpty()) {
+            log.debug("No event IDs to map");
             return new ArrayList<>();
         }
 
-        List<EventDTO> events = eventServiceWebClient.post()
-                .uri("/event-service/event/by-ids")
-                .bodyValue(new ArrayList<>(eventIds))
-                .retrieve()
-                .bodyToMono(new ParameterizedTypeReference<List<EventDTO>>() {})
-                .block();
+        try {
+            log.info("📞 Fetching event details for IDs: {}", eventIds);
+            
+            List<EventDTO> events = eventServiceWebClient.post()
+                    .uri("/event-service/event/by-ids")
+                    .bodyValue(new ArrayList<>(eventIds))
+                    .retrieve()
+                    .bodyToMono(new ParameterizedTypeReference<List<EventDTO>>() {})
+                    .block();
 
-        if (events == null) {
-            return new ArrayList<>();
+            if (events == null || events.isEmpty()) {
+                log.warn("⚠️ No events returned from event-service for IDs: {}", eventIds);
+                return new ArrayList<>();
+            }
+
+            log.info("✅ Successfully fetched {} events from event-service", events.size());
+
+            return events.stream()
+                    .map(event -> {
+                        AssignedEventInfo info = new AssignedEventInfo();
+                        info.setId(event.getId());
+                        info.setName(event.getName());
+                        info.setLocation(event.getLocationName());
+                        info.setEventDate(event.getEventDate());
+                        info.setStatus(event.isActive() ? "ACTIVE" : "INACTIVE");
+                        log.debug("Mapped event: ID={}, Name={}", event.getId(), event.getName());
+                        return info;
+                    })
+                    .collect(Collectors.toList());
+        } catch (Exception e) {
+            log.error("❌ Error calling event-service for event IDs {}: {}", eventIds, e.getMessage(), e);
+            throw e; // Re-lanzar para que sea capturado por el catch en mapToResponse
         }
-
-        return events.stream()
-                .map(event -> {
-                    AssignedEventInfo info = new AssignedEventInfo();
-                    info.setId(event.getId());
-                    info.setName(event.getName());
-                    info.setLocation(event.getLocationName());
-                    info.setEventDate(event.getEventDate());
-                    info.setStatus(event.isActive() ? "ACTIVE" : "INACTIVE");
-                    return info;
-                })
-                .collect(Collectors.toList());
     }
 
     private EmployeeResponse mapToResponse(Employee employee) {
@@ -304,16 +316,20 @@ public class EmployeeService {
 
         // Obtener información completa de eventos desde event-service
         try {
+            log.info("🔄 Mapping employee {} with assigned event IDs: {}", employee.getId(), employee.getAssignedEventIds());
             List<AssignedEventInfo> eventInfos = getAssignedEventsForMapping(employee.getAssignedEventIds());
             response.setAssignedEvents(eventInfos);
+            log.info("✅ Successfully mapped {} events for employee {}", eventInfos.size(), employee.getId());
         } catch (Exception e) {
-            log.error("Error fetching event details for employee {}", employee.getId(), e);
+            log.error("❌ ERROR fetching event details for employee {} with event IDs {}: {}", 
+                    employee.getId(), employee.getAssignedEventIds(), e.getMessage(), e);
             // En caso de error, usar solo los IDs
             List<AssignedEventInfo> fallbackEventInfos = employee.getAssignedEventIds().stream()
                     .map(eventId -> {
                         AssignedEventInfo info = new AssignedEventInfo();
                         info.setId(eventId);
-                        info.setName("Event " + eventId);
+                        info.setName("Event " + eventId); // FALLBACK - esto es lo que está causando el problema
+                        log.warn("⚠️ Using fallback name 'Event {}' for event ID {}", eventId, eventId);
                         return info;
                     })
                     .collect(Collectors.toList());

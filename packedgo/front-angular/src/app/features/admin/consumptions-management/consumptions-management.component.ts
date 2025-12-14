@@ -87,7 +87,6 @@ export class ConsumptionsManagementComponent implements OnInit {
     // 🔒 Cargar TODAS las categorías del admin (para tab de gestión)
     this.eventService.getConsumptionCategories().subscribe({
       next: (data) => {
-        console.log('📦 Categorías cargadas (todas):', data);
         this.consumptionCategories = data;
       },
       error: (error) => {
@@ -98,7 +97,6 @@ export class ConsumptionsManagementComponent implements OnInit {
     // 🔒 Cargar solo las ACTIVAS del admin (para select en modal de consumo)
     this.eventService.getActiveConsumptionCategories().subscribe({
       next: (data) => {
-        console.log('📦 Categorías activas cargadas:', data);
         this.activeConsumptionCategories = data;
       },
       error: (error) => {
@@ -294,11 +292,8 @@ export class ConsumptionsManagementComponent implements OnInit {
     const category = this.consumptionCategories.find(c => c.id === id);
     if (!category) return;
     
-    console.log('🔄 Toggle status - Categoría actual:', category);
-    
     this.eventService.toggleConsumptionCategoryStatus(id).subscribe({
       next: (updatedCategory) => {
-        console.log('✅ Toggle status - Categoría actualizada:', updatedCategory);
         this.showSuccess('Estado de categoría actualizado');
         this.loadCategories();
       },

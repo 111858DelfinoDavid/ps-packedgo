@@ -619,39 +619,133 @@
 }
 
 /* ============================================
-   RESPONSIVE DESIGN
+   RESPONSIVE DESIGN - MEJORADO
    ============================================ */
+
+/* Tablets y pantallas medianas */
 @media (max-width: 992px) {
+  .navbar .container {
+    padding: 0 1rem;
+  }
+  
   .hero-title {
     font-size: 3rem;
+  }
+  
+  .hero-description {
+    font-size: 1.3rem;
   }
   
   .section-title {
     font-size: 2.5rem;
   }
+  
+  .features-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 2rem;
+  }
+  
+  .hero-section {
+    padding: 80px 1.5rem;
+  }
+  
+  .features-section,
+  .how-it-works-section,
+  .faq-section,
+  .cta-section {
+    padding: 60px 1.5rem;
+  }
 }
 
+/* Móviles y pantallas pequeñas */
 @media (max-width: 768px) {
+  .navbar .container {
+    flex-direction: column;
+    gap: 1rem;
+    padding: 0.5rem 1rem;
+  }
+  
+  .navbar-brand .logo {
+    font-size: 1.5rem;
+  }
+  
+  .navbar-brand .logo-icon {
+    width: 32px;
+    height: 32px;
+  }
+
   .navbar-menu {
     flex-wrap: wrap;
     gap: 0.5rem;
     justify-content: center;
+    width: 100%;
   }
 
   .nav-link {
     display: none;
   }
+  
+  .btn-employee,
+  .btn-register,
+  .btn-login {
+    font-size: 0.85rem;
+    padding: 0.5rem 1rem;
+  }
+
+  .hero-section {
+    padding: 60px 1rem;
+  }
 
   .hero-title {
-    font-size: 2.5rem;
+    font-size: 2.2rem;
+    line-height: 1.2;
   }
 
   .hero-description {
-    font-size: 1.2rem;
+    font-size: 1.1rem;
+    margin-bottom: 2rem;
+    letter-spacing: 1px;
+  }
+  
+  .hero-buttons {
+    flex-direction: column;
+    gap: 1rem;
+    width: 100%;
+    padding: 0 1rem;
+  }
+  
+  .hero-buttons button {
+    width: 100%;
   }
 
   .section-title {
-    font-size: 2rem;
+    font-size: 1.8rem;
+    margin-bottom: 2rem;
+  }
+  
+  .section-title::after {
+    width: 60px;
+    height: 3px;
+  }
+  
+  .features-section,
+  .how-it-works-section,
+  .faq-section,
+  .cta-section {
+    padding: 50px 1rem;
+  }
+  
+  .features-grid {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+  
+  .feature-card {
+    padding: 2rem 1.5rem;
+  }
+  
+  .feature-icon {
+    font-size: 3rem;
   }
 
   .step-arrow {
@@ -660,6 +754,53 @@
 
   .steps-container {
     flex-direction: column;
+    gap: 2rem;
+  }
+  
+  .step {
+    min-width: 100%;
+  }
+  
+  .step-number {
+    width: 60px;
+    height: 60px;
+    font-size: 2rem;
+  }
+  
+  .step h3 {
+    font-size: 1.2rem;
+  }
+  
+  .step p {
+    font-size: 1rem;
+  }
+
+  .faq-question {
+    padding: 1.5rem 1rem;
+  }
+  
+  .faq-question h3 {
+    font-size: 1rem;
+  }
+  
+  .faq-toggle {
+    font-size: 1.5rem;
+  }
+  
+  .faq-answer {
+    padding: 0 1rem 1.5rem;
+  }
+  
+  .cta-section h2 {
+    font-size: 2rem;
+  }
+  
+  .cta-section p {
+    font-size: 1.1rem;
+  }
+
+  .footer {
+    padding: 50px 1rem 30px;
   }
 
   .footer-grid {
@@ -667,24 +808,199 @@
     gap: 2rem;
   }
   
-  .features-grid {
-    grid-template-columns: 1fr;
+  .footer-column h3 {
+    font-size: 1.1rem;
   }
 }
 
+/* Móviles pequeños (iPhone SE, iPhone 12/13/14 mini) */
 @media (max-width: 480px) {
+  .navbar {
+    padding: 0.5rem 0;
+  }
+  
+  .navbar .container {
+    padding: 0.5rem;
+  }
+  
+  .navbar-brand .logo {
+    font-size: 1.3rem;
+  }
+  
+  .navbar-brand .logo-icon {
+    width: 28px;
+    height: 28px;
+  }
+  
+  .btn-employee,
+  .btn-register,
+  .btn-login {
+    font-size: 0.75rem;
+    padding: 0.4rem 0.8rem;
+    border-radius: 20px;
+  }
+
+  .hero-section {
+    padding: 40px 0.75rem;
+  }
+
   .hero-title {
-    font-size: 2rem;
+    font-size: 1.75rem;
+    margin-bottom: 1rem;
+  }
+
+  .hero-description {
+    font-size: 0.95rem;
+    margin-bottom: 1.5rem;
+    letter-spacing: 0.5px;
   }
   
   .btn-primary-large,
   .btn-secondary-large {
-    padding: 1rem 2rem;
-    font-size: 1rem;
+    padding: 0.9rem 1.5rem;
+    font-size: 0.95rem;
+    border-radius: 30px;
   }
   
-  .feature-card,
-  .faq-item {
-    padding: 1.5rem;
+  .hero-buttons {
+    gap: 0.75rem;
+    padding: 0 0.5rem;
+  }
+  
+  .section-title {
+    font-size: 1.5rem;
+    margin-bottom: 1.5rem;
+  }
+  
+  .features-section,
+  .how-it-works-section,
+  .faq-section,
+  .cta-section {
+    padding: 40px 0.75rem;
+  }
+  
+  .feature-card {
+    padding: 1.5rem 1rem;
+    border-radius: 15px;
+  }
+  
+  .feature-icon {
+    font-size: 2.5rem;
+    margin-bottom: 1rem;
+  }
+  
+  .feature-card h3 {
+    font-size: 1.2rem;
+  }
+  
+  .feature-card p {
+    font-size: 0.95rem;
+    line-height: 1.6;
+  }
+  
+  .step-number {
+    width: 50px;
+    height: 50px;
+    font-size: 1.5rem;
+    margin-bottom: 1rem;
+  }
+  
+  .step h3 {
+    font-size: 1.1rem;
+  }
+  
+  .step p {
+    font-size: 0.9rem;
+  }
+  
+  .faq-question {
+    padding: 1.2rem 0.75rem;
+  }
+  
+  .faq-question h3 {
+    font-size: 0.95rem;
+    line-height: 1.4;
+  }
+  
+  .faq-toggle {
+    font-size: 1.3rem;
+  }
+  
+  .faq-answer {
+    padding: 0 0.75rem 1.2rem;
+  }
+  
+  .faq-answer p {
+    font-size: 0.9rem;
+    line-height: 1.6;
+  }
+  
+  .cta-section h2 {
+    font-size: 1.6rem;
+    margin-bottom: 0.75rem;
+  }
+  
+  .cta-section p {
+    font-size: 1rem;
+    margin-bottom: 1.5rem;
+  }
+  
+  .btn-cta {
+    padding: 1rem 2rem;
+    font-size: 1rem;
+    border-radius: 30px;
+  }
+  
+  .footer {
+    padding: 40px 0.75rem 25px;
+  }
+  
+  .footer-column h3 {
+    font-size: 1rem;
+    margin-bottom: 1rem;
+  }
+  
+  .footer-column p,
+  .footer-column a {
+    font-size: 0.85rem;
+  }
+  
+  .footer-bottom p {
+    font-size: 0.85rem;
+  }
+  
+  .footer-legal {
+    font-size: 0.75rem;
   }
 }
+
+/* iPhone 14 Pro Max y dispositivos grandes */
+@media (max-width: 430px) and (min-width: 390px) {
+  .hero-title {
+    font-size: 1.9rem;
+  }
+  
+  .hero-description {
+    font-size: 1rem;
+  }
+}
+
+/* Prevenir scroll horizontal en todos los tamaños */
+@media (max-width: 768px) {
+  .landing-container,
+  .navbar .container,
+  .hero-content,
+  .container,
+  .features-grid,
+  .steps-container,
+  .faq-container,
+  .footer-grid {
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+  
+  * {
+    max-width: 100%;
+  }
+}
+

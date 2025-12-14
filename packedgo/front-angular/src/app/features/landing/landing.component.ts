@@ -44,6 +44,12 @@ export class LandingComponent {
     this.router.navigate(['/privacy']);
   }
 
+  goToWinEvents(): void {
+    this.router.navigate(['/admin/events']);
+  }
+  goToAnalytics(): void {
+    this.router.navigate(['/admin/analytics']);
+  }
   // FAQ toggle
   faqs = [
     {
@@ -68,12 +74,12 @@ export class LandingComponent {
     },
     {
       question: '¿Puedo transferir mi entrada a otra persona?',
-      answer: 'Las entradas son personales e intransferibles salvo que el organizador del evento indique lo contrario. Consulta los términos específicos de cada evento.',
+      answer: 'Las entradas son personales e intransferibles salvo que el organizador del evento indique lo contrario.',
       open: false
     },
     {
       question: '¿Qué pasa si pierdo mi entrada digital?',
-      answer: 'Puedes recuperar tu entrada accediendo a "Mis Órdenes" en tu cuenta. También puedes solicitar el reenvío por email desde la plataforma.',
+      answer: 'Puedes recuperar tu entrada accediendo a "Mis Órdenes" en tu cuenta.',
       open: false
     }
   ];

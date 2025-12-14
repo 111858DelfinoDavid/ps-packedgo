@@ -443,7 +443,7 @@
   text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
 }
 
-/* Responsive Design */
+/* Responsive Design - MEJORADO */
 @media (max-width: 1024px) {
   .carousel-btn.prev {
     left: -60px;
@@ -519,6 +519,18 @@
     padding: 10px;
   }
 
+  .info-item i {
+    font-size: 1.1rem;
+  }
+
+  .info-item strong {
+    font-size: 0.9rem;
+  }
+
+  .info-item span {
+    font-size: 0.9rem;
+  }
+
   .btn-primary-large {
     padding: 12px 30px;
     font-size: 0.95rem;
@@ -536,12 +548,16 @@
     text-align: center;
   }
 
-  .event-image-container {
-    height: 200px;
+  .btn-back,
+  .btn-register {
+    width: 100%;
+    justify-content: center;
+    padding: 10px 18px;
+    font-size: 0.85rem;
   }
 
-  .event-title {
-    font-size: 1.3rem;
+  .carousel-wrapper {
+    gap: 10px;
   }
 
   .carousel-btn {
@@ -549,12 +565,74 @@
     height: 40px;
   }
 
+  .carousel-btn.prev,
+  .carousel-btn.next {
+    position: static;
+    margin: 0 5px;
+  }
+
   .arrow {
     font-size: 1.5rem;
+  }
+
+  .event-image-container {
+    height: 200px;
+  }
+
+  .event-content {
+    padding: 15px;
+  }
+
+  .event-title {
+    font-size: 1.2rem;
+  }
+
+  .info-item {
+    padding: 8px;
+  }
+
+  .info-item i {
+    font-size: 1rem;
+  }
+
+  .info-item strong,
+  .info-item span {
+    font-size: 0.85rem;
   }
 
   .btn-primary-large {
     padding: 10px 25px;
     font-size: 0.9rem;
+    width: 100%;
   }
 }
+
+@media (max-width: 375px) {
+  .page-title {
+    font-size: 1.2rem;
+  }
+
+  .btn-back,
+  .btn-register {
+    font-size: 0.8rem;
+    padding: 8px 16px;
+  }
+
+  .event-title {
+    font-size: 1.1rem;
+  }
+
+  .event-content {
+    padding: 12px;
+  }
+
+  .carousel-btn {
+    width: 36px;
+    height: 36px;
+  }
+
+  .arrow {
+    font-size: 1.3rem;
+  }
+}
+

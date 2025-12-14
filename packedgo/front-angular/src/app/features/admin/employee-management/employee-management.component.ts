@@ -74,7 +74,6 @@ export class EmployeeManagementComponent implements OnInit {
             location: e.locationName || 'Sin ubicación',
             status: e.active ? 'ACTIVE' : 'INACTIVE'
           }));
-        console.log('Eventos cargados:', this.myEvents);
       },
       error: (error: any) => {
         console.error('Error al cargar eventos:', error);
@@ -91,7 +90,6 @@ export class EmployeeManagementComponent implements OnInit {
       next: (employees) => {
         this.employees = employees;
         this.isLoading = false;
-        console.log('Empleados cargados:', employees);
       },
       error: (error) => {
         console.error('Error al cargar empleados:', error);
@@ -178,8 +176,6 @@ export class EmployeeManagementComponent implements OnInit {
       assignedEventIds: formValue.assignedEventIds
     };
 
-    console.log('Creando empleado:', request);
-
     this.employeeService.createEmployee(request).subscribe({
       next: () => {
         this.successMessage = '¡Empleado creado exitosamente!';
@@ -221,8 +217,6 @@ export class EmployeeManagementComponent implements OnInit {
       document: Number(formValue.document),
       assignedEventIds: formValue.assignedEventIds
     };
-
-    console.log('Actualizando empleado:', this.selectedEmployee.id, request);
 
     this.employeeService.updateEmployee(this.selectedEmployee.id, request).subscribe({
       next: () => {

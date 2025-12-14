@@ -233,6 +233,31 @@ h1 {
   text-decoration: underline;
 }
 
+/* Responsive - MEJORADO */
+@media (max-width: 768px) {
+  .verify-email-card {
+    padding: 2.5rem 2rem;
+  }
+
+  h1 {
+    font-size: 1.75rem;
+  }
+
+  p {
+    font-size: 0.95rem;
+  }
+
+  .email-icon {
+    width: 70px;
+    height: 70px;
+  }
+
+  .btn {
+    font-size: 0.95rem;
+    padding: 0.85rem 1.5rem;
+  }
+}
+
 @media (max-width: 640px) {
   .verify-email-card {
     padding: 2rem 1.5rem;
@@ -242,8 +267,44 @@ h1 {
     font-size: 1.5rem;
   }
 
+  p {
+    font-size: 0.9rem;
+  }
+
   .email-icon {
     width: 60px;
     height: 60px;
   }
+
+  .btn {
+    font-size: 0.9rem;
+    padding: 0.75rem 1.25rem;
+  }
 }
+
+@media (max-width: 480px) {
+  .verify-email-card {
+    padding: 1.75rem 1.25rem;
+    border-radius: 12px;
+  }
+
+  h1 {
+    font-size: 1.3rem;
+  }
+
+  p {
+    font-size: 0.85rem;
+  }
+
+  .email-icon {
+    width: 55px;
+    height: 55px;
+  }
+
+  .btn {
+    width: 100%;
+    font-size: 0.85rem;
+    padding: 0.7rem 1.1rem;
+  }
+}
+

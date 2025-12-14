@@ -1,474 +1,838 @@
-# 🔐 AUTH-SERVICE
+# 🔐 AUTH-SERVICE - Servicio de Autenticación y Autorización
 
 ## 📋 Descripción General
 
-El AUTH-SERVICE es el **microservicio de autenticación y autorización** de PackedGo que maneja la gestión completa de usuarios y sesiones. Implementa autenticación diferenciada para administradores (email) y clientes (DNI), junto con funcionalidades de seguridad como JWT, recuperación de contraseñas y verificación de email.
+El **AUTH-SERVICE** es el microservicio central de autenticación y autorización de PackedGo. Gestiona el ciclo de vida completo de usuarios, sesiones, autenticación JWT y verificación de email. Implementa autenticación diferenciada por tipo de usuario (Admin/Customer/Employee/Super Admin) con seguridad robusta y auditoría completa.
 
-### Características Principales:
-- 🔑 Autenticación JWT con tokens de acceso y refresh
-- 👥 Multi-tenant por tipo de usuario (Admin/Customer/Employee)
-- 📧 Verificación de email con SendGrid
-- 🔒 Recuperación segura de contraseñas
-- 🛡️ Protección contra ataques de fuerza bruta
-- 📊 Auditoría completa de intentos de login
+### 🎯 Características Principales
 
-## 🚀 Puerto de Servicio
-**8081** (HTTP)
-**5005** (Debug JDWP)
+- 🔑 **Autenticación JWT** con tokens de acceso y refresh tokens
+- 👥 **Multi-tenant** por tipo de usuario (CUSTOMER, ADMIN, EMPLOYEE, SUPER_ADMIN)
+- 📧 **Verificación de email** obligatoria con tokens de 24 horas
+- 🔄 **Redireccionamiento inteligente** basado en rol tras verificación
+- 🔒 **Recuperación de contraseñas** con tokens de reset
+- 🛡️ **Protección contra fuerza bruta** (5 intentos, 30 min de bloqueo)
+- 📊 **Auditoría completa** de intentos de login
+- ✅ **Integración con Mailtrap** (desarrollo) / SendGrid (producción)
+- 🔐 **Encriptación BCrypt** (strength 12)
+
+---
+
+## 🚀 Configuración de Servicio
+
+| Propiedad | Valor |
+|-----------|-------|
+| **Puerto HTTP** | 8081 |
+| **Puerto Debug (JDWP)** | 5005 |
+| **Context Path** | /api |
+| **Base URL** | http://localhost:8081/api |
+
+---
 
 ## 📦 Base de Datos
-- **Nombre:** auth_db
-- **Puerto:** 5433 (PostgreSQL 15)
-- **Usuario:** auth_user
-- **Imagen:** postgres:15-alpine
 
-### Tablas principales:
-  - `auth_users` - Usuarios del sistema
-  - `user_sessions` - Sesiones activas
-  - `email_verification_tokens` - Tokens de verificación de email
-  - `password_recovery_tokens` - Tokens de recuperación de contraseña
-  - `role_permissions` - Permisos por rol
-  - `login_attempts` - Auditoría de intentos de login
+### Configuración PostgreSQL
 
-## Funcionalidades Principales
+| Propiedad | Valor |
+|-----------|-------|
+| **Nombre** | auth_db |
+| **Puerto** | 5433 → 5432 (Docker) |
+| **Usuario** | auth_user |
+| **Contraseña** | auth_password |
+| **Imagen Docker** | postgres:15-alpine |
+| **Timezone** | America/Argentina/Buenos_Aires |
 
-### 1. Autenticación Diferenciada
-- **Administradores:** Login con email + contraseña
-- **Clientes:** Login con DNI + contraseña
-- Validación automática de roles y permisos
+### 📊 Tablas Principales
 
-### 2. Gestión de Usuarios
-- Registro de clientes con validación completa
-- Registro de administradores con código de autorización
-- Verificación de disponibilidad de username, email y documento
-- Verificación de email obligatoria
+#### `auth_users`
+```sql
+CREATE TABLE auth_users (
+    id BIGSERIAL PRIMARY KEY,
+    username VARCHAR(50) UNIQUE NOT NULL,
+    email VARCHAR(100) UNIQUE,
+    document VARCHAR(20) UNIQUE,
+    password VARCHAR(100) NOT NULL,
+    role VARCHAR(20) NOT NULL, -- CUSTOMER, ADMIN, EMPLOYEE, SUPER_ADMIN
+    is_active BOOLEAN DEFAULT TRUE,
+    is_verified BOOLEAN DEFAULT FALSE,
+    is_locked BOOLEAN DEFAULT FALSE,
+    failed_login_attempts INT DEFAULT 0,
+    lock_time TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+```
 
-### 3. Seguridad Avanzada
-- JWT tokens con tiempo de expiración configurable
-- Refresh tokens para renovación automática
-- Sistema de bloqueo de cuenta por intentos fallidos (5 intentos, 30 min bloqueo)
-- Auditoría completa de intentos de login
-- Validación de tokens para otros microservicios
-- **✅ Verificación de email obligatoria antes del login**
+#### `user_sessions`
+```sql
+CREATE TABLE user_sessions (
+    id BIGSERIAL PRIMARY KEY,
+    user_id BIGINT REFERENCES auth_users(id),
+    token VARCHAR(500) NOT NULL,
+    refresh_token VARCHAR(500),
+    ip_address VARCHAR(50),
+    user_agent VARCHAR(255),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    expires_at TIMESTAMP NOT NULL,
+    is_active BOOLEAN DEFAULT TRUE
+);
+```
 
-### 4. Recuperación de Contraseñas
-- Sistema seguro de reset con validación de email + DNI
-- Tokens únicos con expiración de 1 hora
-- Invalidación automática de sesiones tras cambio de contraseña
+#### `email_verification_tokens`
+```sql
+CREATE TABLE email_verification_tokens (
+    id BIGSERIAL PRIMARY KEY,
+    user_id BIGINT REFERENCES auth_users(id),
+    token VARCHAR(500) UNIQUE NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    expires_at TIMESTAMP NOT NULL,
+    is_used BOOLEAN DEFAULT FALSE
+);
+```
 
-## Endpoints Principales
+#### `password_recovery_tokens`
+```sql
+CREATE TABLE password_recovery_tokens (
+    id BIGSERIAL PRIMARY KEY,
+    user_id BIGINT REFERENCES auth_users(id),
+    token VARCHAR(500) UNIQUE NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    expires_at TIMESTAMP NOT NULL,
+    is_used BOOLEAN DEFAULT FALSE
+);
+```
 
-### AuthController (`/auth`)
+#### `login_attempts`
+```sql
+CREATE TABLE login_attempts (
+    id BIGSERIAL PRIMARY KEY,
+    user_id BIGINT REFERENCES auth_users(id),
+    ip_address VARCHAR(50),
+    user_agent VARCHAR(255),
+    success BOOLEAN NOT NULL,
+    attempted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    failure_reason VARCHAR(255)
+);
+```
 
-#### Autenticación
-- `POST /admin/login` - Login de administradores
-- `POST /customer/login` - Login de clientes
-- `POST /employee/login` - Login de empleados
-- `POST /logout` - Cerrar sesión
-- `POST /refresh` - Renovar token
+---
 
-#### Registro
-- `POST /admin/register` - Registro de administradores
-- `POST /customer/register` - Registro de clientes completo
+## 🛠 Tecnologías y Dependencias
 
-#### Verificación y Recuperación
-- `GET /verify-email?token=` - Verificar email
-- `POST /resend-verification` - Reenviar email de verificación
-- `POST /forgot-password` - Solicitar reset de contraseña
-- `POST /reset-password` - Cambiar contraseña con token
-- `POST /change-password/{userId}` - Cambiar contraseña (usuario logueado)
+| Tecnología | Versión | Propósito |
+|------------|---------|-----------|
+| **Java** | 17 | Lenguaje base |
+| **Spring Boot** | 3.5.6 | Framework principal |
+| **Spring Security** | 3.5.6 | Autenticación y autorización |
+| **Spring Data JPA** | 3.5.6 | Persistencia de datos |
+| **Spring Mail** | 3.5.6 | Envío de emails |
+| **Spring WebFlux** | 3.5.6 | Cliente HTTP reactivo |
+| **JWT (jjwt)** | 0.12.5 | Generación y validación de tokens |
+| **BCrypt** | (Spring Security) | Encriptación de contraseñas |
+| **ModelMapper** | 3.2.0 | Mapeo DTOs ↔ Entidades |
+| **PostgreSQL Driver** | 42.x | Driver JDBC |
+| **SendGrid** | 4.10.2 | Envío de emails (producción) |
+| **Lombok** | Latest | Reducción de boilerplate |
+| **Validation API** | Jakarta | Validación de datos |
 
-#### Gestión de Perfil
-- `GET /user/{userId}` - Obtener perfil de usuario
-- `PUT /user/{userId}` - Actualizar perfil de usuario
+---
 
-#### Validación de Tokens
-- `POST /validate` - Validar token para otros microservicios
+## 📡 API Endpoints
 
-### UserController (`/users`)
+### 🔓 Autenticación Pública
 
-#### Validación de Disponibilidad
-- `GET /exists/username/{username}` - Verificar disponibilidad de username
-- `GET /exists/email/{email}` - Verificar disponibilidad de email
-- `GET /exists/document/{document}` - Verificar disponibilidad de documento
+#### **POST** `/api/auth/customer/login`
+Autenticación de clientes usando DNI.
 
-## Entities Principales
+```http
+POST /api/auth/customer/login
+Content-Type: application/json
 
-### AuthUser
-```java
-@Entity
-@Table(name = "auth_users")
-public class AuthUser {
-    private Long id;
-    private Long userProfileId;     // Referencia al users-service
-    private String username;        // Único, requerido
-    private String email;           // Único, opcional para clientes
-    private Long document;          // Único, requerido para clientes
-    private String passwordHash;    // Hash bcrypt
-    private String role;           // ADMIN, SUPER_ADMIN, CUSTOMER
-    private String loginType;      // EMAIL, DOCUMENT
-    private Boolean isActive;
-    private Boolean isEmailVerified;
-    private Boolean isDocumentVerified;
-    private LocalDateTime lastLogin;
-    private Integer failedLoginAttempts;
-    private LocalDateTime accountLockedUntil;
+{
+  "document": "12345678",
+  "password": "miPassword123"
 }
 ```
 
-## 🚀 Tecnologías
-
-- **Java 17** - Lenguaje de programación
-- **Spring Boot 3.5.6** - Framework principal
-- **Spring Data JPA** - Persistencia de datos
-- **Spring Security** - Seguridad y autenticación
-- **Spring Validation** - Validación de datos
-- **Spring Mail** - Envío de emails
-- **JWT (0.12.5)** - Autenticación basada en tokens
-- **SendGrid 4.10.2** - Servicio de email transaccional
-- **BCrypt** - Hash de contraseñas
-- **ModelMapper 3.2.0** - Mapeo de objetos
-- **PostgreSQL 15** - Base de datos
-- **Lombok** - Reducción de boilerplate
-- **Docker** - Contenedorización
-
-## 🐳 Ejecución con Docker
-
-### Desde el directorio raíz del backend:
-```bash
-docker-compose up -d auth-service
-```
-
-### Logs del servicio:
-```bash
-docker-compose logs -f auth-service
-```
-
-### Variables de entorno requeridas (.env):
-```properties
-# Server
-SERVER_PORT=8081
-
-# Database
-DB_URL=jdbc:postgresql://auth-db:5432/auth_db
-DB_USERNAME=auth_user
-DB_PASSWORD=auth_password
-
-# JWT
-JWT_SECRET=your_jwt_secret_key_here
-JWT_EXPIRATION=86400000  # 24 horas en milisegundos
-JWT_REFRESH_EXPIRATION=604800000  # 7 días
-
-# SendGrid
-SENDGRID_API_KEY=your_sendgrid_api_key
-SENDGRID_FROM_EMAIL=noreply@packedgo.com
-
-# Users Service Integration
-USERS_SERVICE_URL=http://users-service:8082
-
-# Security
-ADMIN_REGISTRATION_CODE=ADMIN2025SECRET  # Código para registro de admins
-```
-
-## 🔧 Desarrollo Local
-
-### Requisitos:
-- Java 17+
-- Maven 3.8+
-- PostgreSQL 15+ (o usar Docker)
-
-### Ejecutar localmente:
-```bash
-./mvnw spring-boot:run
-```
-
-### Compilar:
-```bash
-./mvnw clean package
-```
-
-## 🔗 Integración con Otros Servicios
-
-El Auth Service se comunica con:
-- **USERS-SERVICE** (Puerto 8082) - Creación de perfiles de usuario tras registro
-
-Otros servicios validan tokens con:
-- **POST /auth/validate** - Endpoint de validación de tokens
-
-## 🔐 Seguridad Implementada
-
-### Hash de Contraseñas
-- **Algoritmo:** BCrypt con salt automático
-- **Factor de trabajo:** 10 rondas
-
-### Tokens JWT
-- **Algoritmo:** HS256 (HMAC con SHA-256)
-- **Claims:** userId, username, email, role, loginType
-- **Expiración:** Configurable (default 24h)
-
-### Protección contra Fuerza Bruta
-- **Intentos permitidos:** 5
-- **Tiempo de bloqueo:** 30 minutos
-- **Contador:** Por usuario y tipo de login
-
-### Tokens de Verificación
-- **Email Verification:** UUID único, expira en 24 horas
-- **Password Recovery:** UUID único, expira en 1 hora
-- **Invalidación:** Automática tras uso o expiración
-
-## 📊 Flujos de Autenticación
-
-### Registro de Cliente
-```mermaid
-sequenceDiagram
-    Cliente->>Auth: POST /auth/customer/register
-    Auth->>Auth: Validar datos
-    Auth->>Auth: Hash de contraseña
-    Auth->>DB: Guardar en auth_users (isEmailVerified=false)
-    Auth->>Users: POST /api/user-profiles/from-auth
-    Users->>DB: Crear perfil
-    Auth->>DB: Generar token de verificación
-    Auth->>Gmail: Enviar email de verificación
-    Auth->>Cliente: 201 Created + mensaje "revisa tu email"
-    
-    Note over Cliente,Auth: Usuario NO puede hacer login hasta verificar email
-    
-    Cliente->>Email: Clic en enlace de verificación
-    Cliente->>Auth: GET /auth/verify-email?token=xxx
-    Auth->>DB: Validar y marcar token como usado
-    Auth->>DB: Actualizar isEmailVerified=true
-    Auth->>Cliente: 200 Email verificado
-    
-    Cliente->>Auth: POST /auth/customer/login
-    Auth->>Auth: Verificar isEmailVerified=true
-    Auth->>Cliente: 200 Login exitoso + JWT
-```
-
-### Login de Administrador
-```mermaid
-sequenceDiagram
-    Admin->>Auth: POST /auth/admin/login {email, password}
-    Auth->>DB: Buscar por email
-    Auth->>Auth: Verificar isEmailVerified=true
-    Auth->>Auth: Verificar contraseña (BCrypt)
-    Auth->>Auth: Generar JWT
-    Auth->>DB: Crear sesión
-    Auth->>DB: Actualizar lastLogin
-    Auth->>Admin: {token, refreshToken, userInfo}
-    
-    Note over Admin,Auth: Si email no verificado: Error 401
-```
-
-## ⚠️ Manejo de Errores
-
-| Código | Escenario |
-|--------|----------|
-| 400 | Datos de entrada inválidos |
-| 401 | Credenciales incorrectas o email no verificado |
-| 403 | Cuenta no verificada o bloqueada |
-| 409 | Usuario ya existe (username/email/documento) |
-| 410 | Token expirado |
-| 500 | Error interno del servidor |
-
-## 📧 Sistema de Verificación de Email
-
-### Flujo Actual (✅ IMPLEMENTADO)
-
-1. **Registro:**
-   - Usuario se registra (customer o admin)
-   - Se crea con `isEmailVerified = false`
-   - Se genera token de verificación (expira en 24 horas)
-   - Se envía email con enlace de verificación a Gmail
-
-2. **Bloqueo de Login:**
-   - Si el usuario intenta hacer login sin verificar email
-   - **Error 401:** "Por favor verifica tu email antes de iniciar sesión. Revisa tu bandeja de entrada para encontrar el enlace de verificación."
-   - Login bloqueado hasta que verifique
-
-3. **Verificación:**
-   - Usuario hace clic en enlace del email
-   - GET `/auth/verify-email?token=xxx`
-   - Sistema valida token y marca `isEmailVerified = true`
-   - Usuario puede hacer login normalmente
-
-### Configuración de Email
-
-**Servicio SMTP:** Gmail
-```properties
-MAIL_HOST=smtp.gmail.com
-MAIL_PORT=587
-MAIL_USERNAME=packedgo.events@gmail.com
-MAIL_PASSWORD=oopk bpgu tllp uprg
-EMAIL_FROM=packedgo.events@gmail.com
-FRONTEND_BASE_URL=http://localhost:3000
-```
-
-### Template de Email
-
-El email de verificación incluye:
-- Logo de PackedGo
-- Mensaje de bienvenida
-- Botón con enlace de verificación
-- Advertencia de expiración (24 horas)
-- Diseño responsive HTML
-
-**Ubicación:** `src/main/resources/templates/email/verification-email.html`
-
-### Endpoints de Verificación
-
-- `GET /auth/verify-email?token={token}` - Verificar email con token
-- `POST /auth/resend-verification` - Reenviar email de verificación
-
-### Particularidades
-
-**Para Customers:**
-- Email enviado a la dirección proporcionada en el registro
-
-**Para Admins:**
-- Email enviado siempre a `packedgo.events@gmail.com`
-- Hardcoded en línea 329-331 de `AuthServiceImpl.java`
-
-## 📝 Notas de Desarrollo
-
-- Las sesiones se invalidan automáticamente tras logout
-- Los refresh tokens permiten renovar el access token sin re-autenticarse
-- Los empleados se autentican con DNI (similar a clientes)
-- Los administradores requieren un código de autorización para registrarse
-- Todos los endpoints de registro y login son públicos
-- **✅ La verificación de email es obligatoria antes de hacer login (implementado 14/12/2025)**
-- Los tokens de verificación expiran en 24 horas
-- Los mensajes de error están en español
-    private Integer failedLoginAttempts;
-    private LocalDateTime lockedUntil;
-    // ... campos de auditoría
+**Response 200 OK:**
+```json
+{
+  "success": true,
+  "message": "Customer login successful",
+  "data": {
+    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+    "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+    "userId": 123,
+    "username": "juan_perez",
+    "email": "juan@example.com",
+    "role": "CUSTOMER",
+    "expiresIn": 86400
+  }
 }
 ```
 
-### UserSession
-Gestiona sesiones activas con tokens JWT y refresh tokens, incluyendo información del dispositivo e IP.
+---
 
-### EmailVerificationToken / PasswordRecoveryToken
-Tokens temporales para verificación de email y recuperación de contraseñas con expiración automática.
+#### **POST** `/api/auth/admin/login`
+Autenticación de administradores usando email.
 
-## DTOs Principales
+```http
+POST /api/auth/admin/login
+Content-Type: application/json
 
-### Requests
-- `CustomerRegistrationRequest` - Registro completo de cliente con datos personales
-- `AdminRegistrationRequest` - Registro de admin con código de autorización
-- `CustomerLoginRequest` - Login con documento + contraseña
-- `AdminLoginRequest` - Login con email + contraseña
-- `PasswordResetRequest` - Solicitud de reset con email + documento
-- `ChangePasswordRequest` - Cambio de contraseña con token
+{
+  "email": "admin@packedgo.com",
+  "password": "adminPassword123"
+}
+```
 
-### Responses
-- `LoginResponse` - Token, refresh token, info de usuario y permisos
-- `TokenValidationResponse` - Validación de token con permisos
-- `ApiResponse<T>` - Wrapper estándar para todas las respuestas
+**Response 200 OK:**
+```json
+{
+  "success": true,
+  "message": "Admin login successful",
+  "data": {
+    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+    "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+    "userId": 456,
+    "username": "admin_user",
+    "email": "admin@packedgo.com",
+    "role": "ADMIN",
+    "expiresIn": 86400
+  }
+}
+```
 
-## Servicios
+---
 
-### AuthService / AuthServiceImpl
-- **loginAdmin()** - Autenticación de administradores con validación de email verificado
-- **loginCustomer()** - Autenticación de clientes con validación de email verificado
-- **registerCustomer()** - Registro completo + creación de perfil + envío de email de verificación
-- **registerAdmin()** - Registro de admin con código de autorización + envío de email de verificación
-- **validateToken()** - Validación de JWT con permisos
-- **verifyEmail()** - Verificación de email con token (marca isEmailVerified=true)
-- **requestPasswordReset()** - Generación de token de recuperación
-- **resetPassword()** - Cambio de contraseña con token
+#### **POST** `/api/auth/employee/login`
+Autenticación de empleados usando email.
 
-### EmailService / EmailServiceImpl
-- Envío de emails de verificación con templates HTML responsivos
-- Envío de emails de recuperación de contraseña
-- Configuración SMTP con Gmail (smtp.gmail.com:587)
-- Uso de credenciales de aplicación de Gmail
-- Generación automática de tokens UUID
-- Links de verificación al frontend
+```http
+POST /api/auth/employee/login
+Content-Type: application/json
 
-### UsersServiceClient
-- Cliente HTTP para comunicación con users-service
-- Creación automática de perfil tras registro de cliente
+{
+  "email": "employee@packedgo.com",
+  "password": "employeePassword123"
+}
+```
 
-## Configuración de Seguridad
+**Response 200 OK:**
+```json
+{
+  "success": true,
+  "message": "Employee login successful",
+  "data": {
+    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+    "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+    "userId": 789,
+    "username": "employee_user",
+    "email": "employee@packedgo.com",
+    "role": "EMPLOYEE",
+    "expiresIn": 86400
+  }
+}
+```
 
-### JWT Configuration
-- Secret key configurable
-- Tiempo de expiración: 1 hora (configurable)
-- Refresh token: 30 días (configurable)
-- Algoritmo HS256
+---
 
-### Password Security
-- Bcrypt encoding con salt automático
-- Validación de fortaleza mínima (6 caracteres)
+### 📝 Registro de Usuarios
 
-### Account Security
-- Máximo 5 intentos de login fallidos
-- Bloqueo de cuenta por 30 minutos
-- Auditoría completa de intentos
+#### **POST** `/api/auth/customer/register`
+Registro de nuevos clientes.
 
-## Variables de Entorno
+```http
+POST /api/auth/customer/register
+Content-Type: application/json
 
-```bash
+{
+  "username": "nuevo_usuario",
+  "email": "nuevo@example.com",
+  "document": "98765432",
+  "password": "Password123!",
+  "confirmPassword": "Password123!"
+}
+```
+
+**Response 201 CREATED:**
+```json
+{
+  "success": true,
+  "message": "Customer registered successfully. Please verify your email.",
+  "data": null
+}
+```
+
+---
+
+#### **POST** `/api/auth/admin/register`
+Registro de nuevos administradores (requiere código de autorización).
+
+```http
+POST /api/auth/admin/register
+Content-Type: application/json
+
+{
+  "username": "nuevo_admin",
+  "email": "nuevo_admin@packedgo.com",
+  "password": "AdminPassword123!",
+  "confirmPassword": "AdminPassword123!",
+  "authorizationCode": "ADMIN-2025-SECRET"
+}
+```
+
+**Response 201 CREATED:**
+```json
+{
+  "success": true,
+  "message": "Admin registration request received. Awaiting approval.",
+  "data": null
+}
+```
+
+---
+
+### ✅ Verificación de Email
+
+#### **GET** `/api/auth/verify-email?token={token}`
+Verifica el email del usuario y retorna su rol para redireccionamiento.
+
+```http
+GET /api/auth/verify-email?token=abc123xyz456
+```
+
+**Response 200 OK:**
+```json
+{
+  "success": true,
+  "message": "Email verified successfully",
+  "data": {
+    "success": true,
+    "message": "Email verified successfully",
+    "role": "CUSTOMER"
+  }
+}
+```
+
+**Lógica de Redireccionamiento:**
+- `CUSTOMER` → Redirige a `/customer/login`
+- `ADMIN` o `SUPER_ADMIN` → Redirige a `/admin/login`
+- `EMPLOYEE` → Redirige a `/employee/login`
+
+---
+
+#### **POST** `/api/auth/resend-verification`
+Reenvía el email de verificación.
+
+```http
+POST /api/auth/resend-verification
+Content-Type: application/json
+
+{
+  "email": "usuario@example.com"
+}
+```
+
+**Response 200 OK:**
+```json
+{
+  "success": true,
+  "message": "Verification email resent successfully",
+  "data": null
+}
+```
+
+---
+
+### 🔄 Gestión de Tokens
+
+#### **POST** `/api/auth/refresh`
+Renueva el access token usando el refresh token.
+
+```http
+POST /api/auth/refresh
+Content-Type: text/plain
+
+eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.refreshToken...
+```
+
+**Response 200 OK:**
+```json
+{
+  "success": true,
+  "message": "Token refreshed successfully",
+  "data": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.newToken..."
+}
+```
+
+---
+
+#### **POST** `/api/auth/validate`
+Valida un token JWT.
+
+```http
+POST /api/auth/validate
+Content-Type: application/json
+
+{
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+}
+```
+
+**Response 200 OK:**
+```json
+{
+  "success": true,
+  "message": "Token validation completed",
+  "data": {
+    "valid": true,
+    "userId": 123,
+    "username": "usuario",
+    "role": "CUSTOMER",
+    "expiresAt": "2025-12-15T10:30:00"
+  }
+}
+```
+
+---
+
+#### **POST** `/api/auth/logout`
+Cierra la sesión del usuario.
+
+```http
+POST /api/auth/logout
+Content-Type: application/json
+
+{
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+}
+```
+
+**Response 200 OK:**
+```json
+{
+  "success": true,
+  "message": "Logout successful",
+  "data": null
+}
+```
+
+---
+
+### 🔑 Recuperación de Contraseñas
+
+#### **POST** `/api/auth/forgot-password`
+Solicita un token de recuperación de contraseña.
+
+```http
+POST /api/auth/forgot-password
+Content-Type: application/json
+
+{
+  "email": "usuario@example.com"
+}
+```
+
+**Response 200 OK:**
+```json
+{
+  "success": true,
+  "message": "Password reset email sent if email exists",
+  "data": null
+}
+```
+
+---
+
+#### **POST** `/api/auth/reset-password`
+Restablece la contraseña usando el token de recuperación.
+
+```http
+POST /api/auth/reset-password
+Content-Type: application/json
+
+{
+  "token": "reset-token-xyz",
+  "newPassword": "NewPassword123!",
+  "confirmPassword": "NewPassword123!"
+}
+```
+
+**Response 200 OK:**
+```json
+{
+  "success": true,
+  "message": "Password reset successfully",
+  "data": null
+}
+```
+
+---
+
+### 👤 Gestión de Perfiles
+
+#### **GET** `/api/auth/user/{userId}`
+Obtiene el perfil del usuario autenticado.
+
+```http
+GET /api/auth/user/123
+Authorization: Bearer {token}
+```
+
+**Response 200 OK:**
+```json
+{
+  "success": true,
+  "message": "User profile retrieved successfully",
+  "data": {
+    "userId": 123,
+    "username": "juan_perez",
+    "email": "juan@example.com",
+    "document": "12345678",
+    "role": "CUSTOMER",
+    "isVerified": true,
+    "isActive": true,
+    "createdAt": "2025-01-01T10:00:00"
+  }
+}
+```
+
+---
+
+#### **PUT** `/api/auth/user/{userId}`
+Actualiza el perfil del usuario.
+
+```http
+PUT /api/auth/user/123
+Authorization: Bearer {token}
+Content-Type: application/json
+
+{
+  "username": "nuevo_username",
+  "email": "nuevo_email@example.com"
+}
+```
+
+**Response 200 OK:**
+```json
+{
+  "success": true,
+  "message": "User profile updated successfully",
+  "data": null
+}
+```
+
+---
+
+#### **POST** `/api/auth/change-password/{userId}`
+Cambia la contraseña del usuario autenticado.
+
+```http
+POST /api/auth/change-password/123
+Authorization: Bearer {token}
+Content-Type: application/json
+
+{
+  "currentPassword": "OldPassword123",
+  "newPassword": "NewPassword456!",
+  "confirmPassword": "NewPassword456!"
+}
+```
+
+**Response 200 OK:**
+```json
+{
+  "success": true,
+  "message": "Password changed successfully",
+  "data": null
+}
+```
+
+---
+
+## ⚙️ Variables de Entorno
+
+### 📄 Archivo `.env`
+
+```properties
 # Server Configuration
 SERVER_PORT=8081
 
 # Database Configuration
 DATABASE_URL=jdbc:postgresql://auth-db:5432/auth_db
 DATABASE_USER=auth_user
-DATABASE_PASSWORD=secure_password
+DATABASE_PASSWORD=auth_password
 
-# JWT Configuration  
-JWT_SECRET=your_jwt_secret_minimum_32_characters_here
-JWT_EXPIRATION=3600000
-JWT_REFRESH_EXPIRATION=2592000000
+# JWT Configuration
+JWT_SECRET=mySecretKey123456789PackedGoAuth2025VerySecureKey
+JWT_EXPIRATION=86400000
+JWT_REFRESH_EXPIRATION=604800000
 
-# Email Configuration
-EMAIL_USERNAME=your_gmail@gmail.com
-EMAIL_PASSWORD=your_gmail_app_password_here
+# Email Configuration (Mailtrap - Development)
+MAIL_HOST=sandbox.smtp.mailtrap.io
+MAIL_PORT=2525
+MAIL_USERNAME=your_mailtrap_username
+MAIL_PASSWORD=your_mailtrap_password
 EMAIL_FROM=noreply@packedgo.com
 
+# Frontend Configuration
+FRONTEND_BASE_URL=http://localhost:4200
+
 # External Services
-USERS_SERVICE_URL=http://users-service:8082
-FRONTEND_BASE_URL=http://localhost:8080
+USERS_SERVICE_URL=http://users-service:8082/api
+
+# Logging
+LOGGING_LEVEL_AUTH=DEBUG
+LOGGING_LEVEL_SECURITY=INFO
 ```
 
-## Dependencias con Otros Servicios
+### 📋 Descripción de Variables
 
-### Users-Service
-- **Outbound:** Creación automática de perfil tras registro de cliente
-- **Endpoint:** `POST /api/user-profiles/from-auth`
+| Variable | Descripción | Valor por Defecto |
+|----------|-------------|-------------------|
+| `SERVER_PORT` | Puerto HTTP del servicio | 8081 |
+| `DATABASE_URL` | URL de conexión PostgreSQL | jdbc:postgresql://auth-db:5432/auth_db |
+| `DATABASE_USER` | Usuario de base de datos | auth_user |
+| `DATABASE_PASSWORD` | Contraseña de base de datos | auth_password |
+| `JWT_SECRET` | Clave secreta para firmar tokens JWT | (debe ser segura en producción) |
+| `JWT_EXPIRATION` | Tiempo de expiración del access token (ms) | 86400000 (24h) |
+| `JWT_REFRESH_EXPIRATION` | Tiempo de expiración del refresh token (ms) | 604800000 (7 días) |
+| `MAIL_HOST` | Host SMTP para envío de emails | sandbox.smtp.mailtrap.io |
+| `MAIL_PORT` | Puerto SMTP | 2525 |
+| `MAIL_USERNAME` | Usuario SMTP | - |
+| `MAIL_PASSWORD` | Contraseña SMTP | - |
+| `EMAIL_FROM` | Email remitente | noreply@packedgo.com |
+| `FRONTEND_BASE_URL` | URL base del frontend | http://localhost:4200 |
+| `USERS_SERVICE_URL` | URL de users-service | http://users-service:8082/api |
+| `LOGGING_LEVEL_AUTH` | Nivel de logging del servicio | DEBUG |
+| `LOGGING_LEVEL_SECURITY` | Nivel de logging de Spring Security | INFO |
 
-### Todos los Microservicios
-- **Inbound:** Validación de tokens JWT
-- **Endpoint:** `POST /auth/validate`
+---
 
-## Seguridad y Validaciones
+## 🔐 Seguridad
 
-### Validaciones de Registro
-- Username único, 3-50 caracteres
-- Email válido y único para admins
-- Documento único para clientes
-- Contraseña mínimo 6 caracteres
-- Campos personales obligatorios (nombre, apellido, fecha nacimiento, teléfono, género)
+### 🛡️ Características de Seguridad
 
-### Funcionalidades de Seguridad
-- Rate limiting por IP en intentos de login
-- Tokens únicos no reutilizables para verificación/reset
-- Invalidación de sesiones en cascada
-- Logging completo de eventos de seguridad
-- Validación de autorización por código para admins
+1. **Encriptación de Contraseñas:**
+   - BCrypt con strength 12
+   - Salt automático por usuario
 
-## Patrones Implementados
-- Repository Pattern para acceso a datos
-- Service Layer para lógica de negocio
-- DTO Pattern para transferencia de datos
-- Builder Pattern para construcción de objetos
-- Global Exception Handler para manejo de errores
+2. **Protección contra Fuerza Bruta:**
+   - Máximo 5 intentos fallidos
+   - Bloqueo de cuenta por 30 minutos
+   - Registro de todos los intentos
 
-## Características Especiales
-- Autenticación diferenciada por tipo de usuario
-- Sistema de permisos granular por rol
-- Integración automática con users-service
-- Templates HTML para emails responsivos
-- Auditoría completa de eventos de autenticación
-- Sistema robusto de recuperación de cuentas
+3. **Tokens JWT:**
+   - Firmados con HS256
+   - Incluyen: userId, username, role, expiración
+   - Refresh tokens para renovación
+
+4. **Verificación de Email:**
+   - Tokens únicos de 24 horas
+   - Obligatorio para activar cuenta
+   - Invalidación tras uso
+
+5. **CORS:**
+   - Configurado para `http://localhost:4200` (desarrollo)
+   - Debe configurarse específicamente en producción
+
+6. **Auditoría:**
+   - Todos los intentos de login registrados
+   - IP y User-Agent capturados
+   - Timestamp de cada operación
+
+---
+
+## 🔄 Integración con Otros Servicios
+
+### Users Service
+- **URL:** `http://users-service:8082/api`
+- **Función:** Creación automática de perfil tras registro exitoso
+- **Método:** `POST /api/user-profiles/from-auth`
+
+**Flujo de Integración:**
+```
+1. Usuario se registra en auth-service
+2. Auth-service valida datos y crea AuthUser
+3. Auth-service llama a users-service para crear UserProfile
+4. Users-service retorna confirmación
+5. Auth-service envía email de verificación
+```
+
+---
+
+## 🐳 Docker
+
+### Dockerfile
+
+```dockerfile
+FROM eclipse-temurin:17-jdk-alpine
+WORKDIR /app
+COPY target/auth-service-0.0.1-SNAPSHOT.jar app.jar
+EXPOSE 8081 5005
+ENTRYPOINT ["java", "-jar", "app.jar"]
+```
+
+### Docker Compose
+
+```yaml
+auth-service:
+  build:
+    context: ./auth-service
+    dockerfile: Dockerfile
+  ports:
+    - "8081:8081"
+    - "5005:5005"
+  env_file:
+    - ./auth-service/.env
+  environment:
+    - SPRING_PROFILES_ACTIVE=docker
+    - JAVA_TOOL_OPTIONS=-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005
+  depends_on:
+    auth-db:
+      condition: service_healthy
+    users-service:
+      condition: service_started
+  networks:
+    - packedgo-network
+
+auth-db:
+  image: postgres:15-alpine
+  environment:
+    POSTGRES_DB: auth_db
+    POSTGRES_USER: auth_user
+    POSTGRES_PASSWORD: auth_password
+  ports:
+    - "5433:5432"
+  volumes:
+    - auth_db_data:/var/lib/postgresql/data
+  healthcheck:
+    test: ["CMD-SHELL", "pg_isready -U auth_user -d auth_db"]
+    interval: 30s
+    timeout: 10s
+    retries: 3
+  networks:
+    - packedgo-network
+```
+
+---
+
+## 🚀 Ejecución Local
+
+### Requisitos
+- Java 17+
+- Maven 3.8+
+- PostgreSQL 15+
+
+### 1. Configurar Base de Datos
+
+```sql
+CREATE DATABASE auth_db;
+CREATE USER auth_user WITH PASSWORD 'auth_password';
+GRANT ALL PRIVILEGES ON DATABASE auth_db TO auth_user;
+```
+
+### 2. Compilar el Proyecto
+
+```bash
+cd auth-service
+./mvnw clean package -DskipTests
+```
+
+### 3. Ejecutar
+
+```bash
+# Usando Maven
+./mvnw spring-boot:run
+
+# Usando JAR
+java -jar target/auth-service-0.0.1-SNAPSHOT.jar
+```
+
+### 4. Verificar
+
+```bash
+curl http://localhost:8081/api/auth/health
+```
+
+---
+
+## 🐳 Ejecución con Docker
+
+```bash
+# Compilar
+cd auth-service
+./mvnw clean package -DskipTests
+
+# Levantar con Docker Compose (desde /back)
+cd ..
+docker-compose up -d auth-db
+docker-compose up -d --build auth-service
+
+# Ver logs
+docker-compose logs -f auth-service
+```
+
+---
+
+## 🧪 Testing
+
+### Ejecutar Tests
+
+```bash
+./mvnw test
+```
+
+### Tests Principales
+- ✅ Registro de usuarios (Customer/Admin/Employee)
+- ✅ Login con diferentes credenciales
+- ✅ Generación y validación de JWT
+- ✅ Verificación de email
+- ✅ Recuperación de contraseñas
+- ✅ Protección contra fuerza bruta
+- ✅ Integración con users-service
+
+---
+
+## 🔍 Troubleshooting
+
+### Error: "Invalid JWT token"
+**Causa:** Token expirado o inválido  
+**Solución:** Usar `/api/auth/refresh` para obtener nuevo token
+
+### Error: "Account is locked"
+**Causa:** Más de 5 intentos fallidos  
+**Solución:** Esperar 30 minutos o contactar administrador
+
+### Error: "Email not verified"
+**Causa:** Usuario no ha verificado su email  
+**Solución:** Usar `/api/auth/resend-verification`
+
+### Error: "Connection refused to users-service"
+**Causa:** Users-service no está disponible  
+**Solución:** Verificar que users-service esté corriendo
+
+### Error: "Email sending failed"
+**Causa:** Configuración SMTP incorrecta  
+**Solución:** Verificar credenciales de Mailtrap/SendGrid
+
+---
+
+## 📚 Documentación Adicional
+
+- [Spring Security Documentation](https://docs.spring.io/spring-security/reference/index.html)
+- [JWT.io](https://jwt.io/)
+- [Mailtrap Documentation](https://mailtrap.io/docs/)
+- [SendGrid API](https://docs.sendgrid.com/)
+
+---
+
+## 📞 Contacto
+
+Para reportar problemas o sugerencias relacionadas con AUTH-SERVICE, contacta al equipo de desarrollo de PackedGo.
+
+---
+
+**Última actualización:** Diciembre 2025  
+**Versión:** 1.0.0

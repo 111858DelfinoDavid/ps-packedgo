@@ -42,12 +42,6 @@ export class EmployeeLoginComponent {
 
     this.authService.employeeLogin(this.loginForm.value).subscribe({
       next: (response) => {
-        console.log('Login exitoso - Response completa:', response);
-        console.log('Token recibido:', response.token);
-        console.log('User recibido:', response.user);
-        console.log('Verificando localStorage después del tap():');
-        console.log('  - token:', localStorage.getItem('token'));
-        console.log('  - currentUser:', localStorage.getItem('currentUser'));
         this.router.navigate(['/employee/dashboard']);
       },
       error: (error) => {

@@ -650,30 +650,55 @@ textarea.form-control {
   border-width: 0.15em;
 }
 
-/* Responsive Design */
+/* Responsive Design - MEJORADO */
+@media (max-width: 1024px) {
+  .categories-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
 @media (max-width: 768px) {
   .navbar {
     flex-direction: column;
-    gap: 15px;
-    padding: 20px;
+    gap: 1rem;
+    padding: 1.25rem;
+  }
+
+  .navbar-brand span {
+    font-size: 1.3rem;
+  }
+
+  .navbar-actions {
+    width: 100%;
+    justify-content: center;
   }
 
   .management-content {
-    padding: 30px 15px;
+    padding: 1.5rem 1rem;
   }
 
   .header-left h1 {
-    font-size: 2rem;
+    font-size: 1.75rem;
+  }
+
+  .header-left p {
+    font-size: 0.9rem;
   }
 
   .tabs-container {
     flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .tab-button {
+    width: 100%;
+    justify-content: center;
   }
 
   .content-header {
     flex-direction: column;
     align-items: flex-start;
-    gap: 15px;
+    gap: 1rem;
   }
 
   .btn-create {
@@ -683,18 +708,26 @@ textarea.form-control {
 
   .categories-grid {
     grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .category-card {
+    border-radius: 10px;
   }
 
   .modal-content {
     max-width: 100%;
+    margin: 1rem;
+    border-radius: 12px;
   }
 
   .modal-form {
-    padding: 20px;
+    padding: 1.25rem;
   }
 
   .modal-actions {
     flex-direction: column;
+    gap: 0.75rem;
   }
 
   .modal-actions .btn {
@@ -704,20 +737,174 @@ textarea.form-control {
 }
 
 @media (max-width: 480px) {
-  .header-left h1 {
-    font-size: 1.5rem;
+  .navbar {
+    padding: 1rem;
   }
 
   .navbar-brand span {
     font-size: 1.2rem;
   }
 
+  .navbar-brand i {
+    font-size: 1.5rem;
+  }
+
+  .management-content {
+    padding: 1.25rem 0.85rem;
+  }
+
+  .header-left h1 {
+    font-size: 1.4rem;
+  }
+
+  .header-left p {
+    font-size: 0.85rem;
+  }
+
   .tab-button {
+    font-size: 0.9rem;
+    padding: 0.7rem 1.25rem;
+  }
+
+  .tab-button i {
     font-size: 1rem;
-    padding: 12px 20px;
+  }
+
+  .btn-create {
+    padding: 0.7rem 1.25rem;
+    font-size: 0.9rem;
+  }
+
+  .btn-create i {
+    font-size: 1rem;
+  }
+
+  .categories-grid {
+    gap: 0.85rem;
+  }
+
+  .category-card {
+    padding: 1rem;
+  }
+
+  .category-icon {
+    width: 50px;
+    height: 50px;
+    font-size: 1.5rem;
+  }
+
+  .category-info h3 {
+    font-size: 1.1rem;
+  }
+
+  .category-info p {
+    font-size: 0.85rem;
+  }
+
+  .category-actions {
+    gap: 0.75rem;
+  }
+
+  .btn-edit,
+  .btn-delete {
+    padding: 0.6rem 1rem;
+    font-size: 0.85rem;
+  }
+
+  .modal-content {
+    margin: 0.75rem;
+  }
+
+  .modal-header {
+    padding: 1rem 1.25rem;
   }
 
   .modal-header h2 {
-    font-size: 1.3rem;
+    font-size: 1.1rem;
+  }
+
+  .modal-form {
+    padding: 1rem;
+  }
+
+  .form-group label {
+    font-size: 0.9rem;
+    margin-bottom: 0.4rem;
+  }
+
+  .form-control {
+    padding: 0.7rem;
+    font-size: 0.9rem;
+  }
+
+  .modal-actions {
+    gap: 0.65rem;
+  }
+
+  .modal-actions .btn {
+    padding: 0.7rem 1.25rem;
+    font-size: 0.9rem;
+  }
+
+  .empty-state i {
+    font-size: 3rem;
+  }
+
+  .empty-state h3 {
+    font-size: 1.2rem;
+  }
+
+  .empty-state p {
+    font-size: 0.9rem;
   }
 }
+
+@media (max-width: 375px) {
+  .navbar-brand span {
+    font-size: 1.1rem;
+  }
+
+  .header-left h1 {
+    font-size: 1.3rem;
+  }
+
+  .tab-button {
+    font-size: 0.85rem;
+    padding: 0.65rem 1.1rem;
+  }
+
+  .btn-create {
+    font-size: 0.85rem;
+    padding: 0.65rem 1.1rem;
+  }
+
+  .category-icon {
+    width: 45px;
+    height: 45px;
+    font-size: 1.3rem;
+  }
+
+  .category-info h3 {
+    font-size: 1rem;
+  }
+
+  .btn-edit,
+  .btn-delete {
+    font-size: 0.8rem;
+    padding: 0.55rem 0.9rem;
+  }
+
+  .modal-header h2 {
+    font-size: 1rem;
+  }
+
+  .form-control {
+    font-size: 0.85rem;
+  }
+
+  .modal-actions .btn {
+    font-size: 0.85rem;
+    padding: 0.65rem 1.1rem;
+  }
+}
+

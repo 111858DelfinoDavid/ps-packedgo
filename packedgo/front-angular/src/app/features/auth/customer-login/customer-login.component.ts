@@ -35,7 +35,6 @@ export class CustomerLoginComponent implements OnInit {
   ngOnInit(): void {
     // Capturar el returnUrl de los query params
     this.returnUrl = this.route.snapshot.queryParams['returnUrl'] || '/customer/dashboard';
-    console.log('Return URL:', this.returnUrl);
   }
 
   togglePasswordVisibility(): void {
@@ -61,8 +60,6 @@ export class CustomerLoginComponent implements OnInit {
 
     this.authService.customerLogin(credentials).subscribe({
       next: (response) => {
-        console.log('Login exitoso:', response);
-        
         // Verificar si el email está verificado
         if (response.user.isEmailVerified === false) {
           this.errorMessage = 'Tu correo electrónico aún no ha sido verificado. Por favor, revisa tu bandeja de entrada.';
@@ -72,7 +69,6 @@ export class CustomerLoginComponent implements OnInit {
         }
         
         // Redirigir a la URL de retorno o al dashboard por defecto
-        console.log('Redirigiendo a:', this.returnUrl);
         
         // Parsear la URL de retorno para manejar correctamente los query params
         if (this.returnUrl.includes('?')) {

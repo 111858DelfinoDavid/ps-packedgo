@@ -63,7 +63,6 @@ export class CustomerRegisterComponent {
 
     this.authService.customerRegister(registerData).subscribe({
       next: (response) => {
-        console.log('Registro exitoso:', response);
         this.successMessage = 'Registro exitoso. Redirigiendo al login...';
         setTimeout(() => {
           this.router.navigate(['/customer/login']);

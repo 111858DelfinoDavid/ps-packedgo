@@ -56,7 +56,6 @@ export class TicketService {
   getUserTickets(userId: number): Observable<Ticket[]> {
     const headers = this.getHeaders();
     return this.http.get<Ticket[]>(`${this.apiUrl}/user/${userId}`, { headers }).pipe(
-      tap(tickets => console.log('✅ Tickets obtenidos:', tickets)),
       catchError(error => {
         console.error('❌ Error obteniendo tickets:', error);
         return throwError(() => error);
@@ -70,7 +69,6 @@ export class TicketService {
   getActiveTickets(userId: number): Observable<Ticket[]> {
     const headers = this.getHeaders();
     return this.http.get<Ticket[]>(`${this.apiUrl}/user/${userId}/active`, { headers }).pipe(
-      tap(tickets => console.log('✅ Tickets activos obtenidos:', tickets)),
       catchError(error => {
         console.error('❌ Error obteniendo tickets activos:', error);
         return throwError(() => error);
@@ -84,7 +82,6 @@ export class TicketService {
   getRedeemedTickets(userId: number): Observable<Ticket[]> {
     const headers = this.getHeaders();
     return this.http.get<Ticket[]>(`${this.apiUrl}/user/${userId}/redeemed`, { headers }).pipe(
-      tap(tickets => console.log('✅ Tickets canjeados obtenidos:', tickets)),
       catchError(error => {
         console.error('❌ Error obteniendo tickets canjeados:', error);
         return throwError(() => error);

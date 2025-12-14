@@ -1,18 +1,39 @@
 package com.packed_go.auth_service.controllers;
 
-import com.packed_go.auth_service.dto.request.*;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.packed_go.auth_service.dto.request.AdminLoginRequest;
+import com.packed_go.auth_service.dto.request.AdminRegistrationRequest;
+import com.packed_go.auth_service.dto.request.ChangePasswordLoggedUserRequest;
+import com.packed_go.auth_service.dto.request.ChangePasswordRequest;
+import com.packed_go.auth_service.dto.request.CustomerLoginRequest;
+import com.packed_go.auth_service.dto.request.CustomerRegistrationRequest;
+import com.packed_go.auth_service.dto.request.EmployeeLoginRequest;
+import com.packed_go.auth_service.dto.request.LogoutRequest;
+import com.packed_go.auth_service.dto.request.PasswordResetRequest;
+import com.packed_go.auth_service.dto.request.ResendVerificationRequest;
+import com.packed_go.auth_service.dto.request.TokenValidationRequest;
+import com.packed_go.auth_service.dto.request.UpdateAuthUserRequest;
 import com.packed_go.auth_service.dto.response.ApiResponse;
 import com.packed_go.auth_service.dto.response.AuthUserProfileResponse;
 import com.packed_go.auth_service.dto.response.LoginResponse;
 import com.packed_go.auth_service.dto.response.TokenValidationResponse;
 import com.packed_go.auth_service.services.AuthService;
+
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/auth")
@@ -115,17 +136,18 @@ public class AuthController {
     }
 
     @GetMapping("/verify-email")
-    public ResponseEntity<ApiResponse<String>> verifyEmail(
+    public ResponseEntity<ApiResponse<java.util.Map<String, Object>>> verifyEmail(
             @RequestParam("token") String token) {
         
         log.info("Email verification request for token: {}", token.substring(0, Math.min(token.length(), 8)) + "...");
         
-        boolean verified = authService.verifyEmail(token);
+        java.util.Map<String, Object> result = authService.verifyEmail(token);
+        boolean verified = (boolean) result.get("success");
         
         if (verified) {
-            return ResponseEntity.ok(ApiResponse.success("Email verified successfully"));
+            return ResponseEntity.ok(ApiResponse.success(result, (String) result.get("message")));
         } else {
-            return ResponseEntity.badRequest().body(ApiResponse.error("Invalid or expired verification token"));
+            return ResponseEntity.badRequest().body(ApiResponse.error((String) result.get("message")));
         }
     }
 

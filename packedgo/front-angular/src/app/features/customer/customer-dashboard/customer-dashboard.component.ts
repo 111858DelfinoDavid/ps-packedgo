@@ -192,11 +192,8 @@ export class CustomerDashboardComponent implements OnInit, OnDestroy {
         // Filtrar eventos que necesitan geocoding (sin locationName)
         const eventsNeedingGeocode = this.allEvents.filter(event => !event.locationName);
         
-        console.log('🗺️ Eventos totales:', this.allEvents.length, '| Necesitan geocoding:', eventsNeedingGeocode.length);
-        
         // Si no hay eventos que necesiten geocoding, mostrar inmediatamente
         if (eventsNeedingGeocode.length === 0) {
-          console.log('✅ Todos los eventos tienen locationName, mostrando inmediatamente');
           this.events = [...this.allEvents];
           this.filterEvents(); // IMPORTANTE: llamar a filterEvents para poblar filteredEvents y paginatedEvents
           this.isLoadingEvents = false;
@@ -208,16 +205,13 @@ export class CustomerDashboardComponent implements OnInit, OnDestroy {
         from(eventsNeedingGeocode).pipe(
           concatMap((event, index) => {
             const key = `${event.lat},${event.lng}`;
-            console.log(`📍 [${index + 1}/${eventsNeedingGeocode.length}] Procesando evento:`, event.name, 'coords:', key);
             
             if (this.addressCache.has(key)) {
-              console.log('✅ Ubicación en caché:', this.addressCache.get(key));
               return of({ event, data: null });
             }
             
             // BigDataCloud API - gratuita, sin API key, más confiable
             const url = `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${event.lat}&longitude=${event.lng}&localityLanguage=es`;
-            console.log('🌐 Llamando a BigDataCloud:', url);
             
             // Delay mínimo entre peticiones
             const request$ = index === 0 
@@ -242,7 +236,6 @@ export class CustomerDashboardComponent implements OnInit, OnDestroy {
             
             if (data) {
               const key = `${event.lat},${event.lng}`;
-              console.log('🔍 Procesando resultado para:', event.name, 'data:', data);
               
               // BigDataCloud devuelve: locality, city, principalSubdivision, countryName
               let placeName = data.locality || 
@@ -251,13 +244,11 @@ export class CustomerDashboardComponent implements OnInit, OnDestroy {
                              data.countryName || 
                              'Ubicación';
               
-              console.log('✅ Ubicación guardada:', placeName);
               this.addressCache.set(key, placeName);
               this.cdr.detectChanges();
             }
           },
           complete: () => {
-            console.log('✅ Geocodificación completada. Caché final:', this.addressCache);
             // Ahora sí mostrar los eventos con las ubicaciones ya resueltas
             this.events = [...this.allEvents];
             this.filterEvents();
@@ -451,10 +442,6 @@ export class CustomerDashboardComponent implements OnInit, OnDestroy {
       if (result.isConfirmed) {
         this.cartService.removeCartItem(itemId).subscribe({
           next: (cart) => {
-            console.log('Item removed from cart');
-            if (!cart) {
-              console.log('Cart is now empty');
-            }
             Swal.fire({
               title: 'Eliminado',
               text: 'El item ha sido eliminado del carrito',
@@ -499,7 +486,6 @@ export class CustomerDashboardComponent implements OnInit, OnDestroy {
           consumptions: consumptions
         }).subscribe({
           next: () => {
-            console.log('Item duplicado exitosamente');
             Swal.fire({
               title: 'Duplicado',
               text: 'Entrada duplicada exitosamente',
@@ -525,7 +511,6 @@ export class CustomerDashboardComponent implements OnInit, OnDestroy {
     
     this.cartService.updateConsumptionQuantity(itemId, consumption.consumptionId, newQuantity).subscribe({
       next: () => {
-        console.log('Consumption quantity incremented');
       },
       error: (error) => {
         console.error('Error incrementing consumption:', error);
@@ -549,7 +534,6 @@ export class CustomerDashboardComponent implements OnInit, OnDestroy {
     
     this.cartService.updateConsumptionQuantity(itemId, consumption.consumptionId, newQuantity).subscribe({
       next: () => {
-        console.log('Consumption quantity decremented');
       },
       error: (error) => {
         console.error('Error decrementing consumption:', error);
@@ -574,7 +558,6 @@ export class CustomerDashboardComponent implements OnInit, OnDestroy {
       if (result.isConfirmed) {
         this.cartService.removeConsumptionFromItem(itemId, consumption.consumptionId).subscribe({
           next: () => {
-            console.log('Consumption removed successfully');
             Swal.fire({
               title: 'Eliminado',
               text: 'Consumición eliminada',
@@ -606,7 +589,6 @@ export class CustomerDashboardComponent implements OnInit, OnDestroy {
         // El backend devuelve availableConsumptions (no consumptions)
         this.availableConsumptions = event.availableConsumptions || [];
         this.isLoadingConsumptions = false;
-        console.log('Available consumptions:', this.availableConsumptions);
       },
       error: (err: any) => {
         console.error('Error loading consumptions:', err);
@@ -624,7 +606,6 @@ export class CustomerDashboardComponent implements OnInit, OnDestroy {
     
     this.cartService.addConsumptionToItem(this.selectedItemId, consumptionId, 1).subscribe({
       next: () => {
-        console.log('Consumption added successfully');
         this.closeModal();
         Swal.fire({
           title: 'Agregado',
@@ -664,7 +645,6 @@ export class CustomerDashboardComponent implements OnInit, OnDestroy {
       if (result.isConfirmed) {
         this.cartService.clearCart().subscribe({
           next: () => {
-            console.log('Cart cleared successfully');
             Swal.fire({
               title: 'Vaciado',
               text: 'El carrito ha sido vaciado',
@@ -708,14 +688,8 @@ export class CustomerDashboardComponent implements OnInit, OnDestroy {
       return;
     }
     
-    console.log('🎟️ Cargando tickets para usuario:', userId);
-    console.log('🔑 Usuario actual:', this.currentUser);
-    console.log('🔑 Token disponible:', !!this.authService.getToken());
-    
     this.ticketService.getUserTickets(userId).subscribe({
       next: (tickets) => {
-        console.log('✅ Tickets cargados:', tickets);
-        console.log('✅ Cantidad de tickets:', tickets.length);
         this.myTickets = tickets;
         this.isLoadingTickets = false;
       },
@@ -742,10 +716,8 @@ export class CustomerDashboardComponent implements OnInit, OnDestroy {
   }
 
   showTicketQR(ticket: Ticket): void {
-    console.log('🎟️ Mostrando QR para ticket:', ticket);
     this.selectedTicket = ticket;
     this.showQrModal = true;
-    console.log('showQrModal:', this.showQrModal);
   }
 
   openTicketLocation(ticket: Ticket): void {
@@ -761,7 +733,6 @@ export class CustomerDashboardComponent implements OnInit, OnDestroy {
   }
 
   closeQrModal(): void {
-    console.log('❌ Cerrando modal QR');
     this.showQrModal = false;
     this.selectedTicket = null;
   }
@@ -853,11 +824,8 @@ export class CustomerDashboardComponent implements OnInit, OnDestroy {
       profileImageUrl: this.profileForm.get('profileImageUrl')?.value || ''
     };
 
-    console.log('📤 Enviando datos de perfil:', profileData);
-
     this.userService.updateUserProfile(userId, profileData).subscribe({
       next: (response: any) => {
-        console.log('Perfil actualizado:', response);
         this.originalProfileData = response;
         this.isEditingProfile = false;
         this.profileForm.disable();

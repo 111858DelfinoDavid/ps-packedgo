@@ -84,8 +84,6 @@ export class CheckoutComponent implements OnInit, OnDestroy {
 
     this.orderService.getCurrentCheckoutState().subscribe({
       next: (state) => {
-        console.log('✅ Estado de checkout cargado:', state);
-        
         // Caso 1: No hay carrito
         if (state.sessionStatus === 'NO_CART') {
           this.errorMessage = 'Tu carrito está vacío. Agrega eventos para continuar.';
@@ -100,7 +98,6 @@ export class CheckoutComponent implements OnInit, OnDestroy {
         
         // Caso 3: Sesión completada (todos los pagos hechos)
         if (state.isCompleted) {
-          console.log('✅ Checkout completado, redirigiendo a success...');
           this.router.navigate(['/customer/order-success'], {
             queryParams: { sessionId: state.sessionId }
           });
@@ -138,9 +135,6 @@ export class CheckoutComponent implements OnInit, OnDestroy {
     
     this.paymentGroups = state.paymentGroups;
     this.checkoutResponse = state;
-
-    console.log(`💰 ${state.paidGroups}/${state.totalGroups} grupos pagados`);
-    console.log(`⏱️  ${state.secondsUntilExpiration}s restantes hasta expiración`);
   }
 
   /**
@@ -188,8 +182,6 @@ export class CheckoutComponent implements OnInit, OnDestroy {
         this.sessionId = response.sessionId;
         this.expiresAt = new Date(response.expiresAt);
         
-        console.log('Loaded existing checkout:', response);
-        
         // Iniciar timer de expiración
         this.startExpirationTimer();
         
@@ -231,8 +223,6 @@ export class CheckoutComponent implements OnInit, OnDestroy {
     const sessionId = params['session_id'];
     const paymentIntentId = params['payment_intent'];
 
-    console.log('Retorno de Stripe:', { status, orderId, sessionId, paymentIntentId });
-
     // Scroll al inicio para que el usuario vea el mensaje
     window.scrollTo({ top: 0, behavior: 'smooth' });
 
@@ -251,7 +241,6 @@ ${this.paymentGroups.length > 1 ? 'Nota: Si tienes otros pagos pendientes, apare
           // Primero, intentar actualizar el estado de la sesión
           this.orderService.getSessionStatus(this.sessionId!).subscribe({
             next: (sessionStatus) => {
-              console.log('Session status after payment:', sessionStatus);
               this.checkoutResponse = sessionStatus;
               this.paymentGroups = sessionStatus.paymentGroups;
               
@@ -377,8 +366,6 @@ El botón de pago aparece más abajo.`;
       const isPending = group.paymentStatus === 'PENDING_PAYMENT' || group.paymentStatus === 'PENDING';
       if (!group.initPoint && isPending) {
         try {
-          console.log(`🔄 Generando pago para orden ${group.orderNumber}...`);
-          
           const payment = await firstValueFrom(
             this.paymentService.createPaymentPreference(
               group.adminId,
@@ -393,15 +380,10 @@ El botón de pago aparece más abajo.`;
             group.qrUrl = payment.qrUrl;
             // Para Stripe, usar initPoint (Stripe Checkout URL)
             group.initPoint = payment.initPoint;
-            
-            console.log(`✅ Link de pago generado para orden ${group.orderNumber}:`, group.initPoint);
           }
         } catch (error: any) {
-          console.error(`❌ Error generando pago para orden ${group.orderNumber}:`, error);
-          
           // Si es error 401 (Unauthorized), el token expiró - redirigir al login
           if (error.status === 401 || error.status === 0) {
-            console.warn('Token expired or unauthorized, redirecting to login');
             this.router.navigate(['/customer/login'], { 
               queryParams: { 
                 returnUrl: '/customer/checkout',
@@ -413,8 +395,6 @@ El botón de pago aparece más abajo.`;
             return; // Detener el proceso
           }
         }
-      } else if (group.initPoint) {
-        console.log(`✓ Orden ${group.orderNumber} ya tiene link de pago:`, group.initPoint);
       }
     }
 
@@ -431,7 +411,6 @@ El botón de pago aparece más abajo.`;
       )
       .subscribe({
         next: (status) => {
-          console.log('Session status update:', status);
           this.checkoutResponse = status;
           // Preservar initPoint y otros datos de pago al actualizar
           status.paymentGroups.forEach(updatedGroup => {
@@ -549,13 +528,9 @@ El botón de pago aparece más abajo.`;
    * Verifica manualmente el estado de un pago
    */
   refreshPaymentStatus(group: SessionPaymentGroup): void {
-    console.log('Actualizando estado de pago para:', group);
-
     // Actualizar el estado de la sesión directamente
     this.orderService.getCurrentCheckoutState().subscribe({
       next: (state) => {
-        console.log('Session status refreshed:', state);
-        
         // Mapear el estado actualizado
         this.mapStateToUI(state);
         
@@ -614,13 +589,9 @@ El botón de pago aparece más abajo.`;
    * NOTA: simulateAllPayments removido con MercadoPago, ahora solo actualiza estado
    */
   simulateAllPayments(): void {
-    console.log('Actualizando estado de todos los pagos...');
-    
     // Actualizar el estado de la sesión
     this.orderService.getCurrentCheckoutState().subscribe({
       next: (state) => {
-        console.log('Session state refreshed:', state);
-        
         // Mapear el estado actualizado
         this.mapStateToUI(state);
         
@@ -735,7 +706,6 @@ El botón de pago aparece más abajo.`;
   private abandonCheckout(): void {
     this.orderService.abandonSession(this.sessionId!).subscribe({
       next: (response) => {
-        console.log('Sesión abandonada:', response);
         this.stopPolling();
         this.stopTimer();
         // Redirigir al dashboard (no existe ruta /customer/cart)

@@ -60,8 +60,6 @@ export class AdminLoginComponent {
 
     this.authService.adminLogin(this.loginForm.value).subscribe({
       next: (response) => {
-        console.log('Login exitoso:', response);
-        
         // Verificar si el email está verificado
         if (response.user.isEmailVerified === false) {
           this.errorMessage = 'Tu correo electrónico aún no ha sido verificado. Por favor, revisa tu bandeja de entrada.';

@@ -1,379 +1,923 @@
-# 👥 USERS-SERVICE
+# 👥 USERS-SERVICE - Servicio de Gestión de Perfiles y Empleados
 
 ## 📋 Descripción General
 
-El USERS-SERVICE es el microservicio encargado de **gestionar los perfiles de usuario** de PackedGo. Maneja toda la información personal y demográfica de los usuarios, complementando la autenticación del AUTH-SERVICE con datos completos del perfil. También gestiona el sistema de empleados y sus operaciones.
+El **USERS-SERVICE** es el microservicio encargado de gestionar los perfiles de usuario y el sistema de empleados de PackedGo. Complementa la autenticación del AUTH-SERVICE con información personal completa, gestiona empleados asignados a eventos, y actúa como proxy para las operaciones de validación de tickets y consumiciones realizadas por empleados.
 
-### Características Principales:
-- 👤 Gestión completa de perfiles de usuario
-- 🔄 Integración automática con AUTH-SERVICE
-- 👷 Sistema de gestión de empleados para admins
-- 📱 Validación de tickets y registro de consumos (proxy a event-service)
-- 🗑️ Soft delete para preservación de datos
-- 🔍 Consultas optimizadas por estado activo
+### 🎯 Características Principales
 
-## 🚀 Puerto de Servicio
-**8082** (HTTP)
-**5006** (Debug JDWP)
+- 👤 **Gestión completa de perfiles de usuario** con datos personales y demográficos
+- 🔄 **Integración automática** con AUTH-SERVICE para creación de perfiles
+- 👷 **Sistema de gestión de empleados** para administradores
+- 📱 **Proxy de validación** de tickets y consumiciones hacia event-service
+- 🗑️ **Soft delete** para preservación de datos históricos
+- 🔍 **Consultas optimizadas** por estado activo
+- 🔐 **WebClient configurado** con 5MB buffer para comunicación con event-service
+- 📊 **Estadísticas de empleados** sobre validaciones y consumos registrados
+
+---
+
+## 🚀 Configuración de Servicio
+
+| Propiedad | Valor |
+|-----------|-------|
+| **Puerto HTTP** | 8082 |
+| **Puerto Debug (JDWP)** | 5006 |
+| **Context Path** | /api |
+| **Base URL** | http://localhost:8082/api |
+
+---
 
 ## 📦 Base de Datos
-- **Nombre:** users_db
-- **Puerto:** 5434 (PostgreSQL 15)
-- **Usuario:** users_user
-- **Imagen:** postgres:15-alpine
 
-### Tablas principales:
-  - `user_profiles` - Perfiles completos de usuarios
-  - `employees` - Empleados asignados a eventos (TBD en el esquema mostrado)
+### Configuración PostgreSQL
 
-## 🚀 Tecnologías
+| Propiedad | Valor |
+|-----------|-------|
+| **Nombre** | users_db |
+| **Puerto** | 5434 → 5432 (Docker) |
+| **Usuario** | users_user |
+| **Contraseña** | users_password |
+| **Imagen Docker** | postgres:15-alpine |
+| **Timezone** | America/Argentina/Buenos_Aires |
 
-- **Java 17** - Lenguaje de programación
-- **Spring Boot 3.5.6** - Framework principal
-- **Spring Data JPA** - Persistencia de datos
-- **Spring Security** - Seguridad
-- **Spring Validation** - Validación de datos
-- **Spring WebFlux** - Cliente HTTP reactivo
-- **Spring Actuator** - Monitoreo y métricas
-- **ModelMapper 3.1.1** - Mapeo entre DTOs y entidades
-- **PostgreSQL 15** - Base de datos
-- **Lombok** - Reducción de boilerplate
-- **H2** - Base de datos en memoria para tests
-- **Docker** - Contenedorización
+### 📊 Tablas Principales
 
-## Funcionalidades Principales
+#### `user_profiles`
+```sql
+CREATE TABLE user_profiles (
+    id BIGSERIAL PRIMARY KEY,
+    auth_user_id BIGINT UNIQUE NOT NULL, -- ID del usuario en auth-service
+    first_name VARCHAR(100) NOT NULL,
+    last_name VARCHAR(100) NOT NULL,
+    document VARCHAR(20) UNIQUE NOT NULL,
+    phone VARCHAR(20),
+    address VARCHAR(255),
+    city VARCHAR(100),
+    province VARCHAR(100),
+    country VARCHAR(100) DEFAULT 'Argentina',
+    birth_date DATE,
+    gender VARCHAR(20),
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+```
 
-### 1. Gestión de Perfiles de Usuario
-- CRUD completo de perfiles de usuario
-- Creación automática desde AUTH-SERVICE
-- Gestión de datos personales y demográficos
-- Soft delete (eliminación lógica)
+#### `employees`
+```sql
+CREATE TABLE employees (
+    id BIGSERIAL PRIMARY KEY,
+    auth_user_id BIGINT NOT NULL, -- ID del empleado en auth-service
+    admin_id BIGINT NOT NULL, -- ID del admin que lo creó
+    first_name VARCHAR(100) NOT NULL,
+    last_name VARCHAR(100) NOT NULL,
+    email VARCHAR(100) NOT NULL,
+    phone VARCHAR(20),
+    position VARCHAR(100), -- Ej: "Scanner", "Barra", "Seguridad"
+    is_active BOOLEAN DEFAULT TRUE,
+    assigned_events JSON, -- Array de IDs de eventos asignados: [1, 2, 3]
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(auth_user_id, admin_id)
+);
+```
 
-### 2. Integración con AUTH-SERVICE
-- Recepción de datos de registro desde auth-service
-- Creación automática de perfil tras registro exitoso
-- Sincronización de datos entre servicios
+---
 
-### 3. Consultas Especializadas
-- Búsqueda por documento (único)
-- Búsqueda por ID de usuario de auth
-- Filtrado por usuarios activos
-- Validación de existencia
+## 🛠 Tecnologías y Dependencias
 
-## Endpoints Principales
+| Tecnología | Versión | Propósito |
+|------------|---------|-----------|
+| **Java** | 17 | Lenguaje base |
+| **Spring Boot** | 3.5.6 | Framework principal |
+| **Spring Data JPA** | 3.5.6 | Persistencia de datos |
+| **Spring Security** | 3.5.6 | Seguridad y autenticación |
+| **Spring WebFlux** | 3.5.6 | Cliente HTTP reactivo (WebClient) |
+| **Spring Validation** | 3.5.6 | Validación de datos |
+| **Spring Actuator** | 3.5.6 | Monitoreo y métricas |
+| **ModelMapper** | 3.1.1 | Mapeo DTOs ↔ Entidades |
+| **PostgreSQL Driver** | 42.x | Driver JDBC |
+| **Lombok** | Latest | Reducción de boilerplate |
+| **H2** | Latest | Base de datos en memoria para tests |
 
-### UserProfileController (`/api/user-profiles`)
+---
 
-#### Gestión Básica
-- `POST /` - Crear nuevo perfil de usuario
-- `GET /{id}` - Obtener perfil por ID
-- `GET /` - Obtener todos los perfiles
-- `PUT /{id}` - Actualizar perfil existente
-- `DELETE /{id}` - Eliminar perfil físicamente
-- `DELETE /logical/{id}` - Eliminar perfil lógicamente
+## 📡 API Endpoints
 
-#### Integración con AUTH-SERVICE
-- `POST /from-auth` - Crear perfil desde auth-service (endpoint especializado)
+### 👤 Gestión de Perfiles de Usuario (`/api/user-profiles`)
 
-#### Consultas por Estado Activo
-- `GET /active` - Obtener todos los perfiles activos
-- `GET /active/{id}` - Obtener perfil activo por ID
-- `GET /active/document/{document}` - Obtener perfil activo por documento
+#### **POST** `/api/user-profiles`
+Crear nuevo perfil de usuario (uso interno).
 
-### AdminEmployeeController (`/admin/employees`)
+```http
+POST /api/user-profiles
+Content-Type: application/json
+Authorization: Bearer {token}
 
-#### Gestión de Empleados (Admin)
-- `POST /` - Crear nuevo empleado
-- `GET /` - Listar empleados del admin
-- `GET /{id}` - Obtener empleado por ID
-- `PUT /{id}` - Actualizar empleado
-- `DELETE /{id}` - Eliminar empleado
-- `PATCH /{id}/toggle-status` - Activar/Desactivar empleado
-
-### EmployeeController (`/employee`)
-
-#### Operaciones de Empleado
-- `GET /assigned-events` - Obtener eventos asignados
-- `POST /validate-ticket` - Validar ticket de entrada (Proxy a event-service)
-- `POST /register-consumption` - Registrar consumo (Proxy a event-service)
-- `GET /stats` - Obtener estadísticas del empleado
-
-### InternalEmployeeController (`/internal/employees`)
-
-#### Uso Interno (Auth Service)
-- `POST /validate` - Validar credenciales de empleado (usado por auth-service durante login)
-
-## Entities Principales
-
-### UserProfileEntity
-```java
-@Entity
-@Table(name = "user_profiles")
-public class UserProfileEntity {
-    private Long id;
-    private Long authUserId;        // Referencia al AUTH-SERVICE
-    private String name;            // Nombre, requerido
-    private String lastName;        // Apellido, requerido
-    private Gender gender;          // MALE, FEMALE, OTHER
-    private Long document;          // DNI único
-    private LocalDate bornDate;     // Fecha de nacimiento
-    private Long telephone;         // Teléfono único
-    private String profileImageUrl; // URL de imagen de perfil (opcional)
-    private LocalDateTime createdAt;
-    private LocalDateTime updatedAt;
-    private Boolean isActive;       // Para soft delete
+{
+  "authUserId": 123,
+  "firstName": "Juan",
+  "lastName": "Pérez",
+  "document": "12345678",
+  "phone": "+54911123456",
+  "address": "Av. Corrientes 1234",
+  "city": "Buenos Aires",
+  "province": "CABA",
+  "country": "Argentina",
+  "birthDate": "1990-05-15",
+  "gender": "MALE"
 }
 ```
 
-## Modelo de Dominio
-
-### UserProfile
-Clase de dominio que representa un perfil de usuario con todas sus propiedades y métodos de negocio.
-
-### Gender (Enum)
-```java
-public enum Gender {
-    MALE("Masculino"),
-    FEMALE("Femenino"),
-    OTHER("Otro");
+**Response 200 OK:**
+```json
+{
+  "id": 1,
+  "authUserId": 123,
+  "firstName": "Juan",
+  "lastName": "Pérez",
+  "document": "12345678",
+  "phone": "+54911123456",
+  "address": "Av. Corrientes 1234",
+  "city": "Buenos Aires",
+  "province": "CABA",
+  "country": "Argentina",
+  "birthDate": "1990-05-15",
+  "gender": "MALE",
+  "isActive": true,
+  "createdAt": "2025-12-14T10:00:00",
+  "updatedAt": "2025-12-14T10:00:00"
 }
 ```
 
-## DTOs Principales
+---
 
-### UserProfileDTO
-DTO principal para transferencia de datos de perfil con validaciones.
+#### **POST** `/api/user-profiles/from-auth`
+Crear perfil desde auth-service (endpoint especializado para integración).
 
-### CreateProfileFromAuthRequest
-```java
-public class CreateProfileFromAuthRequest {
-    private Long authUserId;        // ID del usuario en auth-service
-    private Long document;          // DNI del usuario
-    private String name;            // Nombre completo
-    private String lastName;        // Apellido
-    private LocalDate bornDate;     // Fecha de nacimiento
-    private Long telephone;         // Teléfono
-    private Gender gender;          // Género
+```http
+POST /api/user-profiles/from-auth
+Content-Type: application/json
+
+{
+  "authUserId": 123,
+  "firstName": "Juan",
+  "lastName": "Pérez",
+  "document": "12345678",
+  "email": "juan@example.com"
 }
 ```
 
-## Servicios
-
-### UserProfileService / UserProfileServiceImpl
-
-#### Métodos Principales
-- **create()** - Crear nuevo perfil con validación de duplicados
-- **createFromAuthService()** - Crear perfil desde datos del auth-service
-- **getById()** - Obtener perfil por ID con manejo de errores
-- **getByDocument()** - Buscar por documento único
-- **getByAuthUserId()** - Buscar por ID de usuario de auth
-- **existsByAuthUserId()** - Verificar existencia por auth user ID
-- **update()** - Actualizar perfil existente
-- **delete()** - Eliminación física
-- **deleteLogical()** - Eliminación lógica (isActive = false)
-
-#### Métodos de Consulta Activa
-- **getAllActive()** - Todos los perfiles activos
-- **getByIdActive()** - Perfil activo por ID
-- **getByDocumentActive()** - Perfil activo por documento
-- **getByAuthUserIdActive()** - Perfil activo por auth user ID
-
-## Repository
-
-### UserProfileRepository
-```java
-@Repository
-public interface UserProfileRepository extends JpaRepository<UserProfileEntity, Long> {
-    Optional<UserProfileEntity> findByDocument(Long document);
-    Optional<UserProfileEntity> findByAuthUserId(Long authUserId);
-    boolean existsByAuthUserId(Long authUserId);
-    
-    // Consultas por estado activo
-    List<UserProfileEntity> findByIsActiveTrue();
-    Optional<UserProfileEntity> findByIdAndIsActiveTrue(Long id);
-    Optional<UserProfileEntity> findByDocumentAndIsActiveTrue(Long document);
-    Optional<UserProfileEntity> findByAuthUserIdAndIsActiveTrue(Long authUserId);
+**Response 200 OK:**
+```json
+{
+  "id": 1,
+  "authUserId": 123,
+  "firstName": "Juan",
+  "lastName": "Pérez",
+  "document": "12345678",
+  "isActive": true,
+  "createdAt": "2025-12-14T10:00:00"
 }
 ```
 
-## Configuración
+---
 
-### ModelMapper
-Configuración automática de ModelMapper para mapeo entre DTOs y entidades con personalización para campos específicos.
+#### **GET** `/api/user-profiles/{authUserId}`
+Obtener perfil por authUserId (valida ownership o rol ADMIN).
 
-```java
-@Configuration
-public class MappersConfig {
-    @Bean
-    public ModelMapper modelMapper() {
-        return new ModelMapper();
-    }
+```http
+GET /api/user-profiles/123
+Authorization: Bearer {token}
+```
+
+**Response 200 OK:**
+```json
+{
+  "id": 1,
+  "authUserId": 123,
+  "firstName": "Juan",
+  "lastName": "Pérez",
+  "document": "12345678",
+  "phone": "+54911123456",
+  "address": "Av. Corrientes 1234",
+  "city": "Buenos Aires",
+  "province": "CABA",
+  "country": "Argentina",
+  "birthDate": "1990-05-15",
+  "gender": "MALE",
+  "isActive": true
 }
 ```
 
-## Variables de Entorno
+---
 
-```bash
+#### **GET** `/api/user-profiles/my-profile`
+Obtener perfil del usuario autenticado.
+
+```http
+GET /api/user-profiles/my-profile
+Authorization: Bearer {token}
+```
+
+**Response 200 OK:**
+```json
+{
+  "id": 1,
+  "authUserId": 123,
+  "firstName": "Juan",
+  "lastName": "Pérez",
+  "document": "12345678",
+  "phone": "+54911123456",
+  "isActive": true
+}
+```
+
+---
+
+#### **GET** `/api/user-profiles`
+Obtener todos los perfiles (solo ADMIN).
+
+```http
+GET /api/user-profiles
+Authorization: Bearer {token}
+```
+
+**Response 200 OK:**
+```json
+[
+  {
+    "id": 1,
+    "authUserId": 123,
+    "firstName": "Juan",
+    "lastName": "Pérez",
+    "document": "12345678",
+    "isActive": true
+  },
+  {
+    "id": 2,
+    "authUserId": 456,
+    "firstName": "María",
+    "lastName": "González",
+    "document": "87654321",
+    "isActive": true
+  }
+]
+```
+
+---
+
+#### **PUT** `/api/user-profiles/{authUserId}`
+Actualizar perfil (valida ownership).
+
+```http
+PUT /api/user-profiles/123
+Authorization: Bearer {token}
+Content-Type: application/json
+
+{
+  "firstName": "Juan Carlos",
+  "lastName": "Pérez García",
+  "phone": "+54911999888",
+  "address": "Av. Santa Fe 5678",
+  "city": "Buenos Aires"
+}
+```
+
+**Response 200 OK:**
+```json
+{
+  "id": 1,
+  "authUserId": 123,
+  "firstName": "Juan Carlos",
+  "lastName": "Pérez García",
+  "phone": "+54911999888",
+  "address": "Av. Santa Fe 5678",
+  "city": "Buenos Aires",
+  "isActive": true,
+  "updatedAt": "2025-12-14T11:00:00"
+}
+```
+
+---
+
+#### **DELETE** `/api/user-profiles/{authUserId}`
+Eliminar perfil físicamente (valida ownership).
+
+```http
+DELETE /api/user-profiles/123
+Authorization: Bearer {token}
+```
+
+**Response 204 NO CONTENT**
+
+---
+
+#### **DELETE** `/api/user-profiles/logical/{id}`
+Eliminar perfil lógicamente (soft delete).
+
+```http
+DELETE /api/user-profiles/logical/1
+Authorization: Bearer {token}
+```
+
+**Response 200 OK:**
+```json
+{
+  "id": 1,
+  "authUserId": 123,
+  "firstName": "Juan",
+  "lastName": "Pérez",
+  "isActive": false,
+  "updatedAt": "2025-12-14T11:30:00"
+}
+```
+
+---
+
+#### **GET** `/api/user-profiles/active`
+Obtener todos los perfiles activos.
+
+```http
+GET /api/user-profiles/active
+Authorization: Bearer {token}
+```
+
+**Response 200 OK:**
+```json
+[
+  {
+    "id": 1,
+    "authUserId": 123,
+    "firstName": "Juan",
+    "lastName": "Pérez",
+    "isActive": true
+  }
+]
+```
+
+---
+
+#### **GET** `/api/user-profiles/active/{id}`
+Obtener perfil activo por ID.
+
+```http
+GET /api/user-profiles/active/1
+Authorization: Bearer {token}
+```
+
+---
+
+#### **GET** `/api/user-profiles/active/document/{document}`
+Obtener perfil activo por documento.
+
+```http
+GET /api/user-profiles/active/document/12345678
+Authorization: Bearer {token}
+```
+
+---
+
+### 👔 Gestión de Empleados - Admin (`/api/admin/employees`)
+
+#### **POST** `/api/admin/employees`
+Crear nuevo empleado.
+
+```http
+POST /api/admin/employees
+Authorization: Bearer {token}
+Content-Type: application/json
+
+{
+  "authUserId": 789,
+  "firstName": "Carlos",
+  "lastName": "Rodríguez",
+  "email": "carlos@packedgo.com",
+  "phone": "+54911555444",
+  "position": "Scanner",
+  "assignedEvents": [1, 3, 5]
+}
+```
+
+**Response 200 OK:**
+```json
+{
+  "id": 1,
+  "authUserId": 789,
+  "adminId": 456,
+  "firstName": "Carlos",
+  "lastName": "Rodríguez",
+  "email": "carlos@packedgo.com",
+  "phone": "+54911555444",
+  "position": "Scanner",
+  "assignedEvents": [1, 3, 5],
+  "isActive": true,
+  "createdAt": "2025-12-14T10:00:00"
+}
+```
+
+---
+
+#### **GET** `/api/admin/employees`
+Listar empleados del admin.
+
+```http
+GET /api/admin/employees
+Authorization: Bearer {token}
+```
+
+**Response 200 OK:**
+```json
+[
+  {
+    "id": 1,
+    "authUserId": 789,
+    "adminId": 456,
+    "firstName": "Carlos",
+    "lastName": "Rodríguez",
+    "email": "carlos@packedgo.com",
+    "phone": "+54911555444",
+    "position": "Scanner",
+    "assignedEvents": [1, 3, 5],
+    "isActive": true
+  }
+]
+```
+
+---
+
+#### **GET** `/api/admin/employees/{id}`
+Obtener empleado por ID.
+
+```http
+GET /api/admin/employees/1
+Authorization: Bearer {token}
+```
+
+**Response 200 OK:**
+```json
+{
+  "id": 1,
+  "authUserId": 789,
+  "adminId": 456,
+  "firstName": "Carlos",
+  "lastName": "Rodríguez",
+  "email": "carlos@packedgo.com",
+  "position": "Scanner",
+  "assignedEvents": [1, 3, 5],
+  "isActive": true
+}
+```
+
+---
+
+#### **PUT** `/api/admin/employees/{id}`
+Actualizar empleado.
+
+```http
+PUT /api/admin/employees/1
+Authorization: Bearer {token}
+Content-Type: application/json
+
+{
+  "firstName": "Carlos Alberto",
+  "lastName": "Rodríguez",
+  "phone": "+54911666555",
+  "position": "Supervisor",
+  "assignedEvents": [1, 2, 3, 4]
+}
+```
+
+**Response 200 OK:**
+```json
+{
+  "id": 1,
+  "authUserId": 789,
+  "adminId": 456,
+  "firstName": "Carlos Alberto",
+  "lastName": "Rodríguez",
+  "phone": "+54911666555",
+  "position": "Supervisor",
+  "assignedEvents": [1, 2, 3, 4],
+  "isActive": true,
+  "updatedAt": "2025-12-14T11:00:00"
+}
+```
+
+---
+
+#### **DELETE** `/api/admin/employees/{id}`
+Eliminar empleado.
+
+```http
+DELETE /api/admin/employees/1
+Authorization: Bearer {token}
+```
+
+**Response 204 NO CONTENT**
+
+---
+
+#### **PATCH** `/api/admin/employees/{id}/toggle-status`
+Activar/Desactivar empleado.
+
+```http
+PATCH /api/admin/employees/1/toggle-status
+Authorization: Bearer {token}
+```
+
+**Response 200 OK:**
+```json
+{
+  "id": 1,
+  "authUserId": 789,
+  "firstName": "Carlos",
+  "lastName": "Rodríguez",
+  "isActive": false,
+  "updatedAt": "2025-12-14T11:30:00"
+}
+```
+
+---
+
+### 👨‍💼 Operaciones de Empleado (`/api/employee`)
+
+#### **GET** `/api/employee/assigned-events`
+Obtener eventos asignados al empleado autenticado.
+
+```http
+GET /api/employee/assigned-events
+Authorization: Bearer {token}
+```
+
+**Response 200 OK:**
+```json
+[
+  {
+    "id": 1,
+    "name": "Fiesta de Año Nuevo 2025",
+    "location": "Club Central",
+    "startDate": "2025-12-31T22:00:00",
+    "endDate": "2026-01-01T06:00:00",
+    "imageUrl": "/api/event-service/event/1/image",
+    "createdBy": 456
+  },
+  {
+    "id": 3,
+    "name": "Concierto Rock",
+    "location": "Estadio Luna Park",
+    "startDate": "2025-12-20T20:00:00",
+    "endDate": "2025-12-21T01:00:00",
+    "imageUrl": "/api/event-service/event/3/image",
+    "createdBy": 456
+  }
+]
+```
+
+---
+
+#### **POST** `/api/employee/validate-ticket`
+Validar ticket de entrada (proxy a event-service).
+
+```http
+POST /api/employee/validate-ticket
+Authorization: Bearer {token}
+Content-Type: application/json
+
+{
+  "qrCode": "TICKET-123456-ABC",
+  "eventId": 1
+}
+```
+
+**Response 200 OK:**
+```json
+{
+  "success": true,
+  "message": "Ticket validado correctamente",
+  "ticketId": 123,
+  "eventName": "Fiesta de Año Nuevo 2025",
+  "customerName": "Juan Pérez",
+  "validatedAt": "2025-12-31T22:15:00"
+}
+```
+
+---
+
+#### **POST** `/api/employee/register-consumption`
+Registrar consumo (proxy a event-service).
+
+```http
+POST /api/employee/register-consumption
+Authorization: Bearer {token}
+Content-Type: application/json
+
+{
+  "qrCode": "TICKET-123456-ABC",
+  "eventId": 1,
+  "consumptionId": 5,
+  "quantity": 2
+}
+```
+
+**Response 200 OK:**
+```json
+{
+  "success": true,
+  "message": "Consumo registrado correctamente",
+  "ticketId": 123,
+  "consumptionName": "Cerveza Quilmes",
+  "quantity": 2,
+  "remainingQuantity": 3,
+  "registeredAt": "2025-12-31T23:00:00"
+}
+```
+
+---
+
+#### **GET** `/api/employee/stats`
+Obtener estadísticas del empleado.
+
+```http
+GET /api/employee/stats
+Authorization: Bearer {token}
+```
+
+**Response 200 OK:**
+```json
+{
+  "totalTicketsValidated": 150,
+  "totalConsumptionsRegistered": 320,
+  "eventsWorked": 12,
+  "lastActivity": "2025-12-14T11:00:00"
+}
+```
+
+---
+
+### 🔧 API Interna (`/api/internal/employees`)
+
+#### **GET** `/api/internal/employees/validate/{authUserId}`
+Validar si un usuario es empleado (usado internamente por otros servicios).
+
+```http
+GET /api/internal/employees/validate/789
+```
+
+**Response 200 OK:**
+```json
+{
+  "isEmployee": true,
+  "employeeId": 1,
+  "adminId": 456,
+  "isActive": true
+}
+```
+
+---
+
+## ⚙️ Variables de Entorno
+
+### 📄 Archivo `.env`
+
+```properties
 # Server Configuration
 SERVER_PORT=8082
 
 # Database Configuration
 DATABASE_URL=jdbc:postgresql://users-db:5432/users_db
-DATABASE_USER=users_db_user
-DATABASE_PASSWORD=secure_users_password
+DATABASE_USER=users_user
+DATABASE_PASSWORD=users_password
+
+# JWT Configuration
+JWT_SECRET=mySecretKey123456789PackedGoAuth2025VerySecureKey
 
 # External Services
-AUTH_SERVICE_URL=http://auth-service:8081
+AUTH_SERVICE_URL=http://auth-service:8081/api
+EVENT_SERVICE_URL=http://event-service:8086/api
 
-# Logging Configuration
+# Logging
 LOGGING_LEVEL_USERS=DEBUG
 ```
 
-## Validaciones y Reglas de Negocio
+### 📋 Descripción de Variables
 
-### Validaciones de Creación
-- **Documento único:** No puede existir otro perfil con el mismo documento
-- **AuthUserId único:** Un usuario de auth solo puede tener un perfil
-- **Campos requeridos:** name, lastName, gender, document, bornDate, telephone
-- **Formato de teléfono:** Debe ser un número válido y único
+| Variable | Descripción | Valor por Defecto |
+|----------|-------------|-------------------|
+| `SERVER_PORT` | Puerto HTTP del servicio | 8082 |
+| `DATABASE_URL` | URL de conexión PostgreSQL | jdbc:postgresql://users-db:5432/users_db |
+| `DATABASE_USER` | Usuario de base de datos | users_user |
+| `DATABASE_PASSWORD` | Contraseña de base de datos | users_password |
+| `JWT_SECRET` | Clave secreta para validar tokens JWT | (debe coincidir con auth-service) |
+| `AUTH_SERVICE_URL` | URL de auth-service | http://auth-service:8081/api |
+| `EVENT_SERVICE_URL` | URL de event-service | http://event-service:8086/api |
+| `LOGGING_LEVEL_USERS` | Nivel de logging del servicio | DEBUG |
 
-### Reglas de Negocio
-- **Soft Delete:** Los perfiles se marcan como inactivos en lugar de eliminarse
-- **Auditoría automática:** Timestamps de creación y actualización
-- **Integridad referencial:** Validación de existencia de authUserId
+---
 
-## Dependencias con Otros Servicios
+## 🔐 Seguridad
 
-### AUTH-SERVICE
-- **Inbound:** Recibe solicitudes de creación de perfil tras registro
-- **Endpoint usado:** `POST /api/user-profiles/from-auth`
-- **Flujo:** AUTH-SERVICE → registro exitoso → llamada automática → creación de perfil
+### 🛡️ Validación JWT
 
-## Manejo de Errores
+- Todos los endpoints requieren JWT válido
+- Validación de ownership para operaciones de perfil
+- Solo ADMIN puede acceder a `/api/user-profiles` (listado completo)
+- Los empleados solo pueden acceder a sus propios recursos
 
-### Excepciones Personalizadas
-- **RuntimeException:** Para casos de negocio (duplicados, no encontrados)
-- **Validaciones automáticas:** Campos requeridos y formatos
-- **Logging detallado:** Registro de errores y operaciones exitosas
+### 🔒 Control de Acceso
 
-### Respuestas HTTP
-- **201 Created:** Perfil creado exitosamente
-- **200 OK:** Operaciones exitosas de consulta/actualización
-- **400 Bad Request:** Datos inválidos o reglas de negocio violadas
-- **404 Not Found:** Perfil no encontrado
-- **409 Conflict:** Conflicto de unicidad (documento duplicado)
+- **Perfiles:** Solo el owner o ADMIN puede ver/editar perfiles
+- **Empleados (Admin):** Solo el admin que lo creó puede gestionarlo
+- **Empleados (Operaciones):** Solo pueden validar tickets de eventos asignados
 
-## Características Especiales
+---
 
-### Integración Automática
-- Creación transparente de perfiles desde auth-service
-- Manejo de fallos sin afectar el registro principal
-- Logging detallado de operaciones inter-servicios
+## 🔄 Integración con Otros Servicios
 
-### Flexibilidad de Consultas
-- Métodos específicos para usuarios activos
-- Búsqueda por múltiples campos únicos
-- Soporte para eliminación física y lógica
+### Auth Service
+- **URL:** `http://auth-service:8081/api`
+- **Función:** Recibe llamadas para crear perfiles tras registro
+- **Método:** Recibe POST en `/api/user-profiles/from-auth`
 
-### Mapeo Automático
-- Conversión automática entre DTOs y entidades
-- Configuración centralizada de mapeo
-- Optimización de consultas con proyecciones
+### Event Service
+- **URL:** `http://event-service:8086/api`
+- **Función:** Proxy para validación de tickets y consumiciones
+- **Métodos:**
+  - `POST /api/qr-validation/validate-entry`
+  - `POST /api/qr-validation/validate-consumption`
+  - `POST /api/event/by-ids` (obtener eventos asignados)
 
-## Patrones Implementados
-- **Repository Pattern:** Para acceso a datos
-- **Service Layer:** Para lógica de negocio
-- **DTO Pattern:** Para transferencia de datos
-- **Active Record Pattern:** Gestión de estado de entidades
-- **Soft Delete Pattern:** Para preservación de datos históricos
-
-## Consideraciones de Performance
-- Índices únicos en campos de búsqueda frecuente
-- Consultas optimizadas por estado activo
-- Mapeo eficiente con ModelMapper
-- Validaciones tempranas para reducir carga en BD
-
-## 🐳 Ejecución con Docker
-
-### Desde el directorio raíz del backend:
-```bash
-docker-compose up -d users-service
+**WebClient Configuration:**
+```java
+@Bean
+public WebClient eventServiceWebClient() {
+    return WebClient.builder()
+        .baseUrl(eventServiceUrl)
+        .codecs(configurer -> configurer
+            .defaultCodecs()
+            .maxInMemorySize(5 * 1024 * 1024)) // 5MB buffer
+        .build();
+}
 ```
 
-### Logs del servicio:
-```bash
-docker-compose logs -f users-service
+---
+
+## 🐳 Docker
+
+### Dockerfile
+
+```dockerfile
+FROM eclipse-temurin:17-jdk-alpine
+WORKDIR /app
+COPY target/users-service-0.0.1-SNAPSHOT.jar app.jar
+EXPOSE 8082 5006
+ENTRYPOINT ["java", "-jar", "app.jar"]
 ```
 
-### Reconstruir imagen:
-```bash
-docker-compose up -d --build users-service
+### Docker Compose
+
+```yaml
+users-service:
+  build:
+    context: ./users-service
+    dockerfile: Dockerfile
+  ports:
+    - "8082:8082"
+    - "5006:5006"
+  env_file:
+    - ./users-service/.env
+  environment:
+    - SPRING_PROFILES_ACTIVE=docker
+    - JAVA_TOOL_OPTIONS=-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5006
+    - EVENT_SERVICE_URL=http://event-service:8086/api
+  depends_on:
+    users-db:
+      condition: service_healthy
+  networks:
+    - packedgo-network
+
+users-db:
+  image: postgres:15-alpine
+  environment:
+    POSTGRES_DB: users_db
+    POSTGRES_USER: users_user
+    POSTGRES_PASSWORD: users_password
+  ports:
+    - "5434:5432"
+  volumes:
+    - users_db_data:/var/lib/postgresql/data
+  healthcheck:
+    test: ["CMD-SHELL", "pg_isready -U users_user -d users_db"]
+    interval: 30s
+    timeout: 10s
+    retries: 3
+  networks:
+    - packedgo-network
 ```
 
-## 🔧 Desarrollo Local
+---
 
-### Requisitos:
+## 🚀 Ejecución Local
+
+### Requisitos
 - Java 17+
 - Maven 3.8+
-- PostgreSQL 15+ (o usar Docker)
+- PostgreSQL 15+
 
-### Ejecutar localmente:
+### 1. Configurar Base de Datos
+
+```sql
+CREATE DATABASE users_db;
+CREATE USER users_user WITH PASSWORD 'users_password';
+GRANT ALL PRIVILEGES ON DATABASE users_db TO users_user;
+```
+
+### 2. Compilar y Ejecutar
+
 ```bash
+cd users-service
+./mvnw clean package -DskipTests
 ./mvnw spring-boot:run
 ```
 
-### Compilar:
+### 3. Verificar
+
 ```bash
-./mvnw clean package
+curl http://localhost:8082/api/actuator/health
 ```
 
-### Tests:
+---
+
+## 🐳 Ejecución con Docker
+
+```bash
+# Compilar
+cd users-service
+./mvnw clean package -DskipTests
+
+# Levantar con Docker Compose (desde /back)
+cd ..
+docker-compose up -d users-db
+docker-compose up -d --build users-service
+
+# Ver logs
+docker-compose logs -f users-service
+```
+
+---
+
+## 🧪 Testing
+
+### Ejecutar Tests
+
 ```bash
 ./mvnw test
 ```
 
-## 🔗 Integración con Otros Servicios
+### Tests Principales
+- ✅ Creación de perfiles desde auth-service
+- ✅ Gestión CRUD de perfiles
+- ✅ Soft delete de perfiles
+- ✅ Creación y gestión de empleados
+- ✅ Validación de ownership
+- ✅ Integración con event-service (proxy)
 
-### AUTH-SERVICE (Inbound)
-- **Endpoint:** `POST /api/user-profiles/from-auth`
-- **Propósito:** Creación automática de perfil tras registro exitoso
-- **Flujo:** AUTH-SERVICE → registro → users-service → crear perfil
+---
 
-### EVENT-SERVICE (Outbound)
-- **Endpoints:** `/api/qr-validation/*`
-- **Propósito:** Validación de tickets y registro de consumos
-- **Flujo:** Employee → users-service (proxy) → event-service
-- **URL Configurada:** `EVENT_SERVICE_URL=http://event-service:8086/api`
+## 🔍 Troubleshooting
 
-## 🔐 Seguridad
+### Error: "Cannot access other user's resources"
+**Causa:** Intento de acceder a recursos de otro usuario  
+**Solución:** Verificar que el userId del token coincida con el solicitado
 
-- **Autenticación:** Spring Security configurado
-- **Endpoints Internos:** `/internal/*` solo para comunicación entre microservicios
-- **Validación:** Campos requeridos validados con `@Valid`
-- **Integridad:** Validación de unicidad en documento, teléfono y authUserId
+### Error: "Connection refused to event-service"
+**Causa:** Event-service no está disponible  
+**Solución:** Verificar que event-service esté corriendo y accesible
 
-## 📊 Health Check
+### Error: "Employee not found"
+**Causa:** El empleado no existe o fue eliminado  
+**Solución:** Verificar que el empleado esté activo y asignado al admin correcto
 
-```bash
-curl http://localhost:8082/actuator/health
-```
+### Error: "Event not assigned to employee"
+**Causa:** El empleado intenta validar tickets de un evento no asignado  
+**Solución:** El admin debe asignar el evento al empleado
 
-Respuesta esperada:
-```json
-{
-  "status": "UP",
-  "components": {
-    "db": { "status": "UP" },
-    "diskSpace": { "status": "UP" },
-    "ping": { "status": "UP" }
-  }
-}
-```
+---
 
-## 📝 Notas de Desarrollo
+## 📚 Documentación Adicional
 
-- Los perfiles se crean automáticamente desde auth-service tras registro
-- El campo `isActive` permite soft delete sin perder datos históricos
-- Los empleados pueden validar tickets y registrar consumos en tiempo real
-- ModelMapper se configura globalmente para mapeos automáticos
-- Todas las timestamps son gestionadas automáticamente por JPA
+- [Spring WebFlux Documentation](https://docs.spring.io/spring-framework/reference/web/webflux.html)
+- [Spring Data JPA](https://docs.spring.io/spring-data/jpa/docs/current/reference/html/)
+- [ModelMapper](http://modelmapper.org/)
+
+---
+
+## 📞 Contacto
+
+Para reportar problemas o sugerencias relacionadas con USERS-SERVICE, contacta al equipo de desarrollo de PackedGo.
+
+---
+
+**Última actualización:** Diciembre 2025  
+**Versión:** 1.0.0

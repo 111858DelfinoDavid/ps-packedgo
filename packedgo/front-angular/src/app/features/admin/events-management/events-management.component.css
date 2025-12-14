@@ -1051,7 +1051,111 @@ textarea.form-control {
   .modal-header h2 {
     font-size: 1.3rem;
   }
+
+  .management-content {
+    padding: 1rem 0.85rem;
+  }
+
+  .table-container {
+    padding: 0.85rem;
+    margin: 0 -3px;
+  }
+
+  .navbar {
+    padding: 1rem;
+  }
+
+  .btn-create {
+    font-size: 0.9rem;
+    padding: 0.7rem 1.25rem;
+  }
+
+  .search-input {
+    font-size: 0.9rem;
+    padding: 0.7rem 1rem 0.7rem 2.75rem;
+  }
+
+  .tab-button {
+    font-size: 0.9rem;
+    padding: 0.7rem 1rem;
+  }
+
+  .modal-form {
+    padding: 1rem;
+  }
+
+  .form-group label {
+    font-size: 0.9rem;
+  }
+
+  .form-control {
+    font-size: 0.9rem;
+    padding: 0.7rem;
+  }
+
+  .modal-actions .btn {
+    font-size: 0.9rem;
+    padding: 0.7rem 1.25rem;
+  }
 }
+
+/* Extra pequeño - iPhone SE */
+@media (max-width: 375px) {
+  .header-left h1 {
+    font-size: 1.3rem;
+  }
+
+  .header-left p {
+    font-size: 0.85rem;
+  }
+
+  .navbar-brand span {
+    font-size: 1.1rem;
+  }
+
+  .navbar-brand i {
+    font-size: 1.5rem;
+  }
+
+  .btn-create {
+    font-size: 0.85rem;
+    padding: 0.65rem 1.1rem;
+  }
+
+  .search-input {
+    font-size: 0.85rem;
+    padding: 0.65rem 0.85rem 0.65rem 2.5rem;
+  }
+
+  .tab-button {
+    font-size: 0.85rem;
+    padding: 0.65rem 0.9rem;
+  }
+
+  .modal-header h2 {
+    font-size: 1.1rem;
+  }
+
+  .form-control {
+    font-size: 0.85rem;
+  }
+
+  .modal-actions .btn {
+    font-size: 0.85rem;
+    padding: 0.65rem 1.1rem;
+  }
+
+  .event-thumbnail {
+    width: 45px;
+    height: 32px;
+  }
+
+  .badge {
+    padding: 3px 8px;
+    font-size: 0.75rem;
+  }
+}
+
 
 /* Consumptions Selection Styles */
 .consumptions-selection {

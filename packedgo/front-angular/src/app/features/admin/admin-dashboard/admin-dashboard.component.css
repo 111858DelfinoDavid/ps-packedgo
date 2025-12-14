@@ -375,35 +375,66 @@
   font-size: 0.9rem;
 }
 
-/* Responsive Design */
+/* Responsive Design - MEJORADO */
+@media (max-width: 1024px) {
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.25rem;
+  }
+  
+  .actions-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.25rem;
+  }
+}
+
 @media (max-width: 768px) {
   .navbar {
     flex-direction: column;
-    gap: 15px;
-    padding: 20px;
+    gap: 12px;
+    padding: 15px;
   }
 
   .navbar-brand {
     font-size: 1.3rem;
   }
+  
+  .navbar-brand i {
+    font-size: 1.8rem;
+  }
 
   .navbar-user {
-    flex-direction: column;
+    flex-direction: row;
+    justify-content: space-between;
     gap: 10px;
     width: 100%;
   }
+  
+  .user-info {
+    font-size: 0.9rem;
+  }
+  
+  .user-info i {
+    font-size: 1.3rem;
+  }
 
   .btn-logout {
-    width: 100%;
-    justify-content: center;
+    padding: 8px 16px;
+    font-size: 0.85rem;
   }
 
   .dashboard-content {
-    padding: 30px 15px;
+    padding: 25px 15px;
+  }
+
+  .welcome-section {
+    padding: 2rem 1.5rem;
+    margin-bottom: 2rem;
   }
 
   .welcome-section h1 {
     font-size: 2rem;
+    margin-bottom: 0.75rem;
   }
 
   .welcome-section p {
@@ -412,11 +443,11 @@
 
   .stats-grid {
     grid-template-columns: 1fr;
-    gap: 15px;
+    gap: 1rem;
   }
 
   .stat-card {
-    padding: 20px;
+    padding: 1.25rem;
   }
 
   .stat-icon {
@@ -428,18 +459,23 @@
   .stat-content h3 {
     font-size: 2rem;
   }
+  
+  .stat-content p {
+    font-size: 0.9rem;
+  }
 
   .quick-actions-section h2 {
     font-size: 1.5rem;
+    margin-bottom: 1.5rem;
   }
 
   .actions-grid {
     grid-template-columns: 1fr;
-    gap: 15px;
+    gap: 1rem;
   }
 
   .action-card {
-    padding: 20px;
+    padding: 1.25rem;
   }
 
   .action-icon {
@@ -455,9 +491,18 @@
   .action-content p {
     font-size: 0.9rem;
   }
+  
+  .action-arrow {
+    font-size: 1.2rem;
+  }
 }
 
 @media (max-width: 480px) {
+  .navbar {
+    padding: 12px 10px;
+    gap: 10px;
+  }
+
   .navbar-brand {
     font-size: 1.1rem;
   }
@@ -465,21 +510,166 @@
   .navbar-brand i {
     font-size: 1.5rem;
   }
+  
+  .navbar-user {
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+  }
+  
+  .user-info {
+    font-size: 0.85rem;
+    width: 100%;
+    justify-content: center;
+  }
+  
+  .btn-logout {
+    width: 100%;
+    justify-content: center;
+    padding: 8px 12px;
+    font-size: 0.8rem;
+  }
+
+  .dashboard-content {
+    padding: 20px 10px;
+  }
+
+  .welcome-section {
+    padding: 1.5rem 1rem;
+    margin-bottom: 1.5rem;
+    border-radius: 10px;
+  }
 
   .welcome-section h1 {
     font-size: 1.5rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .welcome-section p {
+    font-size: 0.9rem;
+  }
+
+  .stats-section,
+  .quick-actions-section {
+    margin-bottom: 1.5rem;
+  }
+
+  .stats-grid,
+  .actions-grid {
+    gap: 0.85rem;
+  }
+
+  .stat-card {
+    padding: 1rem;
+    border-radius: 10px;
+  }
+
+  .stat-icon {
+    width: 50px;
+    height: 50px;
+    font-size: 1.3rem;
   }
 
   .stat-content h3 {
-    font-size: 1.8rem;
+    font-size: 1.6rem;
+  }
+
+  .stat-content p {
+    font-size: 0.85rem;
+  }
+
+  .quick-actions-section h2 {
+    font-size: 1.3rem;
+    margin-bottom: 1.25rem;
   }
 
   .action-card {
+    padding: 1rem;
+    border-radius: 10px;
     flex-direction: column;
     text-align: center;
+    gap: 0.75rem;
+  }
+
+  .action-icon {
+    width: 45px;
+    height: 45px;
+    font-size: 1.3rem;
+  }
+
+  .action-content {
+    margin-left: 0;
+  }
+
+  .action-content h3 {
+    font-size: 1rem;
+    margin-bottom: 0.4rem;
+  }
+
+  .action-content p {
+    font-size: 0.85rem;
   }
 
   .action-arrow {
     display: none;
+  }
+}
+
+/* Extra pequeño - iPhone SE */
+@media (max-width: 375px) {
+  .navbar-brand {
+    font-size: 1rem;
+  }
+
+  .navbar-brand i {
+    font-size: 1.3rem;
+  }
+
+  .welcome-section h1 {
+    font-size: 1.3rem;
+  }
+
+  .welcome-section p {
+    font-size: 0.85rem;
+  }
+
+  .stat-card {
+    padding: 0.85rem;
+  }
+
+  .stat-icon {
+    width: 45px;
+    height: 45px;
+    font-size: 1.2rem;
+  }
+
+  .stat-content h3 {
+    font-size: 1.4rem;
+  }
+
+  .stat-content p {
+    font-size: 0.8rem;
+  }
+
+  .quick-actions-section h2 {
+    font-size: 1.2rem;
+  }
+
+  .action-card {
+    padding: 0.85rem;
+  }
+
+  .action-icon {
+    width: 40px;
+    height: 40px;
+    font-size: 1.2rem;
+  }
+
+  .action-content h3 {
+    font-size: 0.95rem;
+  }
+
+  .action-content p {
+    font-size: 0.8rem;
   }
 }

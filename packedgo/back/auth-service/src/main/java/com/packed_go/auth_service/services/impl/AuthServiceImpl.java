@@ -286,7 +286,7 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
-public boolean verifyEmail(String token) {
+public java.util.Map<String, Object> verifyEmail(String token) {
     try {
         EmailVerificationToken verificationToken = emailVerificationTokenRepository
                 .findByTokenAndIsVerifiedFalse(token)
@@ -294,12 +294,12 @@ public boolean verifyEmail(String token) {
         
         if (verificationToken == null) {
             log.warn("Verification token not found: {}", token);
-            return false;
+            return java.util.Map.of("success", false, "message", "Token not found or already used");
         }
         
         if (verificationToken.isExpired()) {
             log.warn("Verification token expired: {}", token);
-            return false;
+            return java.util.Map.of("success", false, "message", "Token expired");
         }
         
         // Marcar como verificado
@@ -313,12 +313,17 @@ public boolean verifyEmail(String token) {
         user.setUpdatedAt(LocalDateTime.now());
         authUserRepository.save(user);
         
-        log.info("Email verified successfully for user ID: {}", user.getId());
-        return true;
+        log.info("Email verified successfully for user ID: {} with role: {}", user.getId(), user.getRole());
+        
+        return java.util.Map.of(
+            "success", true,
+            "message", "Email verified successfully",
+            "role", user.getRole()
+        );
         
     } catch (Exception e) {
         log.error("Error verifying email token: {}", token, e);
-        return false;
+        return java.util.Map.of("success", false, "message", "Error verifying email");
     }
 }
 
