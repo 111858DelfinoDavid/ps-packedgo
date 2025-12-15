@@ -1,11 +1,11 @@
 export const environment = {
   production: false,
-  apiUrl: 'http://localhost',
-  authServiceUrl: 'http://localhost:8081/api',
-  usersServiceUrl: 'http://localhost:8082/api',
-  eventServiceUrl: 'http://localhost:8086/api', // Event Service
-  eventsServiceUrl: 'http://localhost:8086/api',
-  ordersServiceUrl: 'http://localhost:8084/api',
-  paymentsServiceUrl: 'http://localhost:8085/api', // Payment Service
-  analyticsServiceUrl: 'http://localhost:8087/api', // Analytics Service
+  apiUrl: 'http://localhost:8080/api',  // API Gateway
+  authServiceUrl: 'http://localhost:8080/api',
+  usersServiceUrl: 'http://localhost:8080/api',
+  eventServiceUrl: 'http://localhost:8080/api',
+  eventsServiceUrl: 'http://localhost:8080/api',
+  ordersServiceUrl: 'http://localhost:8080/api',
+  paymentsServiceUrl: 'http://localhost:8080/api',
+  analyticsServiceUrl: 'http://localhost:8080/api',
 };

@@ -1,6 +1,26 @@
 version: '3.8'
 
 services:
+  # API Gateway
+  api-gateway:
+    build:
+      context: ./api-gateway
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - JWT_SECRET=mySecretKey123456789PackedGoAuth2025VerySecureKey
+    depends_on:
+      - auth-service
+      - users-service
+      - event-service
+      - order-service
+      - payment-service
+      - analytics-service
+    networks:
+      - packedgo-network
+
   # Auth Service
   auth-service:
     build:

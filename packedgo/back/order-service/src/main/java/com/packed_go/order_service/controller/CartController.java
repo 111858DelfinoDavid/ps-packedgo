@@ -1,23 +1,32 @@
 package com.packed_go.order_service.controller;
 
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
 import com.packed_go.order_service.dto.request.AddConsumptionToItemRequest;
 import com.packed_go.order_service.dto.request.AddToCartRequest;
 import com.packed_go.order_service.dto.request.UpdateCartItemRequest;
 import com.packed_go.order_service.dto.response.CartDTO;
 import com.packed_go.order_service.security.JwtTokenValidator;
 import com.packed_go.order_service.service.CartService;
+
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
 
 @Slf4j
 @RestController
 @RequestMapping("/cart")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*", allowedHeaders = "*")
 public class CartController {
     
     private final CartService cartService;

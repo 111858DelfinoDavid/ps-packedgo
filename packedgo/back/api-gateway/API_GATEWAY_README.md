@@ -1,44 +1,47 @@
 # 🚪 API-GATEWAY
 
-**⚠️ Estado: EN DESARROLLO / SKELETON**
+**⚠️ Estado: ✅ ACTIVO Y FUNCIONAL**
 
-Este proyecto es un esqueleto para un futuro API Gateway basado en **Spring Cloud Gateway**.
-Actualmente no tiene rutas configuradas ni lógica de enrutamiento activa.
+Este servicio actúa como **punto de entrada único** para todos los microservicios de PackedGo, implementando enrutamiento centralizado, autenticación JWT, y gestión de CORS.
 
 ## 📋 Descripción
 
-El objetivo de este servicio será actuar como **punto de entrada único** para todos los microservicios de PackedGo, implementando:
+El **API Gateway** es el punto de entrada centralizado para toda la plataforma PackedGo. Implementa las siguientes funcionalidades:
+
+### Funcionalidades Implementadas:
+- ✅ **Enrutamiento Centralizado** - Redirección inteligente de peticiones a microservicios
+- ✅ **Autenticación JWT** - Validación de tokens antes de enrutar
+- ✅ **CORS Handling** - Gestión centralizada de CORS para frontend
+- ✅ **Filtros Personalizados** - Filtros para endpoints públicos y protegidos
+- ✅ **Request/Response Logging** - Auditoría de peticiones
+- ✅ **Retry Logic** - Reintentos automáticos en caso de fallo
 
 ### Funcionalidades Planificadas:
-- ✅ **Enrutamiento Centralizado** - Redirección inteligente de peticiones
-- ✅ **Autenticación Centralizada** - Validación JWT antes de enrutar
-- ✅ **Rate Limiting** - Control de frecuencia de peticiones
-- ✅ **Load Balancing** - Distribución de carga entre instancias
-- ✅ **CORS Handling** - Gestión centralizada de CORS
-- ✅ **Request/Response Logging** - Auditoría de peticiones
-- ✅ **Circuit Breaker** - Resiliencia ante fallos de servicios
+- ⏳ **Rate Limiting** - Control de frecuencia de peticiones
+- ⏳ **Circuit Breaker** - Resiliencia ante fallos de servicios
+- ⏳ **Load Balancing** - Distribución de carga entre instancias
 
 ## 🎯 Estado Actual
 
 | Componente | Estado | Notas |
 |------------|--------|-------|
-| **Estructura de Proyecto** | ✅ Completa | Generado con Spring Initializr |
-| **Dependencias** | ⚠️ Básicas | Spring Boot Starter |
-| **Configuración de Rutas** | ❌ Pendiente | Sin `application.yml` configurado |
-| **Filtros Globales** | ❌ Pendiente | Sin GlobalFilters implementados |
-| **Docker** | ❌ No incluido | No está en docker-compose.yml |
-| **Tests** | ❌ Pendiente | Sin tests implementados |
+| **Estructura de Proyecto** | ✅ Completa | Spring Cloud Gateway implementado |
+| **Dependencias** | ✅ Completa | JWT, Lombok, Actuator |
+| **Configuración de Rutas** | ✅ Implementada | 7 rutas principales configuradas |
+| **Filtros Globales** | ✅ Implementados | AuthenticationFilter, PublicEndpointFilter |
+| **Docker** | ✅ Incluido | Incluido en docker-compose.yml |
+| **Tests** | ⚠️ Pendiente | Tests unitarios pendientes |
 
-## 🚀 Tecnologías Planificadas
+## 🚀 Tecnologías
 
 - **Java 17**
-- **Spring Boot 3.x**
+- **Spring Boot 3.5.6**
 - **Spring Cloud Gateway** - Enrutamiento reactivo
-- **Spring Security** - Seguridad y JWT
-- **Resilience4j** - Circuit breaker y rate limiting
-- **Spring Cloud LoadBalancer** - Balanceo de carga
+- **JWT (jjwt 0.12.5)** - Validación de tokens
+- **Lombok** - Reducción de boilerplate
+- **Spring Actuator** - Health checks y métricas
 
-## 🏗️ Arquitectura Propuesta
+## 🏗️ Arquitectura Implementada
 
 ```
 ┌─────────────┐
@@ -54,8 +57,8 @@ El objetivo de este servicio será actuar como **punto de entrada único** para 
 │  ┌──────────────────────┐  │
 │  │ JWT Validation       │  │
 │  │ CORS Handler         │  │
-│  │ Rate Limiter         │  │
-│  │ Circuit Breaker      │  │
+│  │ Route Filters        │  │
+│  │ Retry Logic          │  │
 │  └──────────────────────┘  │
 └──────────┬──────────────────┘
            │
@@ -67,87 +70,123 @@ El objetivo de este servicio será actuar como **punto de entrada único** para 
 └────────┘  └─────────┘ └────────┘ └──────┘ └─────────┘ └──────────┘
 ```
 
-## 📝 Rutas Planificadas
+## 📝 Rutas Configuradas
 
-```yaml
-# Ejemplo de configuración futura en application.yml
-spring:
-  cloud:
-    gateway:
-      routes:
-        - id: auth-service
-          uri: http://auth-service:8081
-          predicates:
-            - Path=/api/auth/**
-          filters:
-            - StripPrefix=1
-        
-        - id: users-service
-          uri: http://users-service:8082
-          predicates:
-            - Path=/api/users/**
-          filters:
-            - StripPrefix=1
-        
-        - id: event-service
-          uri: http://event-service:8086
-          predicates:
-            - Path=/api/events/**
-          filters:
-            - StripPrefix=1
-            - AuthFilter  # Custom JWT validation
+### Endpoints Públicos (Sin autenticación JWT)
+
+| Ruta | Servicio Destino | Puerto | Filtro |
+|------|------------------|--------|--------|
+| `/api/auth/**` | auth-service | 8081 | PublicEndpointFilter |
+| `/api/events` | event-service | 8086 | PublicEndpointFilter |
+| `/api/events/{id}` | event-service | 8086 | PublicEndpointFilter |
+| `/api/consumptions/event/**` | event-service | 8086 | PublicEndpointFilter |
+| `/api/payments/health` | payment-service | 8085 | PublicEndpointFilter |
+| `/api/webhooks/stripe` | payment-service | 8085 | PublicEndpointFilter |
+
+### Endpoints Protegidos (Requieren JWT)
+
+| Ruta | Servicio Destino | Puerto | Filtro |
+|------|------------------|--------|--------|
+| `/api/user-profiles/**` | users-service | 8082 | AuthenticationFilter |
+| `/api/admin/employees/**` | users-service | 8082 | AuthenticationFilter |
+| `/api/employee/**` | users-service | 8082 | AuthenticationFilter |
+| `/api/events/**` | event-service | 8086 | AuthenticationFilter |
+| `/api/event-categories/**` | event-service | 8086 | AuthenticationFilter |
+| `/api/consumptions/**` | event-service | 8086 | AuthenticationFilter |
+| `/api/passes/**` | event-service | 8086 | AuthenticationFilter |
+| `/api/tickets/**` | event-service | 8086 | AuthenticationFilter |
+| `/api/cart/**` | order-service | 8084 | AuthenticationFilter |
+| `/api/orders/**` | order-service | 8084 | AuthenticationFilter |
+| `/api/payments/**` | payment-service | 8085 | AuthenticationFilter |
+| `/api/dashboard/**` | analytics-service | 8087 | AuthenticationFilter |
+
+## 🔧 Configuración
+
+### Variables de Entorno
+
+Crear archivo `.env` basado en `.env.example`:
+
+```bash
+# JWT Secret (debe coincidir con auth-service)
+JWT_SECRET=your_super_secret_key_change_this_in_production_2024
+
+# URLs de servicios (auto-configuradas en Docker)
+AUTH_SERVICE_URL=http://auth-service:8081
+USERS_SERVICE_URL=http://users-service:8082
+EVENT_SERVICE_URL=http://event-service:8086
+ORDER_SERVICE_URL=http://order-service:8084
+PAYMENT_SERVICE_URL=http://payment-service:8085
+ANALYTICS_SERVICE_URL=http://analytics-service:8087
 ```
 
-## 🔧 Pasos Futuros
+### Filtros Implementados
 
-### Fase 1: Configuración Básica
-- [ ] Agregar dependencias de Spring Cloud Gateway
-- [ ] Configurar rutas en `application.yml`
-- [ ] Definir predicados y filtros básicos
-- [ ] Agregar al `docker-compose.yml`
+#### AuthenticationFilter
+- **Propósito**: Validar JWT en endpoints protegidos
+- **Lógica**:
+  1. Extrae token del header `Authorization: Bearer <token>`
+  2. Valida expiración y firma del token
+  3. Agrega headers `X-User-Id` y `X-User-Role` al request downstream
+  4. Retorna 401 si el token es inválido
 
-### Fase 2: Seguridad
-- [ ] Implementar `JwtAuthenticationFilter`
-- [ ] Configurar CORS global
-- [ ] Validar tokens antes de enrutar
-- [ ] Implementar lista blanca de endpoints públicos
+#### PublicEndpointFilter
+- **Propósito**: Permitir acceso sin autenticación
+- **Uso**: Login, registro, webhooks, listados públicos
 
-### Fase 3: Resiliencia
-- [ ] Configurar Circuit Breaker con Resilience4j
-- [ ] Implementar Rate Limiting por IP/Usuario
-- [ ] Agregar fallback responses
-- [ ] Configurar timeouts y retry policies
-
-### Fase 4: Observabilidad
-- [ ] Agregar logging de requests/responses
-- [ ] Integrar métricas con Actuator
-- [ ] Configurar health checks
-- [ ] Implementar distributed tracing (opcional)
-
-## 🐳 Configuración Docker Futura
+### CORS
 
 ```yaml
-# Agregar al docker-compose.yml
-api-gateway:
-  build:
-    context: ./api-gateway
-    dockerfile: Dockerfile
-  ports:
-    - "8080:8080"
-  environment:
-    - SPRING_PROFILES_ACTIVE=docker
-    - AUTH_SERVICE_URL=http://auth-service:8081
-    - USERS_SERVICE_URL=http://users-service:8082
-    - EVENT_SERVICE_URL=http://event-service:8086
-    - ORDER_SERVICE_URL=http://order-service:8084
-    - PAYMENT_SERVICE_URL=http://payment-service:8085
-    - ANALYTICS_SERVICE_URL=http://analytics-service:8087
-  depends_on:
-    - auth-service
-    - users-service
-    - event-service
-  networks:
-    - packedgo-network
+# Configurado para permitir frontend Angular
+globalcors:
+  cors-configurations:
+    '[/**]':
+      allowedOrigins: "http://localhost:4200"
+      allowedMethods: "*"
+      allowedHeaders: "*"
+      allowCredentials: true
+```
+
+## 🚀 Uso
+
+### Compilar
+
+```bash
+cd api-gateway
+./mvnw clean package
+```
+
+### Ejecutar Localmente
+
+```bash
+java -jar target/api-gateway-0.0.1-SNAPSHOT.jar
+```
+
+### Ejecutar con Docker
+
+```bash
+# Desde la carpeta back/
+docker-compose up -d api-gateway
+```
+
+### Probar Endpoint Público
+
+```bash
+# Listar eventos (sin autenticación)
+curl http://localhost:8080/api/events
+```
+
+### Probar Endpoint Protegido
+
+```bash
+# 1. Login para obtener token
+TOKEN=$(curl -X POST http://localhost:8080/api/auth/customer/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"test@example.com","password":"password"}' \
+  | jq -r '.token')
+
+# 2. Usar token para acceso protegido
+curl http://localhost:8080/api/user-profiles/me \
+  -H "Authorization: Bearer $TOKEN"
 ```
 
 ## ⚙️ Servicios a Enrutar
@@ -165,6 +204,69 @@ api-gateway:
 
 - [Spring Cloud Gateway Documentation](https://spring.io/projects/spring-cloud-gateway)
 - [Spring Cloud Gateway Samples](https://github.com/spring-cloud-samples/spring-cloud-gateway-sample)
+
+---
+
+## 🔒 Configuración de CORS
+
+### ⚠️ IMPORTANTE: CORS Centralizado
+
+**El API Gateway es el ÚNICO punto que gestiona CORS.** Esta configuración es crítica para evitar el error de headers duplicados.
+
+#### Configuración en API Gateway
+
+```yaml
+# application.yml
+spring:
+  cloud:
+    gateway:
+      globalcors:
+        cors-configurations:
+          '[/**]':
+            allowedOrigins: "http://localhost:3000"  # Frontend Angular
+            allowedMethods:
+              - GET
+              - POST
+              - PUT
+              - DELETE
+              - PATCH
+              - OPTIONS
+            allowedHeaders: "*"
+            allowCredentials: true
+            maxAge: 3600
+```
+
+#### Estado en Microservicios
+
+**TODOS los microservicios tienen CORS DESHABILITADO:**
+
+✅ **analytics-service**: 
+- ❌ Sin Spring Security
+- ❌ Sin @CrossOrigin en DashboardController
+
+✅ **payment-service**:
+- `.cors(cors -> cors.disable())` en SecurityConfig
+- ❌ Sin @CrossOrigin en controladores
+
+✅ **users-service**:
+- `.cors(cors -> cors.disable())` en SecurityConfig
+- ❌ Sin @CrossOrigin en controladores
+- ❌ CorsConfig.java ELIMINADO
+
+✅ **event-service**:
+- ❌ CorsConfig.java ELIMINADO
+
+✅ **order-service**:
+- ❌ CorsConfig.java ELIMINADO
+- ❌ Sin @CrossOrigin en OrderController
+- ❌ Sin @CrossOrigin en CartController
+
+✅ **auth-service**:
+- `.cors(cors -> cors.disable())` en SecurityConfig
+
+**Beneficio**: Evita el error "Access-Control-Allow-Origin: http://localhost:3000, http://localhost:3000" (headers duplicados).
+
+---
 
 ## 💡 Beneficios Esperados
 
