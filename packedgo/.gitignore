@@ -5,25 +5,42 @@
 *.env
 **/.env
 
-# Database init files with credentials
+# API Keys and Secrets
+**/secrets/
+*.key
+*.pem
+*.p12
+
+# Database credentials
 **/database-init.sql
 
 # IDE
 .idea/
 .vscode/
 *.iml
+*.iws
 
 # OS
 .DS_Store
 Thumbs.db
+*.swp
+*.swo
 
 # Logs
 *.log
+logs/
 
 # Docker volumes
 volumes/
 
+# Build artifacts
+**/target/
+**/dist/
+**/build/
+**/.angular/
+**/node_modules/
+
 # Temporary files
 *.tmp
 *.bak
-*.swp
+~*
