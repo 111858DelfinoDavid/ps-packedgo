@@ -343,15 +343,6 @@ Ver roadmap completo en [TECHNICAL_DOCUMENTATION.md](TECHNICAL_DOCUMENTATION.md#
 
 ---
 
-## 📞 Soporte
-
-**Desarrollador**: David Delfino  
-**Email**: daviddelfino97@hotmail.com  
-**Proyecto**: PackedGo  
-**Última Actualización**: 15 de Diciembre de 2025  
-
----
-
-## 📄 Licencia
+##  Licencia
 
 Propiedad de PackedGo. Todos los derechos reservados.
