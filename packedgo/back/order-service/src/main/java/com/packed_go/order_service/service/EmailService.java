@@ -49,6 +49,9 @@ public class EmailService {
     @Value("${event-service.url:http://event-service:8086}")
     private String eventServiceUrl;
 
+    @Value("${app.frontend.base-url:http://localhost:3000}")
+    private String frontendBaseUrl;
+
     @Async
     public void sendOrderConfirmation(Order order, String toEmail, List<TicketWithConsumptionsResponse> generatedTickets) {
         if (toEmail == null || toEmail.isEmpty()) {
@@ -381,7 +384,7 @@ public class EmailService {
         
         // Call to action
         sb.append("<div style='text-align: center; margin: 30px 0;'>");
-        sb.append("<a href='http://localhost:3000/customer/dashboard?tab=tickets' style='display: inline-block; background: ").append(primaryGradient).append("; color: white; padding: 15px 40px; text-decoration: none; border-radius: 25px; font-weight: 700; font-size: 16px; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);'>Ver Mis Tickets</a>");
+        sb.append("<a href='").append(normalizeBaseUrl(frontendBaseUrl)).append("/customer/dashboard?tab=tickets' style='display: inline-block; background: ").append(primaryGradient).append("; color: white; padding: 15px 40px; text-decoration: none; border-radius: 25px; font-weight: 700; font-size: 16px; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);'>Ver Mis Tickets</a>");
         sb.append("</div>");
         
         sb.append("</div>"); // End padding content
@@ -397,6 +400,13 @@ public class EmailService {
         sb.append("</html>");
         
         return sb.toString();
+    }
+
+    private static String normalizeBaseUrl(String url) {
+        if (url == null) {
+            return "";
+        }
+        return url.endsWith("/") ? url.substring(0, url.length() - 1) : url;
     }
 
     private String getEventName(Long eventId) {

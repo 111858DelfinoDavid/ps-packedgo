@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -42,6 +43,9 @@ public class OrderServiceImpl implements OrderService {
     private final PaymentServiceClient paymentServiceClient;
     private final EventServiceClient eventServiceClient;
     private final EmailService emailService;
+
+    @Value("${app.frontend.base-url:http://localhost:3000}")
+    private String frontendBaseUrl;
     
     @Override
     @Transactional
@@ -89,15 +93,16 @@ public class OrderServiceImpl implements OrderService {
 
         // 4. Crear Pago en Stripe
         try {
+            String baseUrl = normalizeBaseUrl(frontendBaseUrl);
             PaymentServiceRequest paymentRequest = PaymentServiceRequest.builder()
                     .adminId(adminId)
                     .orderId(order.getOrderNumber())
                     .amount(order.getTotalAmount())
                     .description("Orden " + order.getOrderNumber() + " - PackedGo Events")
                     // URLs simples, sin sessionId
-                    .successUrl("http://localhost:3000/customer/orders/success?orderId=" + order.getOrderNumber())
-                    .failureUrl("http://localhost:3000/customer/dashboard?paymentStatus=failure&orderId=" + order.getOrderNumber())
-                    .pendingUrl("http://localhost:3000/customer/dashboard?paymentStatus=pending&orderId=" + order.getOrderNumber())
+                .successUrl(baseUrl + "/customer/orders/success?orderId=" + order.getOrderNumber())
+                .failureUrl(baseUrl + "/customer/dashboard?paymentStatus=failure&orderId=" + order.getOrderNumber())
+                .pendingUrl(baseUrl + "/customer/dashboard?paymentStatus=pending&orderId=" + order.getOrderNumber())
                     .build();
 
             PaymentServiceResponse paymentResponse = paymentServiceClient.createPaymentStripe(paymentRequest);
@@ -240,6 +245,13 @@ public class OrderServiceImpl implements OrderService {
         });
         
         return order;
+    }
+
+    private static String normalizeBaseUrl(String url) {
+        if (url == null) {
+            return "";
+        }
+        return url.endsWith("/") ? url.substring(0, url.length() - 1) : url;
     }
 
     /**
