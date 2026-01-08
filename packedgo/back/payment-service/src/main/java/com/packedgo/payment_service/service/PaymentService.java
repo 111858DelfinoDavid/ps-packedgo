@@ -83,7 +83,10 @@ public class PaymentService {
         
         StripeCheckoutRequest stripeRequest = StripeCheckoutRequest.builder()
             .orderId(request.getOrderId())
+            .customerEmail(request.getPayerEmail())
             .items(items)
+            .successUrl(request.getSuccessUrl())
+            .cancelUrl(request.getFailureUrl())
             .build();
         
         try {

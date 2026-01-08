@@ -8,9 +8,10 @@ services:
       dockerfile: Dockerfile
     ports:
       - "8080:8080"
+    env_file:
+      - ./api-gateway/.env
     environment:
       - SPRING_PROFILES_ACTIVE=docker
-      - JWT_SECRET=mySecretKey123456789PackedGoAuth2025VerySecureKey
     depends_on:
       - auth-service
       - users-service

@@ -81,7 +81,9 @@ public class StripeService {
             // Metadata para tracking
             Map<String, String> metadata = new HashMap<>();
             metadata.put("orderId", request.getOrderId());
-            metadata.put("customerEmail", request.getCustomerEmail());
+            if (request.getCustomerEmail() != null && !request.getCustomerEmail().isBlank()) {
+                metadata.put("customerEmail", request.getCustomerEmail());
+            }
             
             // Construir URLs
             String successUrl = request.getSuccessUrl() != null ? 
@@ -97,7 +99,10 @@ public class StripeService {
                 .setMode(SessionCreateParams.Mode.PAYMENT)
                 .setSuccessUrl(successUrl)
                 .setCancelUrl(cancelUrl)
-                .setCustomerEmail(request.getCustomerEmail())
+                .setCustomerEmail(
+                    (request.getCustomerEmail() != null && !request.getCustomerEmail().isBlank())
+                        ? request.getCustomerEmail()
+                        : null)
                 .addAllLineItem(lineItems)
                 .putAllMetadata(metadata)
                 .build();

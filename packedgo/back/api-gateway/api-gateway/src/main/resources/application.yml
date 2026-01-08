@@ -31,7 +31,7 @@ spring:
       routes:
         # Auth Service Routes
         - id: auth-login
-          uri: http://auth-service:8081
+          uri: ${AUTH_SERVICE_URL:http://auth-service:8081}
           predicates:
             - Path=/api/auth/**
           filters:
@@ -39,7 +39,7 @@ spring:
         
         # Users Service Routes
         - id: users-service
-          uri: http://users-service:8082
+          uri: ${USERS_SERVICE_URL:http://users-service:8082}
           predicates:
             - Path=/api/user-profiles/**, /api/admin/employees/**, /api/employee/**, /api/internal/employees/**
           filters:
@@ -47,14 +47,14 @@ spring:
         
         # Event Service Routes
         - id: event-service-public
-          uri: http://event-service:8086
+          uri: ${EVENT_SERVICE_URL:http://event-service:8086}
           predicates:
             - Path=/api/event-service/event, /api/event-service/event/**, /api/event-service/consumption/event/**
           filters:
             - name: PublicEndpointFilter
         
         - id: event-service-protected
-          uri: http://event-service:8086
+          uri: ${EVENT_SERVICE_URL:http://event-service:8086}
           predicates:
             - Path=/api/event-service/**, /api/event-service/category/**, /api/event-service/consumption/**, /api/event-service/passes/**, /api/event-service/tickets/**
           filters:
@@ -62,7 +62,7 @@ spring:
         
         # Order Service Routes
         - id: order-service
-          uri: http://order-service:8084
+          uri: ${ORDER_SERVICE_URL:http://order-service:8084}
           predicates:
             - Path=/api/cart/**, /api/orders/**
           filters:
@@ -70,14 +70,14 @@ spring:
         
         # Payment Service Routes
         - id: payment-service-public
-          uri: http://payment-service:8085
+          uri: ${PAYMENT_SERVICE_URL:http://payment-service:8085}
           predicates:
             - Path=/api/payments/health, /api/webhooks/stripe
           filters:
             - name: PublicEndpointFilter
         
         - id: payment-service-protected
-          uri: http://payment-service:8085
+          uri: ${PAYMENT_SERVICE_URL:http://payment-service:8085}
           predicates:
             - Path=/api/payments/**
           filters:
@@ -85,7 +85,7 @@ spring:
         
         # Analytics Service Routes
         - id: analytics-service
-          uri: http://analytics-service:8087
+          uri: ${ANALYTICS_SERVICE_URL:http://analytics-service:8087}
           predicates:
             - Path=/api/dashboard/**
           filters:

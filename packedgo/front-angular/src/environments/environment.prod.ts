@@ -1,8 +1,12 @@
 export const environment = {
   production: true,
-  apiUrl: 'https://your-production-domain.com',
-  authServiceUrl: 'https://your-production-domain.com/api',
-  usersServiceUrl: 'https://your-production-domain.com/api',
-  eventsServiceUrl: 'https://your-production-domain.com/api',
-  ordersServiceUrl: 'https://your-production-domain.com/api',
+  // Same-origin API (served by Nginx reverse-proxy to the gateway)
+  apiUrl: '/api',
+  authServiceUrl: '/api',
+  usersServiceUrl: '/api',
+  eventServiceUrl: '/api',
+  eventsServiceUrl: '/api',
+  ordersServiceUrl: '/api',
+  paymentsServiceUrl: '/api',
+  analyticsServiceUrl: '/api',
 };
