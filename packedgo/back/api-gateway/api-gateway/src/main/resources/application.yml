@@ -12,9 +12,9 @@ spring:
         corsConfigurations:
           '[/**]':
             allowedOrigins:
-              - "http://localhost:3000"
-              - "http://localhost:4200"
-              - "http://localhost:4201"
+              - "https://www.packedgo.com"
+              - "https://packedgo.com"
+              - "https://api.packedgo.com"
             allowedMethods:
               - GET
               - POST
